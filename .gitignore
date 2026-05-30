@@ -1,0 +1,121 @@
+# =====================================================
+# Unity 自动生成目录（锚定到项目根，避免误伤 Assets/ 下同名目录）
+# =====================================================
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# 内存快照与录制（Profiler/Recorder 输出，根目录）
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Burst 编译缓存（首次启动会重建）
+/[Bb]urst[Dd]ebug[Ii]nformation_DoNotShip/
+
+# 自动生成的代码资源（GeneratedAssets 由项目工具链产出，可重建）
+/GeneratedAssets/
+
+# YooAsset 资源打包输出目录
+/Bundles/
+/yoo/
+
+# Luban codegen 工具 DLL（构建期工具，临时置于根目录，最终位置待定——见 docs/adr/0009）。
+# 暂不入库；确定归属（如 Tools/Luban）后再决定跟踪策略。需强制跟踪用 git add -f。
+/Luban/
+
+# MCP For Unity 截屏目录（AI 生成的临时截图，不入库）。
+# 已移出 Assets 到项目根 Screenshots/（manage_camera output_folder="Screenshots"）；保留 Assets 旧路径规则兼容历史与 Editor 默认回退。
+/[Ss]creenshots/
+/[Aa]ssets/[Ss]creenshots/
+
+# Addressables 自动生成产物（切到 Addressables 时手动启用）
+# /[Aa]ssets/[Ss]treamingAssets/aa.meta
+# /[Aa]ssets/[Ss]treamingAssets/aa/*
+# /[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# =====================================================
+# IDE / 编辑器（每个开发者环境不同，不应入库；均锚定到项目根）
+# =====================================================
+# Visual Studio
+/.vs/
+/.vsconfig
+
+# JetBrains Rider / IntelliJ
+/.idea/
+*.DotSettings.user
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# VS Code —— 共享配置入库，仅忽略本地状态
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Trae IDE
+/.trae/
+
+# Claude Code —— 团队共享配置入库，本地运行时数据忽略
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+!.claude/agents/
+!.claude/hooks/
+!.claude/commands/
+
+# C# 工程/解决方案（Unity 自动重新生成，锚定根以保护 Package 内的真实工程）
+/*.csproj
+/*.sln
+/*.slnx
+/*.unityproj
+
+# =====================================================
+# 操作系统生成文件（可出现在任意目录，不锚定）
+# =====================================================
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+/$RECYCLE.BIN/
+
+# =====================================================
+# 平台构建工具缓存
+# =====================================================
+# Gradle（Android 构建缓存）
+/.gradle/
+
+# 导出的工程目录（Android Studio / Xcode）
+/ExportedObj/
+
+# =====================================================
+# 平台构建产物（开始出包时手动启用）
+# =====================================================
+# Android
+# *.apk
+# *.aab
+# *.apks
+# *.keystore
+# *.jks
+
+# iOS
+# *.ipa
+# *.dSYM
+# *.dSYM.zip
+
+# 通用可执行包体
+# *.app
+# *.exe
+
+# Unity 崩溃报告与 Crashlytics 标识
+# sysinfo.txt
+# crashlytics-build.properties
