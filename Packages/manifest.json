@@ -1,7 +1,7 @@
 {
   "dependencies": {
+    "com.anklebreaker.unity-mcp": "https://github.com/AnkleBreaker-Studio/unity-mcp-plugin.git",
     "com.code-philosophy.hybridclr": "https://github.com/focus-creative-games/hybridclr_unity.git",
-    "com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
     "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.neon-izm.tmpro-fonts-rude": "https://github.com/neon-izm/UnityTextMeshProNotoSansForRude.git#upm",

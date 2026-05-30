@@ -18,8 +18,8 @@
 **Why:** 包更新会覆盖修改；这是动手前的判断，skill 触发不可靠，必须常驻。
 
 ### 2. 不直接编辑 `.unity` / `.prefab` YAML 文件
-场景与 Prefab 必须通过 MCP 工具（`manage_gameobject` / `manage_components` / `manage_scene` / `manage_prefabs`）修改。
-**Why:** 直接改 YAML 会导致 GUID/fileID 断链、Editor 不会自动刷新（需手动 Reimport）、版本控制冲突极难合并。具体 MCP 工具用法见 skill `unity-mcp-skill`。
+场景与 Prefab 必须通过 Unity MCP 的 `unity_*` 工具修改（`unity_gameobject_*` / `unity_component_*` / `unity_scene_*` / `unity_asset_create_prefab` 等），不要手改 YAML。
+**Why:** 直接改 YAML 会导致 GUID/fileID 断链、Editor 不会自动刷新（需手动 Reimport）、版本控制冲突极难合并。项目侧调用要点见 `docs/unity-mcp-tips.md`。
 **How to apply:** 任何 `Assets/**/*.unity` 或 `*.prefab` 的改动一律走 MCP；只有读取/搜索 YAML 内容（Grep 定位）才能用文件工具。
 
 ### 3. 不确定时先沟通
@@ -157,6 +157,6 @@ C# XML doc 按真 XML 规范解析，正文裸 `<T>` 会被当成未知元素 �
 |---|---|
 | 使用框架 API（Command / Model / System / 注入 / 事件等） | `Assets/Game/AGENTS.md`（目录就近自动加载） |
 | 改框架源码（接口依赖、XML doc、注释风格等内部约定） | `Assets/Game/Framework/AGENTS.md`（目录就近自动加载） |
-| Unity 场景 / GameObject / 组件 / Prefab 操作的 MCP 工具用法 | skill `unity-mcp-skill`（系统内置） |
+| Unity 场景 / GameObject / 组件 / Prefab 操作的 MCP 工具用法 | `docs/unity-mcp-tips.md`（项目侧要点）+ MCP 自带工具描述 |
 | UI / Scene 截图（项目专属约定） | skill `unity-screenshot` |
 | 提议规则演进的归类与落地格式 | skill `propose-rule-evolution` |
