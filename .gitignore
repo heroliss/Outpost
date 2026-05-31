@@ -28,9 +28,7 @@
 /Luban/
 
 # MCP For Unity 截屏目录（AI 生成的临时截图，不入库）。
-# 已移出 Assets 到项目根 Screenshots/（manage_camera output_folder="Screenshots"）；保留 Assets 旧路径规则兼容历史与 Editor 默认回退。
 /[Ss]creenshots/
-/[Aa]ssets/[Ss]creenshots/
 
 # Addressables 自动生成产物（切到 Addressables 时手动启用）
 # /[Aa]ssets/[Ss]treamingAssets/aa.meta
