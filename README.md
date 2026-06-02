@@ -41,7 +41,7 @@
 ## 🚀 极简示例
 
 ```csharp
-// Model —— 持有数据，RP<T> 可订阅、Inspector 可见、覆盖任意类型（using Game.Framework;）
+// Model —— 持有数据，RP<T> 可订阅、Inspector 可见、覆盖任意类型（using R3;）
 public class PlayerModel : MonoModelBase
 {
     [field: SerializeField] public RP<int> HP { get; private set; } = new(100);
