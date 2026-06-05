@@ -23,10 +23,13 @@
 /Bundles/
 /yoo/
 
-# 资源加载 Demo 一键本地 CDN 的部署目录（DemoCdnBuilder 构建产物平铺于此 + python 起服务）
+# 本地 CDN 联调部署目录（菜单 SSFramework/资源构建/部署到本地 CDN 平铺产物于此 + python 起服务）
 /CDN/
 
-# Host 模式内置首包输出（DemoCdnBuilder 构建时拷进 StreamingAssets 的内置清单，属构建产物、可重建）
+# 生产资源构建产物（FrameworkAssetBuilder 的 CDN 待上传目录，可重建，CI 上传后即可丢弃）
+/BuildOutput/
+
+# Host 模式内置首包输出（构建时按 profile 首包策略拷进 StreamingAssets 的内置清单，属构建产物、可重建）
 /Assets/StreamingAssets/yoo/
 /Assets/StreamingAssets/yoo.meta
 

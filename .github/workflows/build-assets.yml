@@ -1,0 +1,125 @@
+# 资源包构建 + 发布到 CDN（YooAsset）
+#
+# 调用的是工程里的 Game.Framework.Build.FrameworkAssetBuilder.BuildAll（Unity batchmode -executeMethod）。
+# 「打哪些包 + 每包参数（首包 tag / 内置 shader 包开关）」由入库的构建配置 FrameworkAssetBuildProfile 决定；
+# CI 仅用 -version / -output（必要时 -packages）覆盖。产物整理成「每个包一个子目录」的 CDN 待上传结构，
+# 上传到 CDN 那一步是本文件里的「TODO」步骤——填上你的 CDN 厂商命令即可。
+#
+# 默认用「自托管 Windows runner」：机器上已装好 Unity（无需在 CI 里激活授权）、Library 缓存常驻、
+# 增量构建快——对个人 / 小团队最省心。想用 GitHub 托管 runner 见文件最下方 GameCI 备选方案。
+
+name: Build Assets (YooAsset)
+
+on:
+  # 手动触发：填版本号 + 选平台
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "资源版本号（如 1.2.3）"
+        required: true
+        default: "1.0.0"
+      buildTarget:
+        description: "构建平台"
+        required: true
+        default: "Android"
+        type: choice
+        options:
+          - Android
+          - StandaloneWindows64
+          - iOS
+  # 推送 assets-v* 标签自动触发（如 git tag assets-v1.2.3 && git push --tags）
+  push:
+    tags:
+      - "assets-v*"
+
+jobs:
+  build-assets:
+    # 自托管 Windows runner（在该机器上安装并注册 GitHub Actions runner，且已装对应版本 Unity）。
+    runs-on: [self-hosted, windows]
+
+    env:
+      # 改成你机器上的 Unity 安装路径（版本须与 ProjectSettings 里的编辑器版本一致）。
+      UNITY_PATH: 'C:\Program Files\Unity\Hub\Editor\6000.3.14f1\Editor\Unity.exe'
+      # 构建产物的 CDN 待上传目录（每个包一个子目录）。
+      CDN_OUTPUT: '${{ github.workspace }}\BuildOutput\CDN'
+
+    steps:
+      - name: Checkout（含 Git LFS）
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: 解析版本号与平台
+        id: vars
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "push") {
+            $v = "${{ github.ref_name }}" -replace '^assets-v', ''
+            $t = "Android"   # 标签触发时的默认平台；要多平台可把本 job 拆成 matrix
+          } else {
+            $v = "${{ github.event.inputs.version }}"
+            $t = "${{ github.event.inputs.buildTarget }}"
+          }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "target=$t"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "version=$v  target=$t"
+
+      - name: 构建资源包（Unity batchmode）
+        shell: pwsh
+        run: |
+          $log = "$env:GITHUB_WORKSPACE\build-assets.log"
+          & "$env:UNITY_PATH" -batchmode -quit -nographics `
+            -projectPath "$env:GITHUB_WORKSPACE" `
+            -buildTarget "${{ steps.vars.outputs.target }}" `
+            -executeMethod Game.Framework.Build.FrameworkAssetBuilder.BuildAll `
+            -version "${{ steps.vars.outputs.version }}" `
+            -output "$env:CDN_OUTPUT" `
+            -logFile "$log"
+          $code = $LASTEXITCODE
+          if (Test-Path $log) { Write-Host "----- Unity 日志末尾 -----"; Get-Content $log -Tail 100 }
+          if ($code -ne 0) { throw "Unity 资源构建失败，exit=$code" }
+
+      - name: 上传到 CDN（TODO：换成你的厂商命令）
+        shell: pwsh
+        run: |
+          # 产物在 $env:CDN_OUTPUT 下，已按「每个包一个子目录」组织，正好对应运行时 GameRemoteService 的
+          # {CDN}/{包名}/{文件}。把它整体同步到 CDN bucket，更新各包的 .version 指针即等于「发布新版本」。
+          # 不同厂商示例（任选其一，凭据放进仓库 Secrets，别写死）：
+          #   阿里云 OSS:  ossutil cp -r "$env:CDN_OUTPUT" oss://your-bucket/ --update
+          #   AWS S3:      aws s3 sync "$env:CDN_OUTPUT" s3://your-bucket/
+          #   腾讯云 COS:  coscmd upload -r "$env:CDN_OUTPUT" /
+          Write-Host "TODO: 上传 $env:CDN_OUTPUT 到你的 CDN，并更新 .version 指针"
+
+      - name: 归档产物（便于回溯 / 手动上传）
+        uses: actions/upload-artifact@v4
+        with:
+          name: assets-${{ steps.vars.outputs.target }}-${{ steps.vars.outputs.version }}
+          path: ${{ env.CDN_OUTPUT }}
+          if-no-files-found: error
+
+# ============================================================================
+# 备选：GitHub 托管 runner（无自有机器时）—— 用 GameCI
+# ----------------------------------------------------------------------------
+# - Linux runner 可出 Android / WebGL / Linux；iOS/Mac 需 macos runner；Windows Standalone 需 windows runner。
+# - 必须把 Unity 授权放进 Secrets（UNITY_LICENSE / UNITY_EMAIL / UNITY_PASSWORD 或 serial）。
+# - 构建较慢、吃分钟数；建议缓存 Library/ 加速增量构建。
+# 大致形如：
+#
+#   jobs:
+#     build-assets:
+#       runs-on: ubuntu-latest
+#       steps:
+#         - uses: actions/checkout@v4
+#           with: { lfs: true }
+#         - uses: actions/cache@v4
+#           with:
+#             path: Library
+#             key: Library-${{ hashFiles('Assets/**','Packages/**','ProjectSettings/**') }}
+#         - uses: game-ci/unity-builder@v4
+#           env:
+#             UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+#           with:
+#             targetPlatform: Android
+#             buildMethod: Game.Framework.Build.FrameworkAssetBuilder.BuildAll
+#             # 注：通过 buildMethod 走自定义构建；-version/-output 等参数可改用环境变量在 BuildAll 里读取。
+# ============================================================================
