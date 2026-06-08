@@ -22,6 +22,9 @@
 # 资源构建产物（全收在 AssetBuild/：Bundles 原始产物 / Deploy 平铺发布 / Downloaded 下载缓存），可重建
 /AssetBuild/
 
+# YooAsset 原生窗口/默认设置的构建输出落点（框架管线已改输出到 AssetBuild/Bundles；这个根目录是走原生默认路径时留下的散产物），可重建
+/[Bb]undles/
+
 # Host 模式内置首包输出（构建时按 profile 首包策略拷进 StreamingAssets 的内置清单，属构建产物、可重建）
 /Assets/StreamingAssets/yoo/
 /Assets/StreamingAssets/yoo.meta
