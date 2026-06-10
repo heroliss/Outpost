@@ -21,6 +21,7 @@
 场景与 Prefab 必须通过 Unity MCP 的 `unity_*` 工具修改（`unity_gameobject_*` / `unity_component_*` / `unity_scene_*` / `unity_asset_create_prefab` 等），不要手改 YAML。
 **Why:** 直接改 YAML 会导致 GUID/fileID 断链、Editor 不会自动刷新（需手动 Reimport）、版本控制冲突极难合并。项目侧调用要点见 `docs/unity-mcp-tips.md`。
 **How to apply:** 任何 `Assets/**/*.unity` 或 `*.prefab` 的改动一律走 MCP；只有读取/搜索 YAML 内容（Grep 定位）才能用文件工具。
+⚠ **动手前先确认编辑器不在 Play 模式**（查 editor state 或 `EditorApplication.isPlayingOrWillChangePlaymode`）——Play 下的场景修改停止运行即全部回滚（工具返回 success 也是白做），且节点路径解析可能异常；在 Play 就先停掉再改，改完 `unity_scene_save` 落盘。
 
 ### 3. 不确定时先沟通
 以下情况停下来问用户，不擅自推进：
