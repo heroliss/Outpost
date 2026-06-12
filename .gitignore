@@ -36,6 +36,14 @@
 # MCP For Unity 截屏目录（AI 生成的临时截图，不入库）。
 /[Ss]creenshots/
 
+# HybridCLR Installer 按机器生成的本地数据（il2cpp_plus 魔改源码 + 仓库克隆，数百 MB~GB 级），
+# 每台开发机/CI 各自跑一次 HybridCLR → Installer 重建，不入库。
+/HybridCLRData/
+
+# 热更 DLL 中转目录（FrameworkHotUpdateBuilder 每次构建全量重建：热更 DLL/.bytes + AOT 补元数据 + 清单），构建产物不入库。
+/Assets/HotUpdateDlls/
+/Assets/HotUpdateDlls.meta
+
 # Addressables 自动生成产物（切到 Addressables 时手动启用）
 # /[Aa]ssets/[Ss]treamingAssets/aa.meta
 # /[Aa]ssets/[Ss]treamingAssets/aa/*

@@ -5,14 +5,14 @@
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "fefec182a693f9bf5c33007f5a5096d8972a2e41"
+      "hash": "55cd393fe53c4ed7ee9a38124b4d8e5f05f5a323"
     },
     "com.code-philosophy.hybridclr": {
       "version": "https://github.com/focus-creative-games/hybridclr_unity.git",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "4feac30cb2e105992986c737f7f54992b8300e1a"
+      "hash": "e4def761d69b27b7b51a5de0f6d272861416a2d6"
     },
     "com.cysharp.r3": {
       "version": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",
