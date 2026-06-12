@@ -4,7 +4,8 @@
     "references": [
         "Game.Framework",
         "UniTask",
-        "R3"
+        "R3",
+        "R3.Unity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
