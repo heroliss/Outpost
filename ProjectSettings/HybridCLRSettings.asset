@@ -21,6 +21,9 @@ MonoBehaviour:
   - {fileID: 5897886265953266890, guid: a1be8d4b4c7dcd243aa2e249c1dc5973, type: 3}
   - {fileID: 5897886265953266890, guid: aa53c14045083074da8db914ca54ec1b, type: 3}
   - {fileID: 5897886265953266890, guid: 9af3f3c075c239141882c76399ee0af1, type: 3}
+  - {fileID: 5897886265953266890, guid: a8a9fbce438e5654296d87431c337128, type: 3}
+  - {fileID: 5897886265953266890, guid: 25e6a4ca69f37d94fb53e8de80a1809a, type: 3}
+  - {fileID: 5897886265953266890, guid: 26f3ae245688305419621e470763f774, type: 3}
   hotUpdateAssemblies: []
   preserveHotUpdateAssemblies: []
   hotUpdateDllCompileOutputRootDir: HybridCLRData/HotUpdateDlls
