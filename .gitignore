@@ -29,9 +29,9 @@
 /Assets/StreamingAssets/yoo/
 /Assets/StreamingAssets/yoo.meta
 
-# Luban codegen 工具 DLL（构建期工具，临时置于根目录，最终位置待定——见 docs/adr/0009）。
-# 暂不入库；确定归属（如 Tools/Luban）后再决定跟踪策略。需强制跟踪用 git add -f。
-/Luban/
+# Luban codegen 工具 DLL（构建期工具，见 docs/adr/0009）。体积大且可从官方 release 重新下载，不入库；
+# 新机器从 https://github.com/focus-creative-games/luban 的 release 解压到 Tools/Luban/ 即可。
+/Tools/Luban/
 
 # MCP For Unity 截屏目录（AI 生成的临时截图，不入库）。
 /[Ss]creenshots/
