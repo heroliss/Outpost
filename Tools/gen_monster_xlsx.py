@@ -1,4 +1,5 @@
-# 一次性脚本：生成 Configs/Datas/monster.xlsx（Luban Excel 数据源示例）。
+# 一次性脚本：生成 demo 的 monster.xlsx（Luban Excel 数据源示例）。
+# 注意：从项目根运行，输出路径相对项目根。
 # 布局遵循 Luban 约定：A 列为标记列，##var 行写字段名，## 行为注释行，数据行 A 列留空。
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
@@ -30,5 +31,6 @@ widths = {"A": 8, "B": 8, "C": 14, "D": 8, "E": 8, "F": 26}
 for col, w in widths.items():
     ws.column_dimensions[col].width = w
 
-wb.save("Configs/Datas/monster.xlsx")
-print("written: Configs/Datas/monster.xlsx")
+_out = "Assets/Game/Framework/Demo/Configs~/Datas/monster.xlsx"
+wb.save(_out)
+print("written:", _out)
