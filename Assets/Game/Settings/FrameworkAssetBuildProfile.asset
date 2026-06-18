@@ -30,5 +30,8 @@ MonoBehaviour:
     _generateBuiltinShaderBundle: 0
   _versionFormat: yyyyMMddHHmmss
   _bundleVersionsToKeep: 2
+  _compression: 2
+  _fileNameStyle: 2
+  _fileOffset: 0
   _localServePort: 8080
   _localServeThrottleKBps: 1000

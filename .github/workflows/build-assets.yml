@@ -1,8 +1,10 @@
 # 资源包构建 + 发布到 CDN（YooAsset）
 #
 # 调用的是工程里的 Game.Framework.Build.FrameworkAssetBuilder.BuildAll（Unity batchmode -executeMethod）。
-# 「打哪些包 + 每包参数（首包 tag / 内置 shader 包开关）」由入库的构建配置 FrameworkAssetBuildProfile 决定；
-# CI 仅用 -version / -output（必要时 -packages）覆盖。产物整理成「每个包一个子目录」的 CDN 待上传结构，
+# 「打哪些包 + 每包参数（首包 tag / 内置 shader 包开关）+ 压缩 / 文件名风格 / 偏移加密」由入库的构建配置
+# FrameworkAssetBuildProfile 决定（内容随产物发布的都在 profile）；CI 仅用 -version / -output（必要时 -packages）覆盖，
+# 外加两个「本机构建过程」开关 -clearBuildCache / -useAssetDependencyDB（不进产物，见 workflow_dispatch 勾选项）。
+# 产物整理成「每个包一个子目录」的 CDN 待上传结构，
 # 上传到 CDN 那一步是本文件里的「TODO」步骤——填上你的 CDN 厂商命令即可。
 #
 # 默认用「自托管 Windows runner」：机器上已装好 Unity（无需在 CI 里激活授权）、Library 缓存常驻、
@@ -27,6 +29,16 @@ on:
           - Android
           - StandaloneWindows64
           - iOS
+      clearBuildCache:
+        description: "清构建缓存后全量重建（怀疑增量缓存损坏时勾，平时关＝走增量更快）"
+        required: false
+        default: false
+        type: boolean
+      useAssetDependencyDB:
+        description: "用资源依赖数据库加速收集阶段（提速，不改产物）"
+        required: false
+        default: false
+        type: boolean
   # 推送 assets-v* 标签自动触发（如 git tag assets-v1.2.3 && git push --tags）
   push:
     tags:
@@ -68,13 +80,22 @@ jobs:
         shell: pwsh
         run: |
           $log = "$env:GITHUB_WORKSPACE\build-assets.log"
-          & "$env:UNITY_PATH" -batchmode -quit -nographics `
-            -projectPath "$env:GITHUB_WORKSPACE" `
-            -buildTarget "${{ steps.vars.outputs.target }}" `
-            -executeMethod Game.Framework.Build.FrameworkAssetBuilder.BuildAll `
-            -version "${{ steps.vars.outputs.version }}" `
-            -output "$env:CDN_OUTPUT" `
-            -logFile "$log"
+          # 基础参数。BuildAll 还认这些可选项（这里没传就走 profile / 默认）：
+          #   -packages A,B            只构建指定包（默认＝profile 里启用的全部）
+          # 偏移加密无 CLI 开关：它要与运行时一致，统一由入库的 FrameworkAssetBuildProfile.FileOffset 决定（内容随产物发布）。
+          $unityArgs = @(
+            "-batchmode", "-quit", "-nographics",
+            "-projectPath", "$env:GITHUB_WORKSPACE",
+            "-buildTarget", "${{ steps.vars.outputs.target }}",
+            "-executeMethod", "Game.Framework.Build.FrameworkAssetBuilder.BuildAll",
+            "-version", "${{ steps.vars.outputs.version }}",
+            "-output", "$env:CDN_OUTPUT",
+            "-logFile", "$log"
+          )
+          # 本机构建过程开关（开关式参数：加了才生效，不带值）。仅 workflow_dispatch 勾选时存在，push 标签触发时为空＝不加。
+          if ("${{ github.event.inputs.clearBuildCache }}" -eq "true")       { $unityArgs += "-clearBuildCache" }
+          if ("${{ github.event.inputs.useAssetDependencyDB }}" -eq "true")  { $unityArgs += "-useAssetDependencyDB" }
+          & "$env:UNITY_PATH" @unityArgs
           $code = $LASTEXITCODE
           if (Test-Path $log) { Write-Host "----- Unity 日志末尾 -----"; Get-Content $log -Tail 100 }
           if ($code -ne 0) { throw "Unity 资源构建失败，exit=$code" }
