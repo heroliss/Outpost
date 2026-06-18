@@ -19,7 +19,13 @@
   </assembly>
   <assembly fullname="Sirenix.Serialization">
     <type fullname="Sirenix.OdinInspector.SerializedMonoBehaviour" preserve="all" />
+    <type fullname="Sirenix.Serialization.DeserializationContext" preserve="all" />
     <type fullname="Sirenix.Serialization.OdinSerializeAttribute" preserve="all" />
+    <type fullname="Sirenix.Serialization.SerializationContext" preserve="all" />
+    <type fullname="Sirenix.Serialization.SerializationUtility" preserve="all" />
+  </assembly>
+  <assembly fullname="Sirenix.Serialization.Config">
+    <type fullname="Sirenix.Serialization.DataFormat" preserve="all" />
   </assembly>
   <assembly fullname="UniTask">
     <type fullname="Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder" preserve="all" />
@@ -37,6 +43,8 @@
     <type fullname="Cysharp.Threading.Tasks.UniTask`1/Awaiter" preserve="all" />
   </assembly>
   <assembly fullname="UnityEngine.CoreModule">
+    <type fullname="UnityEngine.AddComponentMenu" preserve="all" />
+    <type fullname="UnityEngine.Color" preserve="all" />
     <type fullname="UnityEngine.Component" preserve="all" />
     <type fullname="UnityEngine.DefaultExecutionOrder" preserve="all" />
     <type fullname="UnityEngine.DisallowMultipleComponent" preserve="all" />
@@ -52,18 +60,51 @@
     <type fullname="UnityEngine.Object" preserve="all" />
     <type fullname="UnityEngine.Quaternion" preserve="all" />
     <type fullname="UnityEngine.Rect" preserve="all" />
+    <type fullname="UnityEngine.RectTransform" preserve="all" />
     <type fullname="UnityEngine.SceneManagement.LoadSceneMode" preserve="all" />
     <type fullname="UnityEngine.SceneManagement.LocalPhysicsMode" preserve="all" />
     <type fullname="UnityEngine.SceneManagement.Scene" preserve="all" />
     <type fullname="UnityEngine.Screen" preserve="all" />
     <type fullname="UnityEngine.Serialization.FormerlySerializedAsAttribute" preserve="all" />
     <type fullname="UnityEngine.SerializeField" preserve="all" />
+    <type fullname="UnityEngine.TextAsset" preserve="all" />
     <type fullname="UnityEngine.TooltipAttribute" preserve="all" />
     <type fullname="UnityEngine.Transform" preserve="all" />
+    <type fullname="UnityEngine.Vector2" preserve="all" />
     <type fullname="UnityEngine.Vector3" preserve="all" />
   </assembly>
   <assembly fullname="UnityEngine.IMGUIModule">
     <type fullname="UnityEngine.GUI" preserve="all" />
+  </assembly>
+  <assembly fullname="UnityEngine.UI">
+    <type fullname="UnityEngine.UI.CanvasScaler" preserve="all" />
+    <type fullname="UnityEngine.UI.CanvasScaler/ScaleMode" preserve="all" />
+    <type fullname="UnityEngine.UI.Graphic" preserve="all" />
+    <type fullname="UnityEngine.UI.GraphicRaycaster" preserve="all" />
+    <type fullname="UnityEngine.UI.Image" preserve="all" />
+  </assembly>
+  <assembly fullname="UnityEngine.UIElementsModule">
+    <type fullname="UnityEngine.UIElements.Button" preserve="all" />
+    <type fullname="UnityEngine.UIElements.CallbackEventHandler" preserve="all" />
+    <type fullname="UnityEngine.UIElements.ClickEvent" preserve="all" />
+    <type fullname="UnityEngine.UIElements.DisplayStyle" preserve="all" />
+    <type fullname="UnityEngine.UIElements.EventCallback`1" preserve="all" />
+    <type fullname="UnityEngine.UIElements.IStyle" preserve="all" />
+    <type fullname="UnityEngine.UIElements.PickingMode" preserve="all" />
+    <type fullname="UnityEngine.UIElements.Position" preserve="all" />
+    <type fullname="UnityEngine.UIElements.StyleColor" preserve="all" />
+    <type fullname="UnityEngine.UIElements.StyleEnum`1" preserve="all" />
+    <type fullname="UnityEngine.UIElements.StyleLength" preserve="all" />
+    <type fullname="UnityEngine.UIElements.TemplateContainer" preserve="all" />
+    <type fullname="UnityEngine.UIElements.TextElement" preserve="all" />
+    <type fullname="UnityEngine.UIElements.TrickleDown" preserve="all" />
+    <type fullname="UnityEngine.UIElements.UIDocument" preserve="all" />
+    <type fullname="UnityEngine.UIElements.VisualElement" preserve="all" />
+    <type fullname="UnityEngine.UIElements.VisualTreeAsset" preserve="all" />
+  </assembly>
+  <assembly fullname="UnityEngine.UIModule">
+    <type fullname="UnityEngine.Canvas" preserve="all" />
+    <type fullname="UnityEngine.RenderMode" preserve="all" />
   </assembly>
   <assembly fullname="YooAsset">
     <type fullname="YooAsset.AssetHandle" preserve="all" />
@@ -89,6 +130,7 @@
     <type fullname="YooAsset.LoadPackageManifestOperation" preserve="all" />
     <type fullname="YooAsset.LoadPackageManifestOptions" preserve="all" />
     <type fullname="YooAsset.OfflinePlayModeOptions" preserve="all" />
+    <type fullname="YooAsset.PackageDetails" preserve="all" />
     <type fullname="YooAsset.RawFileObject" preserve="all" />
     <type fullname="YooAsset.RequestPackageVersionOperation" preserve="all" />
     <type fullname="YooAsset.ResourceDownloaderOperation" preserve="all" />
@@ -129,6 +171,7 @@
     <type fullname="System.Collections.Generic.IReadOnlyCollection`1" preserve="all" />
     <type fullname="System.Collections.Generic.IReadOnlyDictionary`2" preserve="all" />
     <type fullname="System.Collections.Generic.IReadOnlyList`1" preserve="all" />
+    <type fullname="System.Collections.Generic.KeyNotFoundException" preserve="all" />
     <type fullname="System.Collections.Generic.KeyValuePair`2" preserve="all" />
     <type fullname="System.Collections.Generic.List`1" preserve="all" />
     <type fullname="System.Collections.Generic.List`1/Enumerator" preserve="all" />
@@ -156,9 +199,11 @@
     <type fullname="System.ObjectDisposedException" preserve="all" />
     <type fullname="System.OperationCanceledException" preserve="all" />
     <type fullname="System.ParamArrayAttribute" preserve="all" />
+    <type fullname="System.Predicate`1" preserve="all" />
     <type fullname="System.Reflection.Assembly" preserve="all" />
     <type fullname="System.Reflection.AssemblyName" preserve="all" />
     <type fullname="System.Reflection.BindingFlags" preserve="all" />
+    <type fullname="System.Reflection.ConstructorInfo" preserve="all" />
     <type fullname="System.Reflection.CustomAttributeExtensions" preserve="all" />
     <type fullname="System.Reflection.DefaultMemberAttribute" preserve="all" />
     <type fullname="System.Reflection.FieldInfo" preserve="all" />
@@ -182,6 +227,7 @@
     <type fullname="System.RuntimeTypeHandle" preserve="all" />
     <type fullname="System.Single" preserve="all" />
     <type fullname="System.String" preserve="all" />
+    <type fullname="System.StringComparison" preserve="all" />
     <type fullname="System.Threading.CancellationToken" preserve="all" />
     <type fullname="System.Threading.CancellationTokenRegistration" preserve="all" />
     <type fullname="System.Threading.CancellationTokenSource" preserve="all" />
