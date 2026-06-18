@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 879c7d85708f1fe45a4c19bb4f116929, type: 3}
+  m_Name: FrameworkHotUpdateProfile
+  m_EditorClassIdentifier: Game.Framework.Build.Editor::Game.Framework.Build.FrameworkHotUpdateProfile
+  _hotUpdateAssemblies:
+  - {fileID: 5897886265953266890, guid: cb50195ea23784d48828f6c0cbc7f3e6, type: 3}
+  - {fileID: 5897886265953266890, guid: a1be8d4b4c7dcd243aa2e249c1dc5973, type: 3}
+  - {fileID: 5897886265953266890, guid: aa53c14045083074da8db914ca54ec1b, type: 3}
+  - {fileID: 5897886265953266890, guid: 9af3f3c075c239141882c76399ee0af1, type: 3}
+  - {fileID: 5897886265953266890, guid: a8a9fbce438e5654296d87431c337128, type: 3}
+  - {fileID: 5897886265953266890, guid: 25e6a4ca69f37d94fb53e8de80a1809a, type: 3}
+  - {fileID: 5897886265953266890, guid: 26f3ae245688305419621e470763f774, type: 3}
+  _codePackageName: CodePackage

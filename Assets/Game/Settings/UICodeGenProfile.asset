@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d28a78b3091b6894ca79e8354e16183f, type: 3}
+  m_Name: UICodeGenProfile
+  m_EditorClassIdentifier: Game.Framework.UI.UGui.Editor::Game.Framework.UI.UGui.Editor.UICodeGenProfile
+  _namespaceRoot: Game.Main.UI
+  _outputCodeDir: Assets/Game/Main/UI
+  _generatedCodeDir: Assets/Game/Main/UI/Generated
+  _fileNameTemplate: '{PrefabName}'
+  _builtinComponentPriority:
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Toggle
+  - UnityEngine.UI.Slider
+  - UnityEngine.UI.Scrollbar
+  - UnityEngine.UI.Dropdown
+  - UnityEngine.UI.InputField
+  - UnityEngine.UI.ScrollRect
+  - TMPro.TMP_Dropdown
+  - TMPro.TMP_InputField
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Text
+  - UnityEngine.UI.RawImage
+  - UnityEngine.UI.Image
+  - UnityEngine.CanvasGroup
+  _fieldNameTemplate: '{node}{Component}'
+  _omitComponentTokenWhenContained: 1
+  _componentAliases:
+  - Component: Button
+    Alias: btn
+  - Component: Text
+    Alias: txt
+  - Component: TextMeshProUGUI
+    Alias: txt
+  - Component: TMP_Text
+    Alias: txt
+  - Component: Image
+    Alias: img
+  - Component: RawImage
+    Alias: rawImg
+  - Component: Toggle
+    Alias: tgl
+  - Component: Slider
+    Alias: sld
+  - Component: Scrollbar
+    Alias: scrollbar
+  - Component: ScrollRect
+    Alias: scroll
+  - Component: Dropdown
+    Alias: dd
+  - Component: TMP_Dropdown
+    Alias: dd
+  - Component: InputField
+    Alias: input
+  - Component: TMP_InputField
+    Alias: input
+  - Component: CanvasGroup
+    Alias: cg
+  _autoAssignWindowScript: 1
