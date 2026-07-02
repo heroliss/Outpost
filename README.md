@@ -18,7 +18,7 @@
 | **零分配 Command** | `readonly struct` + 双泛型重载，高频命令零 GC 压力 |
 | **可插拔命令系统** | `ICommandSystem` 是接口注册，替换默认实现即可一处拦截全部命令——日志、回放、撤销/重做、优先级队列、自动化测试都能在此承载 |
 | **响应式数据流统一** | 事件、属性、UniTask、协程、UnityEvent、C# event 均可互转为 `Observable<T>`；状态对 View 返回 `ReadOnlyReactiveProperty<T>` 等只读类型 |
-| **自动生命周期管理** | `SubscriptionSet` 统一登记各类订阅，`OnDestroy` 时一并清理，无需手动维护 |
+| **自动生命周期管理** | `DisposableBag`（`Bag`）统一登记订阅 / 资源句柄 / 池租借，`OnDestroy` 时一并清理，无需手动维护 |
 | **异步取消传导** | Context Dispose 级联取消所有相关异步操作；View 的 `ExecuteCommandAsync` 自动绑定 destroy token |
 
 ---
@@ -34,7 +34,7 @@
 - **写入是单向链路** —— View 任何状态改动必须走 `Command → System → Model`，View 自身不直接写
 - **读取也经过 Command** —— `ReactiveProperty` 持续推送当前值（给 UI 文本订阅）、`Event` 瞬时通知一次（给动画 / 音效）；View 通过只读查询 Command 取得订阅源，两条响应路径互不知道对方存在
 - **MonoBehaviour / Rigidbody 正交于五层** —— 任意层都可以继承 MonoBehaviour 拿到 Inspector 序列化与 Unity 生命周期，引擎能力不影响架构定位
-- **权限由接口编译期约束** —— `IModel` 不能调用 `ISystem`、`View` 不能写 `Model`，越界一律编译报错（不是文档约定，是类型系统强制）
+- **权限由接口编译期约束** —— `IModel` 不能调用 `ISystem`、`View` 不能写 `Model`，越界默认编译报错；`[Inject]` 注入在注入期做同源校验。这是**防误用**的类型约束（刻意绕过——如强转 Context——仍然可行），目标是让"顺手写错"变得困难、让越界必须显式可见，而非运行时沙箱
 
 ---
 
@@ -86,9 +86,9 @@ public class HudView : MonoViewBase
     {
         base.Awake();
         var hp = this.ExecuteCommand(new GetHPStateCommand());
-        Subs.Subscribe(hp, value => _hpText.text = value.ToString());  // 订阅即得 current value
-        Subs.Subscribe<PlayerHurtEvent>(_ => PlayHurtAnim());
-        Subs.Subscribe(_btn.onClick, () => this.ExecuteCommand(new TakeDamageCommand()));
+        Bag.Subscribe(hp, value => _hpText.text = value.ToString());  // 订阅即得 current value
+        Bag.Subscribe<PlayerHurtEvent>(_ => PlayHurtAnim());
+        Bag.Subscribe(_btn.onClick, () => this.ExecuteCommand(new TakeDamageCommand()));
     }
 }
 ```
@@ -109,6 +109,18 @@ public class HudView : MonoViewBase
 
 ---
 
+## 🧪 工程质量基线
+
+以下不是愿景，是当前仓库里**可复核**的维护纪律：
+
+- **测试**：180+ 条 PlayMode 测试秒级跑完、全绿——覆盖容器解析契约、命令分发（含 struct 零装箱路径）、事件总线、生命周期级联（DisposableBag / 取消传导 / 异常隔离）、对象池（重复归还 / 外来实例检测）、UI 窗口栈（cover-reveal / 缓存 / 模态 / 并发打开）。核心编排（如 `UIUtility`）刻意做成渲染中立的纯 C#，可脱离场景单测。命令行护栏：`Tools/run-tests.ps1` batchmode 全量跑（CI / 推送前用）。
+- **文档四层，且与代码同步维护**：本 README（门面）→ [用户手册 18 章](docs/framework-guide.md)（心智模型 + API）→ [ADR](docs/adr/README.md)（每个关键决策的"为什么"与代价）→ 分层 `AGENTS.md`（就近自动加载的协作约束）。改设计必须同步改文档是硬规矩，不留"文档说 A 代码做 B"。
+- **权限双保险**：编译期 `ICanXxx` 接口约束 + `[Inject]` 注入期同源镜像校验（`InjectionPlan`），两条路径共用一套权限模型，堵住"扩展方法编译不过就换注入绕过"的口子。
+- **防泄漏是设计目标不是补丁**：linked CTS 单槽缓存与移交释放、池租借登记的提前归还摘除、停放节点自愈重建、Dispose 幂等与逆序释放——这些边界行为都有注释解释"为什么"并有测试盯着。
+- **零编译警告**：包括 XML doc 的 cref 完整性（泛型尖括号转义约定见 `AGENTS.md`）。
+
+---
+
 ## 🛠 技术栈
 
 构建在以下成熟开源库之上：
@@ -116,8 +128,10 @@ public class HudView : MonoViewBase
 | 库 | 用途 | 在框架中的角色 |
 |---|---|---|
 | [UniTask](https://github.com/Cysharp/UniTask) | 零分配异步 | Async Command、取消令牌传导、与协程互转 |
-| [R3](https://github.com/Cysharp/R3) | 响应式编程 | `ReactiveProperty`、Observable 操作符、`CompositeDisposable` |
-| [YooAsset](https://github.com/tuyoogame/YooAsset) | 资源 provider | 当前默认 provider 实现 |
+| [R3](https://github.com/Cysharp/R3) | 响应式编程 | `ReactiveProperty`、Observable 操作符（`DisposableBag` 底层复用其 `CompositeDisposable`） |
+| [YooAsset](https://github.com/tuyoogame/YooAsset) | 资源 provider | 当前默认 provider 实现（经 `IAssetProvider` 隔离，可整体替换） |
+| [HybridCLR](https://github.com/focus-creative-games/hybridclr) | 代码热更 | 列表驱动的热更范围 + Boot 引导（ADR-0008） |
+| [Luban](https://github.com/focus-creative-games/luban) | 配置表 | 构建期生成代码/数据/清单，运行期自加载配置服务（ADR-0009） |
 | [Odin Inspector](https://odininspector.com) | Inspector 扩展 | 接口类型字段序列化、自定义绘制器 |
 
 ---
@@ -126,7 +140,7 @@ public class HudView : MonoViewBase
 
 | 文档 | 适用对象 | 内容 |
 |---|---|---|
-| **[用户手册](docs/framework-guide.md)** | 框架使用者 | 14 章完整教程，从理念到 API 速查 |
+| **[用户手册](docs/framework-guide.md)** | 框架使用者 | 18 章完整教程，从理念到 API 速查 |
 | [框架使用规则](Assets/Game/AGENTS.md) | AI Agent / 团队成员 | 业务代码遵循的核心约定 |
 | [框架内部编码规则](Assets/Game/Framework/AGENTS.md) | 框架维护者 | 改框架源码时的内部规范 |
 | [项目协作规则](AGENTS.md) | 所有协作者 | 项目级 AI 协作约定 |
@@ -137,20 +151,22 @@ public class HudView : MonoViewBase
 1. 框架理念 / 2. 架构总览 / 3. 快速开始 / 4. Context / 5. Model 与 Event
 6. System / 7. Utility / 8. View / 9. Command / 10. 多上下文
 11. 容器注册与解析规则 / 12. 纯代码上下文 / 13. AssetReference / 14. 数据流统一抽象
+15. 热更新（HybridCLR） / 16. 配置表（Luban） / 17. UI 框架 / 18. 推荐项目结构
 
 ---
 
 ## 🎯 示例项目
 
-`Assets/Game/Framework/Demo/` 提供一组可运行示例：
+`Assets/Game/Framework/Demo/` 是一个可运行的交互式教学 demo（模块化章节外壳 + 左侧导航），由简入深覆盖框架全部能力：
 
-| 示例 | 演示 |
+| 分类 | 章节 |
 |---|---|
-| `MainContext + CounterView` | 最小可用模型，包含同步/异步 Command、struct/class Command、返回值 Command |
-| `ParallelContext + ParallelView` | 平行上下文隔离（操作不影响主上下文） |
-| `ChildContext + ChildView` | 嵌套子上下文（自动继承父级服务） |
-| `CodeView + PureModel / PureSystem` | 纯代码路径（不挂 MonoBehaviour 创建 Context） |
-| `DynamicSpawnView` | 运行时 Instantiate 后自动注入 |
+| 入门 | 框架总览 · 最小闭环（View → Command → Model 单向数据流） |
+| 核心 | Model · 状态与 Inspector / Command · 三态 / System · 逻辑归位 / Event · 事件总线 / 依赖注入 · Container / 多 Context · 作用域树 / 生命周期 · DisposableBag / View · MonoViewBase / View · UIToolkit |
+| 能力 | 对象池 · C#/GameObject / 资源加载 / UI 框架 · 窗口层级 |
+| 进阶 | 配置表 · Luban / 热更 · HybridCLR / YooAsset · 底层实现 等 |
+
+每个操作按钮都是原子的框架操作，旁边附「查看源码」跳转，直接对照代码理解因果。
 
 ---
 
@@ -162,20 +178,23 @@ SSFramework/
 │   └── Game/
 │       ├── AGENTS.md                  ← 框架使用规则
 │       └── Framework/
-│           ├── AGENTS.md              ← 框架内部规则
-│           ├── Scripts/               ← 框架源码
-│           │   ├── Architecture/      ← Context、Container、DI
-│           │   ├── Command/           ← Command 系统
-│           │   ├── Event/             ← Event 总线
-│           │   ├── Model/             ← MonoModelBase
-│           │   ├── System/            ← MonoSystemBase
-│           │   ├── Utility/           ← MonoUtilityBase
-│           │   └── View/              ← MonoViewBase + SubscriptionSet
-│           ├── Demo/                  ← 可运行示例
-│           └── Test/                  ← 单元测试
-├── Packages/
-│   └── com.tuyoogame.yooasset/        ← 当前默认资源 provider 依赖
-├── docs/                              ← 用户手册与协作指南
+│           ├── AGENTS.md              ← 框架内部规则（含程序集结构表）
+│           ├── Core/                  ← 运行时内核（Game.Framework）
+│           │   ├── Context/ Internal/ ← GameContext、Container、DI、注入
+│           │   ├── Command/ System/ Model/ Event/ Utility/ View/  ← 五层
+│           │   ├── Lifecycle/         ← DisposableBag
+│           │   ├── Reactive/          ← RP<T>
+│           │   ├── Pool/              ← 对象池（C# + GameObject）
+│           │   └── Asset/             ← 资源系统抽象（IAssetProvider / AssetReference）
+│           ├── Asset.Yoo/             ← YooAsset provider 模块
+│           ├── UI/ UI.UGui/ UI.Toolkit/ ← UI 框架核心 + 双后端 adapter
+│           ├── Config/                ← 配置表运行时模块 + Luban 生成管线（Editor）
+│           ├── Boot/                  ← 热更引导薄壳（AOT）
+│           ├── Build/Editor/          ← 资源 / 热更构建管线
+│           ├── Editor/                ← 通用编辑器（RPDrawer / AssetReferenceDrawer）
+│           ├── Demo/                  ← 可运行教学 demo
+│           └── Test/                  ← PlayMode 测试
+├── docs/                              ← 用户手册、ADR、协作指南
 ├── README.md                          ← 本文件
 ├── AGENTS.md                          ← 项目级协作规则
 └── CLAUDE.md                          ← Claude Code 入口（→ AGENTS.md）
