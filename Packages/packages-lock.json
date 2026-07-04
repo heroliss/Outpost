@@ -37,15 +37,6 @@
       "dependencies": {},
       "hash": "e5acc106ee196bc5a32fb14cdf2987b0f96d11e0"
     },
-    "com.neon-izm.tmpro-fonts-rude": {
-      "version": "https://github.com/neon-izm/UnityTextMeshProNotoSansForRude.git#upm",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {
-        "com.unity.textmeshpro": "3.0.6"
-      },
-      "hash": "56f9c8f9c4bb3448dc165d688eafdacddf95cbca"
-    },
     "com.tuyoogame.yooasset": {
       "version": "3.0.2-beta",
       "depth": 0,
@@ -382,14 +373,6 @@
         "com.unity.modules.jsonserialize": "1.0.0"
       },
       "url": "https://packages.unity.com"
-    },
-    "com.unity.textmeshpro": {
-      "version": "5.0.0",
-      "depth": 1,
-      "source": "builtin",
-      "dependencies": {
-        "com.unity.ugui": "2.0.0"
-      }
     },
     "com.unity.timeline": {
       "version": "1.8.12",

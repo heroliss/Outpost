@@ -5,7 +5,6 @@
     "com.code-philosophy.luban": "https://github.com/focus-creative-games/luban_unity.git",
     "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
-    "com.neon-izm.tmpro-fonts-rude": "https://github.com/neon-izm/UnityTextMeshProNotoSansForRude.git#upm",
     "com.tuyoogame.yooasset": "3.0.2-beta",
     "com.unity.2d.animation": "13.0.5",
     "com.unity.2d.aseprite": "3.0.2",

@@ -7972,11 +7972,7 @@ MonoBehaviour:
   m_ShouldReimportFontFeatures: 0
   m_FallbackFontAssetTable:
   - {fileID: 11400000, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
-  - {fileID: 11400000, guid: 7140d14797476ea4a906909140b57e9f, type: 2}
   - {fileID: 11400000, guid: 69637c3a9fd3905468eb01d1bd02df11, type: 2}
-  - {fileID: 11400000, guid: 29cef2fa8a1d9314b9ddd6d2791dbe25, type: 2}
-  - {fileID: 11400000, guid: e6a8625c52a073b4e9dcb72129364819, type: 2}
-  - {fileID: 11400000, guid: 2f2e92a35d3f8ba439ec3962ea4d0bdf, type: 2}
   m_FontWeightTable:
   - regularTypeface: {fileID: 0}
     italicTypeface: {fileID: 0}
