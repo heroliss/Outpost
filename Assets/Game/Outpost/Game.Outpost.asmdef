@@ -1,0 +1,21 @@
+{
+    "name": "Game.Outpost",
+    "rootNamespace": "Game.Outpost",
+    "references": [
+        "Game.Framework",
+        "Game.Framework.UI",
+        "Game.Framework.UI.Toolkit",
+        "UniTask",
+        "R3",
+        "R3.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
