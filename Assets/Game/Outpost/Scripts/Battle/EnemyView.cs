@@ -5,7 +5,7 @@ namespace Game.Outpost.Battle
 {
     /// <summary>
     /// 敌人视觉：出生缩放弹出、持续轻微呼吸、攻击时向玩家猛扑一下、受击白闪、血量越低颜色越暗。
-    /// 原型差异（颜色 / 体型 / 形状）由 <see cref="BattleDirector"/> 在刷出时经 <see cref="Init"/> 注入——同一个池化 prefab 服务所有原型。
+    /// 原型差异（颜色 / 体型 / 形状）由 <see cref="BattleDirectorSystem"/> 在刷出时经 <see cref="Init"/> 注入——同一个池化 prefab 服务所有原型。
     /// <para>位置由 director 逐帧经 <see cref="SetGroundPosition"/> 给"地面位置"，本组件在 <c>LateUpdate</c> 把猛扑偏移叠加其上——
     /// 表现动画（扑 / 呼吸 / 弹出）与逻辑位置分离，互不覆盖。实现 <see cref="IPoolable"/> 由框架池在借还时机自动重置。</para>
     /// </summary>

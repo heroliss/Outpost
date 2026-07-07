@@ -29,7 +29,7 @@ namespace Game.Outpost.Battle
     }
 
     /// <summary>
-    /// 玩家选定一个升级：转交 <see cref="BattleDirector"/> 应用到模拟（<c>ApplyModifier</c>）并推进下一波。
+    /// 玩家选定一个升级：转交 <see cref="BattleDirectorSystem"/> 应用到模拟（<c>ApplyModifier</c>）并推进下一波。
     /// 命令自身不碰模拟/表现，只做「意图 → 导演」的一跳——导演是 System、View 不能直接调 System，故经命令中转。
     /// </summary>
     public readonly struct ChooseUpgradeCommand : ICommand
@@ -38,6 +38,6 @@ namespace Game.Outpost.Battle
 
         public ChooseUpgradeCommand(int upgradeId) => _upgradeId = upgradeId;
 
-        public void Execute(ICommandContext ctx) => ctx.GetSystem<BattleDirector>().ChooseUpgrade(_upgradeId);
+        public void Execute(ICommandContext ctx) => ctx.GetSystem<BattleDirectorSystem>().ChooseUpgrade(_upgradeId);
     }
 }

@@ -8,7 +8,7 @@ namespace Game.Outpost.Battle
     /// <item>射程覆盖区 = 青色射程环 + 圈内极淡填充盘（"这块是我的火力范围"）+ 一条缓慢旋转的雷达扫描臂（"正在索敌"）；</item>
     /// <item>危险边界 = 竞技场外缘暖红警戒环（敌人从这条线外刷入），带轻微呼吸让它读成"危险线"。</item>
     /// </list>
-    /// 全部程序生成（LineRenderer 画环 + 程序网格填充/扫描，零贴图资产），几何参数由 <see cref="BattleDirector"/>
+    /// 全部程序生成（LineRenderer 画环 + 程序网格填充/扫描，零贴图资产），几何参数由 <see cref="BattleDirectorSystem"/>
     /// 在模拟就绪 / 升级加射程时注入。射程升级后填充盘与扫描臂一起外扩，成长直接可见。
     /// </summary>
     public sealed class ArenaDecor : MonoBehaviour

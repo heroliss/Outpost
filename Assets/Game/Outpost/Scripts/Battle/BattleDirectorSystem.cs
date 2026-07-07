@@ -19,7 +19,7 @@ namespace Game.Outpost.Battle
     /// <para>模拟内核对 Unity 一无所知，置换为 ECS 后端时本类的"事件→视觉/Model"翻译层原样保留（接缝价值所在）。
     /// System 层不能 ExecuteCommand（防环），故终局直接 <c>GetUtility&lt;IGameFlow&gt;()</c> 驱动流程。</para>
     /// </summary>
-    public sealed class BattleDirector : MonoSystemBase
+    public sealed class BattleDirectorSystem : MonoSystemBase
     {
         [SerializeField, Tooltip("敌人 / 特效的挂载根（世界空间，XY 平面）。")]
         private Transform _arenaRoot;
@@ -107,7 +107,7 @@ namespace Game.Outpost.Battle
                 cancellationToken: this.GetCancellationTokenOnDestroy());
             if (config.State.CurrentValue != ConfigInitState.Ready)
             {
-                Debug.LogError("[BattleDirector] 配置未就绪，无法开始战斗。");
+                Debug.LogError("[BattleDirectorSystem] 配置未就绪，无法开始战斗。");
                 return;
             }
 
@@ -213,9 +213,15 @@ namespace Game.Outpost.Battle
         {
             var hitPos = ToWorld(e.Position);
 
-            // 开火演出压后：入待发缓冲，等炮管转到位（或超时）再放炮口闪光 + 曳光（见 ProcessPendingShots / FireBurst）。
-            // 命中反馈（伤害飘字 + 命中脉冲）表示 hitscan 已结算，保持即时。
-            _pendingShots.Add(new PendingShot { Target = hitPos });
+            // 开火演出的时机门控：命中反馈（飘字 + 命中脉冲）表示 hitscan 已结算、保持即时；但"炮口闪光 + 曳光"
+            // 要等炮管指向该击目标才放，避免"还没转过去就冒火"。
+            // 此刻若已对准（该敌人正是炮管一直追踪的最近目标——常态）就即刻开火；否则入缓冲，交给 ProcessPendingShots
+            // 逐帧等转到位。⚠ 关键：必须在这里当场判定，不能无脑入缓冲——否则等下一帧才检查时，SyncEnemyViews 可能已
+            // 把炮管转向下一个最近目标（尤其这一击刚好击杀），旧击错过瞄准窗口、只能等超时错着方向发射（曾经的 bug）。
+            if (_turret.IsAimedAt(hitPos, AimToleranceDeg))
+                FireBurst(hitPos);
+            else
+                _pendingShots.Add(new PendingShot { Target = hitPos });
 
             SpawnFloater(((int)e.Damage).ToString(), FloaterHitColor, ToWorld(e.Position, FloaterZ));
             SpawnPulse(WithZ(hitPos, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f);
@@ -338,7 +344,12 @@ namespace Game.Outpost.Battle
                 }
             }
 
-            if (hasTarget) _turret.AimAt(nearestPos);
+            // 有待发（还没转到位的）炮击时，炮管优先转向该击目标把这一击"演"完，再回到追踪最近敌人——
+            // 否则刚入缓冲的击会因炮管转去追新的最近目标而永远对不准，最终超时错向发射。待发清空即恢复常态追踪。
+            if (_pendingShots.Count > 0)
+                _turret.AimAt(_pendingShots[0].Target);
+            else if (hasTarget)
+                _turret.AimAt(nearestPos);
         }
 
         private void SyncRangeRing()

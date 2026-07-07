@@ -557,6 +557,7 @@ MonoBehaviour:
   _muzzle: {fileID: 33407334}
   _turnSpeed: 720
   _recoilKick: 0.16
+  _coreColor: {r: 0.4, g: 3, b: 2.8, a: 1}
 --- !u!1 &734175273
 GameObject:
   m_ObjectHideFlags: 0
@@ -1458,10 +1459,10 @@ MonoBehaviour:
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 1
-  m_Antialiasing: 0
+  m_Antialiasing: 2
   m_AntialiasingQuality: 2
   m_StopNaN: 0
-  m_Dithering: 0
+  m_Dithering: 1
   m_ClearDepth: 1
   m_AllowXRRendering: 1
   m_AllowHDROutput: 1
@@ -1736,8 +1737,6 @@ MonoBehaviour:
   _turret: {fileID: 421999204}
   _decor: {fileID: 1298697658}
   _shaker: {fileID: 1182185973}
-  _fastMesh: {fileID: 10200, guid: 0000000000000000e000000000000000, type: 0}
-  _tankMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
   _seed: 12345
 --- !u!1 &1398640616
 GameObject:

@@ -24,7 +24,7 @@ namespace Game.Outpost.Battle
 
     /// <summary>
     /// 波间升级抉择的展示状态：当前三选一候选（<see cref="Choices"/>，会整批换、用 <see cref="ObservableList{T}"/> 让 UI 增量绑定）
-    /// + 是否正在等待玩家抉择（<see cref="IsChoosing"/>，控制升级面板显隐）。由 <see cref="BattleDirector"/> 单向写入
+    /// + 是否正在等待玩家抉择（<see cref="IsChoosing"/>，控制升级面板显隐）。由 <see cref="BattleDirectorSystem"/> 单向写入
     /// （波清空时填充 / 玩家选定后清空），升级面板 View 只读订阅——读写分离同 <see cref="BattleModel"/>。
     /// </summary>
     public sealed class UpgradeModel : IModel

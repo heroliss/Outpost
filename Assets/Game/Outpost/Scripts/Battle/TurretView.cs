@@ -5,7 +5,7 @@ namespace Game.Outpost.Battle
     /// <summary>
     /// 玩家炮塔表现：六边形工事底座 + 中心发光核心（呼吸脉动、开火时随后坐涨亮），炮管（Pivot 子节点）平滑转向瞄准目标、
     /// 开火后坐回弹。底座换形与核心均<b>运行时程序生成</b>（六边形是运行时网格、无资产，只在 Play 生效，不改场景磁盘资产）——
-    /// 让它读成"防御工事"而非一个方块。瞄谁、何时开火全由 <see cref="BattleDirector"/> 驱动（模拟内核是 hitscan，本组件只负责"演"）。
+    /// 让它读成"防御工事"而非一个方块。瞄谁、何时开火全由 <see cref="BattleDirectorSystem"/> 驱动（模拟内核是 hitscan，本组件只负责"演"）。
     /// </summary>
     public sealed class TurretView : MonoBehaviour
     {

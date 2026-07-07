@@ -5,7 +5,7 @@ namespace Game.Outpost.Battle
     /// <summary>
     /// 伤害飘字：池化的世界空间数字，出生瞬间放大弹出、随后上浮 + 淡出，带轻微随机水平漂移防止重叠成柱。
     /// 用引擎自带 <see cref="TextMesh"/>（MeshRenderer，无需 Canvas / TMP 依赖），契合"几何体 + 纯色"美术基调。
-    /// 自身只管表现（动画），生命周期归 <see cref="BattleDirector"/>（池的借还必须走同一个 Bag）。
+    /// 自身只管表现（动画），生命周期归 <see cref="BattleDirectorSystem"/>（池的借还必须走同一个 Bag）。
     /// </summary>
     [RequireComponent(typeof(TextMesh))]
     public sealed class DamageFloater : MonoBehaviour, ITimedEffect
