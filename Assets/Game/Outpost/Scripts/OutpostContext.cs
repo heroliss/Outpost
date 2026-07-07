@@ -1,6 +1,8 @@
 using Game.Framework.Context;
 using Game.Framework.Flow;
+using Game.Framework.Storage;
 using Game.Framework.Systems;
+using Game.Outpost.Save;
 
 namespace Game.Outpost
 {
@@ -22,6 +24,11 @@ namespace Game.Outpost
 
             // 游戏宏观流程（启动/标题/战斗/结算）。RegisterOwned：随本 Context 销毁，连同当前状态子 Context 一并撤。
             builder.RegisterOwned(new GameFlow(), typeof(IGameFlow));
+
+            // 本地存档（历史战绩）：跨局常驻服务与数据都挂根 Context——战斗子 Context 撤了它们还在。
+            // StorageUtility 默认走 persistentDataPath/storage + JSON；RegisterOwned 随根 Context 释放 provider（§26 推荐）。
+            builder.RegisterOwned(new StorageUtility(), typeof(IStorageUtility));
+            builder.RegisterValue(new PlayerRecordModel(), typeof(PlayerRecordModel));
         }
     }
 }

@@ -21,4 +21,21 @@ namespace Game.Outpost.Flow
             Kills = kills;
         }
     }
+
+    /// <summary>
+    /// 结算页的打开参数：本局结果 + 是否刷新了历史最高分。
+    /// <see cref="NewBest"/> 由 <c>SubmitRunResultCommand</c> 在把成绩并入存档时算出（结算页无从自行判断"这一局是否创纪录"，
+    /// 故随结果一起传入），结算页据此显示"新纪录"。
+    /// </summary>
+    public readonly struct ResultArgs
+    {
+        public readonly BattleResult Result;
+        public readonly bool NewBest;
+
+        public ResultArgs(BattleResult result, bool newBest)
+        {
+            Result = result;
+            NewBest = newBest;
+        }
+    }
 }

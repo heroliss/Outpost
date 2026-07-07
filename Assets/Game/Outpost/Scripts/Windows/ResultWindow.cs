@@ -3,17 +3,24 @@ using Game.Framework.UI;
 using Game.Framework.UI.Toolkit;
 using Game.Outpost.Commands;
 using Game.Outpost.Flow;
+using Game.Outpost.Save;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Game.Outpost.Windows
 {
-    /// <summary>结算页：展示本局胜负与成绩。结果经 <c>Open(args)</c> 传入（来自 <c>ResultState</c> 构造参数）。</summary>
+    /// <summary>
+    /// 结算页：展示本局胜负与成绩，并对照历史存档（战绩已在 <c>ResultState</c> 并入存档后经 <see cref="ResultArgs"/> 传入）。
+    /// </summary>
     [UIWindow(Layer = UILayer.Page)]
     public sealed class ResultWindow : UIToolkitWindowBase
     {
+        private static readonly Color RecordColor = new(0.65f, 0.72f, 0.8f);
+        private static readonly Color NewBestColor = new(1f, 0.85f, 0.35f);
+
         private Label _verdict;
         private Label _detail;
+        private Label _record;
 
         protected override void OnCreated()
         {
@@ -21,15 +28,24 @@ namespace Game.Outpost.Windows
             _verdict = OutpostUiKit.Lbl(page, "");
             _verdict.style.fontSize = 22;
             _detail = OutpostUiKit.Lbl(page, "");
+            _record = OutpostUiKit.Lbl(page, "");
             OutpostUiKit.Btn(page, "回标题", () => this.ExecuteCommand(new GoToTitleCommand()));
         }
 
         protected override void OnOpen(object args)
         {
-            var r = args is BattleResult br ? br : default;
+            var a = args is ResultArgs ra ? ra : default;
+            var r = a.Result;
             _verdict.text = r.Victory ? "胜利！哨站守住了" : "失守——哨站沦陷";
             _verdict.style.color = r.Victory ? new Color(0.55f, 0.85f, 0.55f) : new Color(0.9f, 0.45f, 0.4f);
             _detail.text = $"抵达波次 {r.Wave}/{r.WaveCount}　击杀 {r.Kills}　得分 {r.Score}";
+
+            // 存档已在进本状态前并入，这里只读展示历史面（新纪录高亮）。ReadOnlyReactiveProperty 直读当前值——结算页是快照、不需订阅。
+            var rec = this.ExecuteCommand(new GetPlayerRecordCommand());
+            _record.text = a.NewBest
+                ? $"新纪录！历史最佳 {rec.BestScore.CurrentValue} 分"
+                : $"历史最佳 {rec.BestScore.CurrentValue} 分 · 胜 {rec.Wins.CurrentValue}/{rec.Runs.CurrentValue}";
+            _record.style.color = a.NewBest ? NewBestColor : RecordColor;
         }
     }
 }
