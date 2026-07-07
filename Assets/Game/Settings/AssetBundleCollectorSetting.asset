@@ -69,7 +69,29 @@ MonoBehaviour:
     IncludeAssetGUID: 1
     AutoCollectShaders: 1
     IgnoreRuleName: NormalIgnoreRule
-    Groups: []
+    Groups:
+    - GroupName: OutpostGroup
+      GroupDesc: "Outpost \u5782\u76F4\u5207\u7247\u8D44\u6E90\uFF1A\u914D\u7F6E
+        .bytes\uFF08\u6309\u540D\u5BFB\u5740\uFF09+ \u6218\u6597/\u4E3B\u573A\u666F\u3002"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/Game/Outpost/Res
+        CollectorGUID: 5e5c86305700b48458481df639c6565c
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+      - CollectPath: Assets/Game/Outpost/Scenes
+        CollectorGUID: 99db11c7ca6169e438b2769cbb04d4a5
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackSeparately
+        FilterRuleName: CollectScene
+        AssetTags: 
+        UserData: 
   - PackageName: CodePackage
     PackageDesc: "\u70ED\u66F4\u4EE3\u7801\u5305\uFF08\u6846\u67B6\u70ED\u66F4\u6784\u5EFA\u7BA1\u7EBF\u81EA\u52A8\u521B\u5EFA\uFF09"
     EnableAddressable: 1

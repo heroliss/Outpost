@@ -1,0 +1,11 @@
+{
+    "playerMaxHp": 100,
+    "playerAttack": 16,
+    "playerAttackInterval": 0.45,
+    "playerRange": 7,
+    "playerRegen": 2,
+    "playerRadius": 0.5,
+    "arenaRadius": 10,
+    "interWaveDelay": 1.5,
+    "resultDelay": 1.2
+}

@@ -3,11 +3,17 @@
     "rootNamespace": "Game.Outpost",
     "references": [
         "Game.Framework",
+        "Game.Framework.Config",
         "Game.Framework.UI",
         "Game.Framework.UI.Toolkit",
+        "Game.Framework.UI.UGui",
+        "Game.Outpost.Sim",
+        "Luban.Runtime",
         "UniTask",
         "R3",
-        "R3.Unity"
+        "R3.Unity",
+        "ObservableCollections",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

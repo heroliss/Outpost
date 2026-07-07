@@ -1,0 +1,7 @@
+[
+    { "id": 1, "name": "强化弹头", "desc": "攻击力 +6", "kind": "Attack", "value": 6 },
+    { "id": 2, "name": "速射装置", "desc": "攻击间隔 ×0.8", "kind": "AttackSpeed", "value": 0.8 },
+    { "id": 3, "name": "增程雷达", "desc": "索敌半径 +2", "kind": "Range", "value": 2 },
+    { "id": 4, "name": "装甲镀层", "desc": "生命上限 +30（并回复 30）", "kind": "MaxHp", "value": 30 },
+    { "id": 5, "name": "纳米修复", "desc": "每秒回血 +2", "kind": "Regen", "value": 2 }
+]

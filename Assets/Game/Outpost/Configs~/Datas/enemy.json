@@ -1,0 +1,22 @@
+[
+    {
+        "id": 1,
+        "name": "突袭者",
+        "hp": 20,
+        "moveSpeed": 2.6,
+        "attack": 4,
+        "attackInterval": 1.0,
+        "radius": 0.4,
+        "score": 10
+    },
+    {
+        "id": 2,
+        "name": "装甲兵",
+        "hp": 85,
+        "moveSpeed": 1.1,
+        "attack": 12,
+        "attackInterval": 1.6,
+        "radius": 0.7,
+        "score": 30
+    }
+]

@@ -8,19 +8,19 @@ using R3;
 
 namespace Game.Outpost.Flow
 {
-    /// <summary>结算阶段：展示本局成绩。分数走构造参数——一次性实例天然无跨局脏状态。</summary>
+    /// <summary>结算阶段：展示本局成绩。结果走构造参数——一次性实例天然无跨局脏状态。</summary>
     public sealed class ResultState : FlowState
     {
-        private readonly int _score;
+        private readonly BattleResult _result;
 
-        public ResultState(int score) => _score = score;
+        public ResultState(BattleResult result) => _result = result;
 
-        public override string ToString() => $"结算({_score}分)";
+        public override string ToString() => $"结算({(_result.Victory ? "胜" : "败")} {_result.Score}分)";
 
         protected override async UniTask OnEnter(CancellationToken ct)
         {
             var ui = Context.GetUtility<IUIUtility>();
-            await ui.Open<ResultWindow>(_score, ct);
+            await ui.Open<ResultWindow>(_result, ct);
             Bag.Add(Disposable.Create(() => ui.Close<ResultWindow>()));
         }
     }
