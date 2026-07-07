@@ -56,6 +56,8 @@ namespace Game.Outpost.Battle
 
         private IBattleSim _sim;
         private BattleModel _model;
+        private UpgradeModel _upgradeModel;
+        private Tables _cfg;
         private bool _ready;
 
         // 终局 / 波间的定时推进
@@ -66,7 +68,12 @@ namespace Game.Outpost.Battle
         private float _endTimer;
         private bool _betweenWaves;
         private float _waveTimer;
+        private bool _awaitingChoice; // 波清空后停在此、等玩家三选一（IsChoosing 面板弹出中）
         private float _lastRange = -1f;
+
+        // 波间三选一：从全部升级里随机取 3 个不同的候选。随机是纯展示（玩家的选择才是真输入），用领域 List 免每次分配。
+        private const int ChoiceCount = 3;
+        private readonly List<Upgrade> _upgradePool = new();
 
         // 敌人实例 id → 视觉，逐帧同步位置 / 血量；击杀时按 id 回收。
         private readonly Dictionary<int, EnemyView> _enemyViews = new();
@@ -103,11 +110,13 @@ namespace Game.Outpost.Battle
                 return;
             }
 
-            var cfg = config.Tables;
+            _cfg = config.Tables;
+            var cfg = _cfg;
             _resultDelay = cfg.TbBattleGlobal.Data.ResultDelay;
             _interWaveDelay = cfg.TbBattleGlobal.Data.InterWaveDelay;
 
             _model = this.GetModel<BattleModel>();
+            _upgradeModel = this.GetModel<UpgradeModel>();
             var setup = BattleSetupFactory.Build(cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
             _sim = new ReferenceBattleSim();
@@ -135,6 +144,13 @@ namespace Game.Outpost.Battle
             {
                 _endTimer -= dt;
                 if (_endTimer <= 0f) GoToResult();
+                return;
+            }
+
+            // 波清空后停在此、等玩家三选一——面板由 UpgradeModel.IsChoosing 驱动，抉择前不推进。
+            if (_awaitingChoice)
+            {
+                SyncEnemyViews();
                 return;
             }
 
@@ -240,8 +256,56 @@ namespace Game.Outpost.Battle
 
         private void OnWaveCleared(int wave)
         {
+            // 非最后一波清空：停下推进、弹三选一升级面板，等玩家抉择（ChooseUpgrade 才继续）。
+            OfferUpgrades();
+        }
+
+        // ── 波间三选一升级 ─────────────────────────────────────────────────
+
+        // 从全部升级里随机取 3 个不同的候选，填进 UpgradeModel 并置 IsChoosing=true（面板据此弹出）。
+        private void OfferUpgrades()
+        {
+            _upgradePool.Clear();
+            _upgradePool.AddRange(_cfg.TbUpgrade.DataList);
+            // 部分 Fisher–Yates：把随机选中的项换到前 ChoiceCount 个位置。
+            int take = Mathf.Min(ChoiceCount, _upgradePool.Count);
+            for (int i = 0; i < take; i++)
+            {
+                int j = Random.Range(i, _upgradePool.Count);
+                (_upgradePool[i], _upgradePool[j]) = (_upgradePool[j], _upgradePool[i]);
+            }
+
+            _upgradeModel.Choices.Clear();
+            for (int i = 0; i < take; i++)
+            {
+                var u = _upgradePool[i];
+                _upgradeModel.Choices.Add(new UpgradeOption(u.Id, u.Name, u.Desc));
+            }
+
+            _awaitingChoice = true;
+            _upgradeModel.IsChoosing.Value = true;
+        }
+
+        /// <summary>
+        /// 玩家选定一个升级（由 <see cref="ChooseUpgradeCommand"/> 经命令中转调入）：把配置行映射成
+        /// <c>PlayerModifier</c> 应用到模拟，收起面板，短暂"强化定格"后进下一波。仅在等待抉择时有效（防重复点击）。
+        /// </summary>
+        public void ChooseUpgrade(int upgradeId)
+        {
+            if (!_awaitingChoice || _sim == null) return;
+
+            var up = _cfg.TbUpgrade.GetOrDefault(upgradeId);
+            if (up != null) _sim.ApplyModifier(BattleSetupFactory.ToModifier(up));
+
+            _upgradeModel.IsChoosing.Value = false;
+            _upgradeModel.Choices.Clear();
+            _awaitingChoice = false;
+
+            // 强化反馈：玩家位置金色脉冲；射程等即时生效，SyncRangeRing 下帧会外扩射程圈。
+            SpawnPulse(WithZ(_turret.transform.position, PulseZ), new Color(1.5f, 1.15f, 0.4f, 0.9f), 0.5f, 4f, 0.5f);
+
             _betweenWaves = true;
-            _waveTimer = _interWaveDelay;
+            _waveTimer = Mathf.Min(_interWaveDelay, 0.6f); // 抉择已占足停顿，进下一波只留一个短拍
         }
 
         private void SyncEnemyViews()
