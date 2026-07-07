@@ -52,6 +52,7 @@ namespace Game.Outpost.Sim
         public int WaveCount => _setup?.Waves.Length ?? 0;
         public float PlayerHp => _playerHp;
         public float PlayerMaxHp => _player.MaxHp;
+        public float PlayerRange => _player.Range;
         public int Kills { get; private set; }
         public int Score { get; private set; }
         public int EnemyCount => _enemies.Count;
@@ -217,7 +218,7 @@ namespace Game.Outpost.Sim
                     while (e.AttackCooldown <= 0f && _playerHp > 0f)
                     {
                         _playerHp = Math.Max(0f, _playerHp - arch.Attack);
-                        PlayerHit?.Invoke(new PlayerHitEvent(arch.Attack, _playerHp));
+                        PlayerHit?.Invoke(new PlayerHitEvent(e.Id, e.Pos, arch.Attack, _playerHp));
                         e.AttackCooldown += arch.AttackInterval;
                     }
                 }

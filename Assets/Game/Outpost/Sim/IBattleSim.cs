@@ -76,16 +76,24 @@ namespace Game.Outpost.Sim
         }
     }
 
-    /// <summary>玩家被敌人击中。</summary>
+    /// <summary>玩家被敌人击中（表现层据 <see cref="EnemyId"/> 让该敌人猛扑演出、<see cref="Position"/> 定位啃咬特效）。</summary>
     public readonly struct PlayerHitEvent
     {
+        /// <summary>发动这次攻击的敌人实例 id（对应存活列表里的 <see cref="EnemySnapshot.Id"/>）。</summary>
+        public readonly int EnemyId;
+
+        /// <summary>攻击者当前位置（贴近玩家的接触点附近）。</summary>
+        public readonly Vector2 Position;
+
         public readonly float Damage;
 
         /// <summary>受击后的剩余血量（已扣减，不会为负）。</summary>
         public readonly float HpAfter;
 
-        public PlayerHitEvent(float damage, float hpAfter)
+        public PlayerHitEvent(int enemyId, Vector2 position, float damage, float hpAfter)
         {
+            EnemyId = enemyId;
+            Position = position;
             Damage = damage;
             HpAfter = hpAfter;
         }
@@ -115,6 +123,9 @@ namespace Game.Outpost.Sim
         float PlayerHp { get; }
 
         float PlayerMaxHp { get; }
+
+        /// <summary>玩家当前索敌半径（升级会改变）。表现层据此绘制射程圈。</summary>
+        float PlayerRange { get; }
 
         /// <summary>累计击杀数。</summary>
         int Kills { get; }

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6681000396712254683}
   - component: {fileID: 7030227147259057637}
   - component: {fileID: 6596323030715971254}
+  - component: {fileID: 848991786347117759}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -49,7 +50,7 @@ MeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6468520921309673359}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 0
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0
@@ -90,3 +91,19 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &848991786347117759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6468520921309673359}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a684c28a5ea4f2489971e0fa2b113f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.EnemyView
+  _renderer: {fileID: 6596323030715971254}
+  _meshFilter: {fileID: 7030227147259057637}
+  _popDuration: 0.18
+  _flashDuration: 0.12
