@@ -14,7 +14,7 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("本体渲染体（着色 / 白闪都打在它身上）。")]
         private MeshRenderer _renderer;
 
-        [SerializeField, Tooltip("本体 MeshFilter（原型可换形状：圆 = 快速种、方 = 装甲种）。")]
+        [SerializeField, Tooltip("本体 MeshFilter（原型可换形状：箭头 = 快速种、六边形 = 装甲种）。")]
         private MeshFilter _meshFilter;
 
         [SerializeField, Tooltip("出生弹出时长（秒），从 0 缩放到目标体型。")]
@@ -38,6 +38,8 @@ namespace Game.Outpost.Battle
         private float _popElapsed;
         private float _flash;
         private bool _colorDirty;
+        // 箭头原型逐帧转向来袭方向（指向哨站）；六边形等对称原型不转，保持固定朝向。
+        private bool _faceTravel;
 
         // 逻辑地面位置（director 每帧写）+ 猛扑偏移（本组件自演）= 最终位置。
         private Vector3 _groundPos;
@@ -47,8 +49,11 @@ namespace Game.Outpost.Battle
         // 呼吸相位错开，避免整群敌人同频"齐吸"显得机械。
         private float _breathPhase;
 
-        /// <summary>刷出时由 director 调用：注入原型的颜色 / 体型 / 形状并从零弹出。</summary>
-        public void Init(Color color, float diameter, Mesh mesh)
+        /// <summary>
+        /// 刷出时由 director 调用：注入原型的颜色 / 体型 / 形状并从零弹出。
+        /// <paramref name="faceTravel"/> = true 时（箭头等有向原型）逐帧把箭尖转向来袭方向。
+        /// </summary>
+        public void Init(Color color, float diameter, Mesh mesh, bool faceTravel)
         {
             _baseColor = color;
             _diameter = diameter;
@@ -56,9 +61,11 @@ namespace Game.Outpost.Battle
             _popElapsed = 0f;
             _flash = 0f;
             _lungeElapsed = float.MaxValue;
+            _faceTravel = faceTravel;
             _breathPhase = Random.value * Mathf.PI * 2f;
             if (mesh != null && _meshFilter.sharedMesh != mesh) _meshFilter.sharedMesh = mesh;
             transform.localScale = Vector3.zero;
+            transform.localRotation = Quaternion.identity; // 对称原型固定朝向；有向原型下方 LateUpdate 逐帧覆盖
             ApplyColor();
         }
 
@@ -129,6 +136,17 @@ namespace Game.Outpost.Battle
             }
             transform.localPosition = _groundPos + _lungeDir * lungeOffset;
 
+            // ── 朝向：有向原型（箭头）转向来袭方向 = 指向哨站（原点）。敌人径直冲原点，故朝向 = 指向 -groundPos ──
+            if (_faceTravel)
+            {
+                var toOrigin = new Vector2(-_groundPos.x, -_groundPos.y);
+                if (toOrigin.sqrMagnitude > 0.0001f)
+                {
+                    float angle = Mathf.Atan2(toOrigin.y, toOrigin.x) * Mathf.Rad2Deg;
+                    transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+                }
+            }
+
             if (_colorDirty) ApplyColor();
         }
 
@@ -153,6 +171,7 @@ namespace Game.Outpost.Battle
             _popElapsed = float.MaxValue;
             _lungeElapsed = float.MaxValue;
             transform.localScale = Vector3.one;
+            transform.localRotation = Quaternion.identity;
         }
     }
 }

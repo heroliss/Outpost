@@ -45,12 +45,6 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("相机震动（玩家受击反馈）。场景相机不在 Context 子树内，直接场景引用。")]
         private CameraShaker _shaker;
 
-        [SerializeField, Tooltip("快速种网格（顶视圆形）。")]
-        private Mesh _fastMesh;
-
-        [SerializeField, Tooltip("装甲种网格（顶视方形）。")]
-        private Mesh _tankMesh;
-
         [SerializeField, Tooltip("随机种子；0 = 用启动时间（每局不同的出生角度）。战斗结果几乎与种子无关——竞技场旋转对称。")]
         private int _seed;
 
@@ -80,6 +74,13 @@ namespace Game.Outpost.Battle
 
         // 所有一次性特效（曳光 / 脉冲 / 飘字）的统一回收列表——都实现 ITimedEffect。
         private readonly List<MonoBehaviour> _effects = new();
+
+        // 待发射击缓冲：模拟是 hitscan、伤害命中同帧已结算，但"开火演出"（炮口闪光 + 曳光）要压到炮管转到位后才释放，
+        // 避免"还没转过去就冒火"。每帧检查炮管是否对准该击的目标点，对准或超时才发。
+        private struct PendingShot { public Vector3 Target; public float Age; }
+        private readonly List<PendingShot> _pendingShots = new();
+        private const float AimToleranceDeg = 7f;   // 炮口角度差在此内即视为对准
+        private const float MaxAimWait = 0.3f;      // 兜底：超时强发，防目标瞬移/异常时卡住不开火
 
         // 原型演出参数（M1 硬编码：表未含表现字段，进表是后续项）。id=2 装甲种，其余按快速种。
         private static readonly Color FastColor = new(1.0f, 0.34f, 0.22f);
@@ -140,6 +141,9 @@ namespace Game.Outpost.Battle
             AdvanceEffects();
             if (!_ready || _sim == null) return;
 
+            // 待发射击独立于战斗相位推进：无论 tick / 波间 / 抉择 / 终局，缓冲里对准的炮击都照常释放（含最后一击的曳光）。
+            ProcessPendingShots(dt);
+
             if (_ending)
             {
                 _endTimer -= dt;
@@ -190,7 +194,12 @@ namespace Game.Outpost.Battle
             var go = Bag.Spawn(_enemyPrefab, _arenaRoot);
             var view = go.GetComponent<EnemyView>();
             bool tank = e.ArchetypeId == 2;
-            view.Init(tank ? TankColor : FastColor, tank ? 1.3f : 0.8f, tank ? _tankMesh : _fastMesh);
+            // 快速种 = 指向来袭方向的箭头（faceTravel）；装甲种 = 固定朝向的厚重六边形。
+            view.Init(
+                tank ? TankColor : FastColor,
+                tank ? 1.3f : 0.8f,
+                tank ? OutpostMeshes.Hexagon : OutpostMeshes.Arrowhead,
+                !tank);
             view.SetGroundPosition(ToWorld(e.Position));
             _enemyViews[e.EnemyId] = view;
 
@@ -204,14 +213,9 @@ namespace Game.Outpost.Battle
         {
             var hitPos = ToWorld(e.Position);
 
-            // 开火三连演出：炮管后坐 + 炮口闪光 + 曳光飞向命中点（hitscan 的伤害已同帧结算，曳光纯装饰）。
-            _turret.AimAt(hitPos);
-            _turret.Fire();
-            var muzzle = WithZ(_turret.MuzzleWorldPos, TracerZ);
-            SpawnPulse(muzzle, MuzzleColor, 0.15f, 0.55f, 0.12f);
-            var tracer = Bag.Spawn(_tracerPrefab, _arenaRoot).GetComponent<ProjectileTracer>();
-            tracer.Play(muzzle, WithZ(hitPos, TracerZ), TracerColor);
-            _effects.Add(tracer);
+            // 开火演出压后：入待发缓冲，等炮管转到位（或超时）再放炮口闪光 + 曳光（见 ProcessPendingShots / FireBurst）。
+            // 命中反馈（伤害飘字 + 命中脉冲）表示 hitscan 已结算，保持即时。
+            _pendingShots.Add(new PendingShot { Target = hitPos });
 
             SpawnFloater(((int)e.Damage).ToString(), FloaterHitColor, ToWorld(e.Position, FloaterZ));
             SpawnPulse(WithZ(hitPos, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f);
@@ -342,6 +346,36 @@ namespace Game.Outpost.Battle
             if (Mathf.Approximately(_sim.PlayerRange, _lastRange)) return;
             _lastRange = _sim.PlayerRange;
             _decor.SetRange(_lastRange);
+        }
+
+        // 逐帧检查待发缓冲：炮管已对准该击目标（或等待超时）才释放开火演出——炮口闪光 + 从当前炮口射向目标点的曳光。
+        private void ProcessPendingShots(float dt)
+        {
+            for (int i = _pendingShots.Count - 1; i >= 0; i--)
+            {
+                var s = _pendingShots[i];
+                s.Age += dt;
+                if (_turret.IsAimedAt(s.Target, AimToleranceDeg) || s.Age >= MaxAimWait)
+                {
+                    FireBurst(s.Target);
+                    _pendingShots.RemoveAt(i);
+                }
+                else
+                {
+                    _pendingShots[i] = s;
+                }
+            }
+        }
+
+        // 开火演出：炮管后坐 + 炮口闪光 + 曳光从当前炮口飞向目标点（hitscan 伤害早已结算，此处纯装饰）。
+        private void FireBurst(Vector3 targetPos)
+        {
+            _turret.Fire();
+            var muzzle = WithZ(_turret.MuzzleWorldPos, TracerZ);
+            SpawnPulse(muzzle, MuzzleColor, 0.15f, 0.55f, 0.12f);
+            var tracer = Bag.Spawn(_tracerPrefab, _arenaRoot).GetComponent<ProjectileTracer>();
+            tracer.Play(muzzle, WithZ(targetPos, TracerZ), TracerColor);
+            _effects.Add(tracer);
         }
 
         private void SpawnFloater(string content, Color color, Vector3 worldPos)
