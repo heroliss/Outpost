@@ -57,7 +57,10 @@ namespace Game.Outpost.Sim
         }
     }
 
-    /// <summary>敌人被玩家击中（伤害飘字 / 击杀回收的驱动源；<see cref="Killed"/> 为 true 时该敌人已从存活列表移除）。</summary>
+    /// <summary>
+    /// 敌人被玩家击中（伤害飘字 / 击杀回收的驱动源；<see cref="Killed"/> 为 true 时该敌人已从存活列表移除）。
+    /// <see cref="SplashDamage"/> &gt; 0 表示这次击杀发生在离基地过近处、弹头冲击波仍连带削了基地（见 <see cref="IBattleSim"/> 溅射规则）。
+    /// </summary>
     public readonly struct EnemyHitEvent
     {
         public readonly int EnemyId;
@@ -66,23 +69,33 @@ namespace Game.Outpost.Sim
         public readonly float Damage;
         public readonly bool Killed;
 
-        public EnemyHitEvent(int enemyId, int archetypeId, Vector2 position, float damage, bool killed)
+        /// <summary>本次击杀连带给玩家造成的溅射伤害（0 = 无溅射；仅"击杀且离基地够近"时 &gt; 0）。</summary>
+        public readonly float SplashDamage;
+
+        public EnemyHitEvent(int enemyId, int archetypeId, Vector2 position, float damage, bool killed, float splashDamage = 0f)
         {
             EnemyId = enemyId;
             ArchetypeId = archetypeId;
             Position = position;
             Damage = damage;
             Killed = killed;
+            SplashDamage = splashDamage;
         }
     }
 
-    /// <summary>玩家被敌人击中（表现层据 <see cref="EnemyId"/> 让该敌人猛扑演出、<see cref="Position"/> 定位啃咬特效）。</summary>
-    public readonly struct PlayerHitEvent
+    /// <summary>
+    /// 敌人抵达玩家并自爆：一次性造成 <see cref="Damage"/> 伤害后<b>即从存活列表移除</b>（不再贴脸驻留输出）。
+    /// 表现层据 <see cref="EnemyId"/> 回收该敌人视觉、<see cref="ArchetypeId"/> 选爆炸颜色 / 体量、<see cref="Position"/> 定位爆点。
+    /// </summary>
+    public readonly struct EnemyDetonatedEvent
     {
-        /// <summary>发动这次攻击的敌人实例 id（对应存活列表里的 <see cref="EnemySnapshot.Id"/>）。</summary>
+        /// <summary>自爆的敌人实例 id（此刻已从存活列表移除，表现层据此回收其池化实体）。</summary>
         public readonly int EnemyId;
 
-        /// <summary>攻击者当前位置（贴近玩家的接触点附近）。</summary>
+        /// <summary>原型 id（表现层用它选爆炸颜色 / 体量）。</summary>
+        public readonly int ArchetypeId;
+
+        /// <summary>自爆位置（抵达玩家的接触点附近）。</summary>
         public readonly Vector2 Position;
 
         public readonly float Damage;
@@ -90,9 +103,10 @@ namespace Game.Outpost.Sim
         /// <summary>受击后的剩余血量（已扣减，不会为负）。</summary>
         public readonly float HpAfter;
 
-        public PlayerHitEvent(int enemyId, Vector2 position, float damage, float hpAfter)
+        public EnemyDetonatedEvent(int enemyId, int archetypeId, Vector2 position, float damage, float hpAfter)
         {
             EnemyId = enemyId;
+            ArchetypeId = archetypeId;
             Position = position;
             Damage = damage;
             HpAfter = hpAfter;
@@ -107,6 +121,8 @@ namespace Game.Outpost.Sim
     /// <remarks>
     /// <b>驱动契约</b>：单线程使用；调用方按帧 <see cref="Tick"/>，事件在 Tick / Start 调用栈内同步触发——
     /// 事件回调里只做读取与外发，<b>不要</b>回调内再调本接口的写方法（Start / Tick / BeginNextWave / ApplyModifier）。<br/>
+    /// <b>接触模型</b>：敌人径直冲向玩家，抵达即<b>自爆</b>（<see cref="EnemyDetonated"/>，一次性伤害后移除，不驻留输出）；
+    /// 玩家在离基地过近处击毁敌人会吃<b>拦截溅射</b>（<see cref="EnemyHitEvent.SplashDamage"/>，越近越疼、随 <c>PlayerSetup.SplashRadius/SplashDamageScale</c> 配置）。<br/>
     /// <b>聚合读取</b>：属性在两次 Tick 之间保持稳定；存活敌人经 <see cref="EnemyCount"/> + <see cref="GetEnemy"/>
     /// 按索引零分配遍历（索引顺序会因移除而变化，跨帧跟踪用 <see cref="EnemySnapshot.Id"/>）。<br/>
     /// <b>Dispose</b>：参考实现无资源可释放；ECS 后端会持有 World，消费方按 IDisposable 统一管理。
@@ -141,7 +157,9 @@ namespace Game.Outpost.Sim
 
         event Action<EnemySpawnedEvent> EnemySpawned;
         event Action<EnemyHitEvent> EnemyHit;
-        event Action<PlayerHitEvent> PlayerHit;
+
+        /// <summary>敌人抵达玩家并自爆（一次性伤害后即从存活列表移除）。取代了旧的"驻留逐拍攻击"模型。</summary>
+        event Action<EnemyDetonatedEvent> EnemyDetonated;
 
         /// <summary>波次开始（参数 = 波次号，1 起）。Start 内会同步触发第 1 波。</summary>
         event Action<int> WaveStarted;

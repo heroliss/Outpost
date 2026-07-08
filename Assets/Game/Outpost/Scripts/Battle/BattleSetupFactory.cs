@@ -54,6 +54,9 @@ namespace Game.Outpost.Battle
                     Range = g.PlayerRange,
                     RegenPerSecond = g.PlayerRegen,
                     Radius = g.PlayerRadius,
+                    // 拦截溅射（近防炮张力）暂用原型常量、未进配置表——数值调优 / 进表是后续项。
+                    SplashRadius = 2.2f,
+                    SplashDamageScale = 0.6f,
                 },
                 Enemies = enemies.ToArray(),
                 Waves = waves,

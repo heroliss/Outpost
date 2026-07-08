@@ -39,8 +39,17 @@ namespace Game.Outpost.Sim
         /// <summary>每秒回血（不超过上限；只在波次进行中生效）。</summary>
         public float RegenPerSecond;
 
-        /// <summary>玩家碰撞半径：敌人抵近到「双方半径之和」即停下开始攻击。</summary>
+        /// <summary>玩家碰撞半径：敌人抵近到「双方半径之和」即自爆。</summary>
         public float Radius;
+
+        /// <summary>
+        /// 拦截溅射的危险半径：在离基地小于此距离处击毁敌人，弹头冲击波仍会连带削基地（越近越疼）。
+        /// 0 = 关闭溅射。这是"近防炮"的核心张力来源——逼玩家尽量在远处早拦，也让"射程"升级有意义。
+        /// </summary>
+        public float SplashRadius;
+
+        /// <summary>溅射伤害系数：实际溅射 = 敌人 Attack × 本系数 × 贴近度(0..1)。</summary>
+        public float SplashDamageScale;
     }
 
     /// <summary>敌人原型（一种敌人的静态属性）。</summary>
@@ -50,13 +59,13 @@ namespace Game.Outpost.Sim
         public float MaxHp;
         public float MoveSpeed;
 
-        /// <summary>单次攻击对玩家的伤害。</summary>
+        /// <summary>抵达玩家自爆时对玩家的一次性伤害。</summary>
         public float Attack;
 
-        /// <summary>攻击间隔（秒）。抵近后按此节奏持续输出。</summary>
+        /// <summary>攻击间隔（秒）。当前"接触即自爆"模型下未使用，保留列以备后续"驻留攻击型"敌人。</summary>
         public float AttackInterval;
 
-        /// <summary>碰撞半径（决定停下攻击的抵近距离）。</summary>
+        /// <summary>碰撞半径（决定抵达自爆的接触距离 = 与玩家半径之和）。</summary>
         public float Radius;
 
         /// <summary>击杀得分。</summary>

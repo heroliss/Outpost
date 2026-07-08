@@ -22,7 +22,6 @@ namespace Game.Outpost.Sim
             public int ArchIndex;
             public Vector2 Pos;
             public float Hp;
-            public float AttackCooldown;
         }
 
         // 当前波次一条刷怪流的推进状态。Timer 初始为 0：首只在下一次 Tick 立刻刷出。
@@ -59,7 +58,7 @@ namespace Game.Outpost.Sim
 
         public event Action<EnemySpawnedEvent> EnemySpawned;
         public event Action<EnemyHitEvent> EnemyHit;
-        public event Action<PlayerHitEvent> PlayerHit;
+        public event Action<EnemyDetonatedEvent> EnemyDetonated;
         public event Action<int> WaveStarted;
         public event Action<int> WaveCleared;
 
@@ -119,15 +118,20 @@ namespace Game.Outpost.Sim
             if (deltaTime <= 0f || Phase != BattlePhase.WaveActive) return;
 
             TickSpawns(deltaTime);
-            TickEnemies(deltaTime);
-            if (_playerHp <= 0f)
-            {
-                _playerHp = 0f;
-                Phase = BattlePhase.Defeat;
-                return;
-            }
-            TickPlayer(deltaTime);
+            TickEnemies(deltaTime);       // 抵达基地的敌人自爆、伤害玩家
+            if (CheckDefeat()) return;    // 自爆致死：抢在 TickPlayer 回血前判负，避免"已阵亡又被回血救活"
+            TickPlayer(deltaTime);        // 玩家开火拦截（含近距拦截的溅射伤害）
+            if (CheckDefeat()) return;    // 溅射致死
             CheckWaveEnd();
+        }
+
+        // 玩家血量归零即判负。分两处调用：自爆后（回血前）与拦截溅射后。
+        private bool CheckDefeat()
+        {
+            if (_playerHp > 0f) return false;
+            _playerHp = 0f;
+            Phase = BattlePhase.Defeat;
+            return true;
         }
 
         public void Dispose()
@@ -135,7 +139,7 @@ namespace Game.Outpost.Sim
             // 参考实现无非托管资源；清空事件防止终局后订阅方被迟到回调（接口为 ECS 后端的 World 释放而设）。
             EnemySpawned = null;
             EnemyHit = null;
-            PlayerHit = null;
+            EnemyDetonated = null;
             WaveStarted = null;
             WaveCleared = null;
         }
@@ -191,7 +195,6 @@ namespace Game.Outpost.Sim
                 ArchIndex = archIndex,
                 Pos = pos,
                 Hp = _archetypes[archIndex].MaxHp,
-                AttackCooldown = _archetypes[archIndex].AttackInterval, // 抵近后先蓄力一拍再打，避免"贴脸即秒"
             };
             _enemies.Add(e);
             EnemySpawned?.Invoke(new EnemySpawnedEvent(e.Id, _archetypes[archIndex].Id, pos));
@@ -199,7 +202,8 @@ namespace Game.Outpost.Sim
 
         private void TickEnemies(float dt)
         {
-            for (int i = 0; i < _enemies.Count; i++)
+            // 逆序遍历：抵达基地的敌人自爆后 swap-remove（末位补位），逆序保证可安全边遍历边移除、不漏不重。
+            for (int i = _enemies.Count - 1; i >= 0; i--)
             {
                 var e = _enemies[i];
                 var arch = _archetypes[e.ArchIndex];
@@ -208,21 +212,19 @@ namespace Game.Outpost.Sim
 
                 if (dist > contact)
                 {
-                    // 径直冲向原点，不越过接触距离（超小 dist 由 contact > 0 保证不除零）。
+                    // 径直冲向原点，不越过接触距离（dist > contact > 0 保证不除零）。
                     float newDist = Math.Max(contact, dist - arch.MoveSpeed * dt);
                     e.Pos *= newDist / dist;
+                    _enemies[i] = e;
                 }
                 else
                 {
-                    e.AttackCooldown -= dt;
-                    while (e.AttackCooldown <= 0f && _playerHp > 0f)
-                    {
-                        _playerHp = Math.Max(0f, _playerHp - arch.Attack);
-                        PlayerHit?.Invoke(new PlayerHitEvent(e.Id, e.Pos, arch.Attack, _playerHp));
-                        e.AttackCooldown += arch.AttackInterval;
-                    }
+                    // 抵达哨站：自爆——一次性造成接触伤害后从场上移除（不再贴脸驻留 DPS）。
+                    _playerHp = Math.Max(0f, _playerHp - arch.Attack);
+                    EnemyDetonated?.Invoke(new EnemyDetonatedEvent(e.Id, arch.Id, e.Pos, arch.Attack, _playerHp));
+                    _enemies[i] = _enemies[^1];
+                    _enemies.RemoveAt(_enemies.Count - 1);
                 }
-                _enemies[i] = e;
             }
         }
 
@@ -268,8 +270,17 @@ namespace Game.Outpost.Sim
             e.Hp -= damage;
             var arch = _archetypes[e.ArchIndex];
             bool killed = e.Hp <= 0f;
+            float splash = 0f;
             if (killed)
             {
+                // 拦截溅射：在离基地过近处击毁，弹头冲击波仍连带削基地——越近越疼（贴脸≈满溅射，半径边缘=0）。
+                float dist = e.Pos.Length();
+                if (_player.SplashRadius > 0f && dist < _player.SplashRadius)
+                {
+                    float proximity = 1f - dist / _player.SplashRadius; // 0(边缘)..1(贴脸)
+                    splash = arch.Attack * _player.SplashDamageScale * proximity;
+                    _playerHp = Math.Max(0f, _playerHp - splash);
+                }
                 // swap-remove：末位补位，保持 List 紧凑（索引顺序变化已在接口契约声明）。
                 _enemies[index] = _enemies[^1];
                 _enemies.RemoveAt(_enemies.Count - 1);
@@ -280,7 +291,7 @@ namespace Game.Outpost.Sim
             {
                 _enemies[index] = e;
             }
-            EnemyHit?.Invoke(new EnemyHitEvent(e.Id, arch.Id, e.Pos, damage, killed));
+            EnemyHit?.Invoke(new EnemyHitEvent(e.Id, arch.Id, e.Pos, damage, killed, splash));
         }
 
         private void CheckWaveEnd()

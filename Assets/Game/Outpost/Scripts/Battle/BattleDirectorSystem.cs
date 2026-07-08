@@ -123,7 +123,7 @@ namespace Game.Outpost.Battle
             _sim = new ReferenceBattleSim();
             _sim.EnemySpawned += OnEnemySpawned;
             _sim.EnemyHit += OnEnemyHit;
-            _sim.PlayerHit += OnPlayerHit;
+            _sim.EnemyDetonated += OnEnemyDetonated;
             _sim.WaveCleared += OnWaveCleared;
 
             _sim.Start(setup);
@@ -226,16 +226,28 @@ namespace Game.Outpost.Battle
             SpawnFloater(((int)e.Damage).ToString(), FloaterHitColor, ToWorld(e.Position, FloaterZ));
             SpawnPulse(WithZ(hitPos, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f);
 
+            // 近距拦截的溅射警示：击毁点离基地过近，弹片仍连带削基地（基地红色冲击 + 轻震 + 飘字）。
+            if (e.SplashDamage > 0f)
+            {
+                _shaker.Shake(0.14f, 0.16f);
+                var warn = PlayerHitColor * 1.5f;
+                warn.a = 0.7f;
+                SpawnPulse(WithZ(_turret.transform.position, PulseZ), warn, 0.4f, 2.0f, 0.28f);
+                SpawnFloater($"-{Mathf.CeilToInt(e.SplashDamage)}", PlayerHitColor,
+                    WithZ(_turret.transform.position + new Vector3(0f, 0.9f, 0f), FloaterZ));
+            }
+
             if (_enemyViews.TryGetValue(e.EnemyId, out var view) && view != null)
             {
                 if (e.Killed)
                 {
                     _enemyViews.Remove(e.EnemyId);
-                    // 死亡爆发：按原型色扩散大圈。
+                    // 拦截爆炸：按原型色扩散大圈 + 亮白核，读作"被打爆的来袭弹"。
                     bool tank = e.ArchetypeId == 2;
-                    var c = (tank ? TankColor : FastColor) * 2f;
-                    c.a = 0.9f;
-                    SpawnPulse(WithZ(hitPos, PulseZ), c, 0.4f, tank ? 3.4f : 2.4f, 0.4f);
+                    var c = (tank ? TankColor : FastColor) * 2.2f;
+                    c.a = 0.92f;
+                    SpawnPulse(WithZ(hitPos, PulseZ), c, 0.4f, tank ? 3.6f : 2.6f, 0.42f);
+                    SpawnPulse(WithZ(hitPos, PulseZ), new Color(2.2f, 2.4f, 2.6f, 0.85f), 0.15f, 1.2f, 0.18f);
                     Bag.Despawn(view.gameObject);
                 }
                 else
@@ -245,22 +257,33 @@ namespace Game.Outpost.Battle
             }
         }
 
-        private void OnPlayerHit(PlayerHitEvent e)
+        // 敌人抵达基地自爆：基地受创（震屏 + 红色冲击 + 掉血飘字）+ 来袭弹自身的爆炸（原型色大脉冲 + 亮白核）+ 回收其视觉。
+        private void OnEnemyDetonated(EnemyDetonatedEvent e)
         {
-            _shaker.Shake(0.22f, 0.25f);
+            var pos = ToWorld(e.Position);
             var playerPos = _turret.transform.position;
-            SpawnFloater($"-{Mathf.CeilToInt(e.Damage)}", PlayerHitColor, WithZ(playerPos + new Vector3(0f, 0.9f, 0f), FloaterZ));
-            var c = PlayerHitColor * 1.6f;
-            c.a = 0.8f;
-            SpawnPulse(WithZ(playerPos, PulseZ), c, 0.6f, 2.6f, 0.3f);
+            _shaker.Shake(0.3f, 0.32f); // 抵达基地的自爆比拦截更重
 
-            // 让发动攻击的那只敌人向玩家猛扑一下 + 在其接触点炸一小圈啃咬光——不再是"贴脸静止"。
-            if (_enemyViews.TryGetValue(e.EnemyId, out var attacker) && attacker != null)
+            SpawnFloater($"-{Mathf.CeilToInt(e.Damage)}", PlayerHitColor,
+                WithZ(playerPos + new Vector3(0f, 0.9f, 0f), FloaterZ));
+
+            // 基地受创的红色冲击环。
+            var warn = PlayerHitColor * 1.8f;
+            warn.a = 0.85f;
+            SpawnPulse(WithZ(playerPos, PulseZ), warn, 0.6f, 3.0f, 0.34f);
+
+            // 来袭弹自身的爆炸：按原型色的大脉冲 + 亮白核。
+            bool tank = e.ArchetypeId == 2;
+            var boom = (tank ? TankColor : FastColor) * 2.4f;
+            boom.a = 0.95f;
+            SpawnPulse(WithZ(pos, PulseZ), boom, 0.5f, tank ? 4.2f : 3.0f, 0.46f);
+            SpawnPulse(WithZ(pos, PulseZ), new Color(2.4f, 2.4f, 2.6f, 0.9f), 0.2f, 1.5f, 0.2f);
+
+            // 回收自爆敌人的视觉（它已从模拟移除）。
+            if (_enemyViews.TryGetValue(e.EnemyId, out var view))
             {
-                attacker.Lunge();
-                var bite = ImpactColor;
-                bite.a = 0.7f;
-                SpawnPulse(WithZ(ToWorld(e.Position), PulseZ), bite, 0.15f, 0.8f, 0.18f);
+                _enemyViews.Remove(e.EnemyId);
+                if (view != null) Bag.Despawn(view.gameObject);
             }
         }
 
