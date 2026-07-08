@@ -6,18 +6,15 @@ namespace Game.Outpost.Flow
     /// </summary>
     public readonly struct BattleResult
     {
-        public readonly bool Victory;
-        public readonly int Score;
+        /// <summary>坚持到的波次（无限模式的核心战绩）。</summary>
         public readonly int Wave;
-        public readonly int WaveCount;
+        public readonly int Score;
         public readonly int Kills;
 
-        public BattleResult(bool victory, int score, int wave, int waveCount, int kills)
+        public BattleResult(int wave, int score, int kills)
         {
-            Victory = victory;
-            Score = score;
             Wave = wave;
-            WaveCount = waveCount;
+            Score = score;
             Kills = kills;
         }
     }

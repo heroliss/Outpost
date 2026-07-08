@@ -63,16 +63,16 @@ namespace Game.Outpost.Battle
                 _prevHp = t.hp;
             });
 
-            Bag.Subscribe(rm.Wave.CombineLatest(rm.WaveCount, (w, c) => (w, c)), t =>
+            Bag.Subscribe(rm.Wave, w =>
             {
-                _waveText.text = $"波次 {t.w} / {t.c}";
+                _waveText.text = $"波次 {w}";
 
-                // 波次号首次变到某个 ≥1 的值 = 新一波开场，弹横幅。
-                if (t.w >= 1 && t.w != _bannerWave)
+                // 波次号首次变到某个 ≥1 的值 = 新一波开场，弹横幅（无限模式无"最终波"）。
+                if (w >= 1 && w != _bannerWave)
                 {
-                    _bannerWave = t.w;
+                    _bannerWave = w;
                     _bannerElapsed = 0f;
-                    _waveBanner.text = t.w >= t.c ? $"最终波 · {t.w} / {t.c}" : $"第 {t.w} 波";
+                    _waveBanner.text = $"第 {w} 波";
                 }
             });
 

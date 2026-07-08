@@ -25,12 +25,18 @@ namespace Game.Outpost.Battle
         public bool IsDone => _elapsed >= _duration;
 
         /// <summary>重置并发射一次（从池借出后调用）。两点之间按固定速度直飞。</summary>
-        public void Play(Vector3 from, Vector3 to, Color color)
+        public void Play(Vector3 from, Vector3 to, Color color) => Play(from, to, color, -1f);
+
+        /// <summary>
+        /// 同上，但可指定飞行时长（秒）。传 &gt; 0 时忽略速度、直接用该时长——
+        /// 供"击毁碎片"复用曳光：短距离(&lt;2 单位)按速度算时长会快到只有一帧，指定时长才能拉出可见的向外飞溅弧。
+        /// </summary>
+        public void Play(Vector3 from, Vector3 to, Color color, float durationOverride)
         {
             _from = from;
             _to = to;
             _elapsed = 0f;
-            _duration = Mathf.Max(0.02f, Vector3.Distance(from, to) / _speed);
+            _duration = durationOverride > 0f ? durationOverride : Mathf.Max(0.02f, Vector3.Distance(from, to) / _speed);
 
             var dir = to - from;
             transform.SetPositionAndRotation(from, Quaternion.FromToRotation(Vector3.right, dir.normalized));

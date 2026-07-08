@@ -43,7 +43,7 @@ namespace Game.Outpost.Save
         public async UniTask<bool> ExecuteAsync(ICommandContext ctx, CancellationToken cancellationToken)
         {
             var model = ctx.GetModel<PlayerRecordModel>();
-            bool newBest = model.ApplyRunResult(_result.Victory, _result.Score, _result.Wave);
+            bool newBest = model.ApplyRunResult(_result.Score, _result.Wave);
             try
             {
                 await ctx.GetUtility<IStorageUtility>().Save(StorageKeys.Record, model.ToRecord(), cancellationToken);
@@ -71,14 +71,12 @@ namespace Game.Outpost.Save
         public readonly ReadOnlyReactiveProperty<int> BestScore;
         public readonly ReadOnlyReactiveProperty<int> BestWave;
         public readonly ReadOnlyReactiveProperty<int> Runs;
-        public readonly ReadOnlyReactiveProperty<int> Wins;
 
         public PlayerRecordReadModel(PlayerRecordModel m)
         {
             BestScore = m.BestScore;
             BestWave = m.BestWave;
             Runs = m.Runs;
-            Wins = m.Wins;
         }
     }
 }

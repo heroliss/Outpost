@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace Game.Outpost.Sim
 {
-    /// <summary>战斗宏观阶段。终态（<see cref="Victory"/> / <see cref="Defeat"/>）后 Tick 变为空操作。</summary>
+    /// <summary>战斗宏观阶段。终态（<see cref="Defeat"/>）后 Tick 变为空操作。无限模式无胜利终态。</summary>
     public enum BattlePhase
     {
         /// <summary>尚未 Start。</summary>
@@ -15,7 +15,7 @@ namespace Game.Outpost.Sim
         /// <summary>本波清空、等待 <see cref="IBattleSim.BeginNextWave"/>（波间升级选择的停留点）。</summary>
         WaveCleared,
 
-        Victory,
+        /// <summary>哨站被摧毁——唯一终态（无限模式无胜利，比拼坚持到第几波）。</summary>
         Defeat,
     }
 
@@ -114,7 +114,7 @@ namespace Game.Outpost.Sim
     }
 
     /// <summary>
-    /// 战斗模拟接缝：一局自动战斗的全部规则演算（刷怪 / 索敌 / 移动 / 伤害 / 波次 / 胜负）。
+    /// 战斗模拟接缝：一局自动战斗的全部规则演算（刷怪 / 索敌 / 转向开火 / 移动 / 伤害 / 无限波次成长）。
     /// 纯 C# 契约、零引擎与框架依赖——表现（GameObject / ECS 渲染）、数据（配置表）、编排（Model / Flow）都在接缝外。
     /// 参考实现 <see cref="ReferenceBattleSim"/>；后续可整体置换为 ECS 后端而消费方零改动（ports &amp; adapters）。
     /// </summary>
@@ -123,6 +123,9 @@ namespace Game.Outpost.Sim
     /// 事件回调里只做读取与外发，<b>不要</b>回调内再调本接口的写方法（Start / Tick / BeginNextWave / ApplyModifier）。<br/>
     /// <b>接触模型</b>：敌人径直冲向玩家，抵达即<b>自爆</b>（<see cref="EnemyDetonated"/>，一次性伤害后移除，不驻留输出）；
     /// 玩家在离基地过近处击毁敌人会吃<b>拦截溅射</b>（<see cref="EnemyHitEvent.SplashDamage"/>，越近越疼、随 <c>PlayerSetup.SplashRadius/SplashDamageScale</c> 配置）。<br/>
+    /// <b>开火模型</b>：炮塔按 <c>PlayerSetup.RotationSpeed</c> 逐帧转向最近目标，炮口指向目标（容差内）且冷却就绪才开火（hitscan 命中即结算）——
+    /// 回转越慢，切换分散目标的空当越大、越易漏怪（<see cref="TurretAngle"/> 供表现层画炮管）。<br/>
+    /// <b>无限模式</b>：波次由 <c>WaveScaling</c> 逐波程序化生成、越来越难，唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>）；无胜利。<br/>
     /// <b>聚合读取</b>：属性在两次 Tick 之间保持稳定；存活敌人经 <see cref="EnemyCount"/> + <see cref="GetEnemy"/>
     /// 按索引零分配遍历（索引顺序会因移除而变化，跨帧跟踪用 <see cref="EnemySnapshot.Id"/>）。<br/>
     /// <b>Dispose</b>：参考实现无资源可释放；ECS 后端会持有 World，消费方按 IDisposable 统一管理。
@@ -131,10 +134,8 @@ namespace Game.Outpost.Sim
     {
         BattlePhase Phase { get; }
 
-        /// <summary>当前波次（1 起；Start 前为 0）。</summary>
+        /// <summary>当前波次（1 起；Start 前为 0）。无限模式无上限——它就是"坚持到第几波"的战绩。</summary>
         int WaveIndex { get; }
-
-        int WaveCount { get; }
 
         float PlayerHp { get; }
 
@@ -142,6 +143,9 @@ namespace Game.Outpost.Sim
 
         /// <summary>玩家当前索敌半径（升级会改变）。表现层据此绘制射程圈。</summary>
         float PlayerRange { get; }
+
+        /// <summary>炮塔当前朝向角（度，标准数学角：0 = +X、逆时针为正）。模拟内核已按回转速度逐帧转向目标，表现层据此画炮管指向。</summary>
+        float TurretAngle { get; }
 
         /// <summary>累计击杀数。</summary>
         int Kills { get; }
@@ -164,7 +168,7 @@ namespace Game.Outpost.Sim
         /// <summary>波次开始（参数 = 波次号，1 起）。Start 内会同步触发第 1 波。</summary>
         event Action<int> WaveStarted;
 
-        /// <summary>非最后一波清空、进入 <see cref="BattlePhase.WaveCleared"/>（参数 = 刚清空的波次号）。最后一波清空直接进 Victory、不触发本事件。</summary>
+        /// <summary>本波清空、进入 <see cref="BattlePhase.WaveCleared"/>（参数 = 刚清空的波次号）。无限模式每波清空都触发，波间升级选完后 <see cref="BeginNextWave"/> 续下一波。</summary>
         event Action<int> WaveCleared;
 
         /// <summary>开始一局（只能调一次）：应用 setup、进入第 1 波。事件订阅应在此之前完成。</summary>

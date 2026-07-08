@@ -17,7 +17,6 @@ namespace Game.Outpost.Save
         public readonly RP<int> BestScore = new(0);
         public readonly RP<int> BestWave = new(0);
         public readonly RP<int> Runs = new(0);
-        public readonly RP<int> Wins = new(0);
 
         /// <summary>从存档整体灌入（启动载入用；无存档时不调，保持零值即新玩家）。</summary>
         public void LoadFrom(OutpostRecord r)
@@ -25,7 +24,6 @@ namespace Game.Outpost.Save
             BestScore.Value = r.BestScore;
             BestWave.Value = r.BestWave;
             Runs.Value = r.Runs;
-            Wins.Value = r.Wins;
         }
 
         /// <summary>把当前状态导出成存档对象（回写落盘用）。</summary>
@@ -34,17 +32,15 @@ namespace Game.Outpost.Save
             BestScore = BestScore.Value,
             BestWave = BestWave.Value,
             Runs = Runs.Value,
-            Wins = Wins.Value,
         };
 
         /// <summary>
-        /// 并入一局结果：累计对局 / 胜场、刷新历史最高分与最高波次。
+        /// 并入一局结果：累计对局、刷新历史最高分与最高波次。
         /// 返回<b>是否刷新了最高分</b>（结算页据此报"新纪录"）。纯内存更新，落盘由调用方 <c>SubmitRunResultCommand</c> 负责。
         /// </summary>
-        public bool ApplyRunResult(bool victory, int score, int wave)
+        public bool ApplyRunResult(int score, int wave)
         {
             Runs.Value += 1;
-            if (victory) Wins.Value += 1;
             if (wave > BestWave.Value) BestWave.Value = wave;
 
             bool newBest = score > BestScore.Value;

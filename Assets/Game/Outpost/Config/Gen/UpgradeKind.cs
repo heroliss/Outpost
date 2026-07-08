@@ -25,7 +25,7 @@ namespace OutpostCfg
         /// </summary>
         AttackSpeed = 1,
         /// <summary>
-        /// 索敌半径 +value
+        /// 索敌半径 +value（到达上限后不再出现在三选一里）
         /// </summary>
         Range = 2,
         /// <summary>
@@ -36,6 +36,10 @@ namespace OutpostCfg
         /// 每秒回血 +value
         /// </summary>
         Regen = 4,
+        /// <summary>
+        /// 炮塔回转速度 +value（度/秒；越快越能追上从各方向快扑的突袭者与后期无人机海）
+        /// </summary>
+        RotationSpeed = 5,
     }
 
 } 

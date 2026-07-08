@@ -14,7 +14,7 @@ public static class LubanTableManifest
         "tbbattleglobal",
         "tbenemy",
         "tbupgrade",
-        "tbwave",
+        "tbwavescaling",
     };
 }
 }

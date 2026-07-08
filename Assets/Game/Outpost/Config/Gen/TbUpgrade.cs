@@ -13,7 +13,7 @@ using Luban;
 namespace OutpostCfg
 {
 /// <summary>
-/// 升级表（M2 波间三选一消费）
+/// 升级表（波间三选一消费）
 /// </summary>
 public partial class TbUpgrade
 {

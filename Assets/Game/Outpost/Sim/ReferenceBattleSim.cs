@@ -10,18 +10,21 @@ namespace Game.Outpost.Sim
     /// 纯 C# 可直接单测；后续 ECS 后端（压力波次）与它同题对比。
     /// </summary>
     /// <remarks>
-    /// 确定性：唯一随机源是出生角度（<see cref="BattleSetup.Seed"/> 种子化的 <see cref="Random"/>），
-    /// 敌人列表按索引顺序演算、死亡 swap-remove——同 Setup + 同 Tick 序列在同一平台上结果完全一致。
+    /// 确定性：随机源仅出生角度（<see cref="BattleSetup.Seed"/> 种子化的 <see cref="Random"/>）；
+    /// 敌人列表按索引顺序演算、死亡 swap-remove，炮塔朝向按固定回转速度逐帧趋近目标——
+    /// 同 Setup + 同 Tick 序列在同一平台上结果完全一致。无限模式：波次由 <see cref="WaveScaling"/> 逐波生成，
+    /// 唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>）。
     /// </remarks>
     public sealed class ReferenceBattleSim : IBattleSim
     {
-        // 存活敌人的运行时状态（原型静态属性经 ArchIndex 查 _archetypes，不冗余进实例）。
+        // 存活敌人的运行时状态（原型静态属性经 ArchIndex 查 _archetypes，不冗余进实例；StatScale 是该敌人出生波的成长系数）。
         private struct EnemyState
         {
             public int Id;
             public int ArchIndex;
             public Vector2 Pos;
             public float Hp;
+            public float StatScale;
         }
 
         // 当前波次一条刷怪流的推进状态。Timer 初始为 0：首只在下一次 Tick 立刻刷出。
@@ -33,6 +36,9 @@ namespace Game.Outpost.Sim
             public float Timer;
         }
 
+        private const float AimToleranceDeg = 6f;   // 炮口角度差在此内即视为对准、可开火
+        private const double Rad2Deg = 180.0 / Math.PI;
+
         private BattleSetup _setup;
         private EnemyArchetype[] _archetypes;
         private Dictionary<int, int> _archIndexById;
@@ -40,18 +46,21 @@ namespace Game.Outpost.Sim
 
         private readonly List<EnemyState> _enemies = new();
         private SpawnState[] _spawns = Array.Empty<SpawnState>();
+        private readonly List<SpawnState> _streamScratch = new(3); // BeginWave 组流的复用缓冲，免每波分配
 
         private PlayerSetup _player;   // 可变副本：升级修正直接改这份
         private float _playerHp;
         private float _playerAttackCooldown;
+        private float _turretAngleDeg;      // 炮塔当前朝向（度）；逐帧按回转速度趋近最近目标
+        private float _waveStatScale = 1f;  // 当前波次的敌人成长系数（StatGrowth^(w-1)），出生时写进 EnemyState
         private int _nextEnemyId = 1;
 
         public BattlePhase Phase { get; private set; } = BattlePhase.Idle;
         public int WaveIndex { get; private set; }
-        public int WaveCount => _setup?.Waves.Length ?? 0;
         public float PlayerHp => _playerHp;
         public float PlayerMaxHp => _player.MaxHp;
         public float PlayerRange => _player.Range;
+        public float TurretAngle => _turretAngleDeg;
         public int Kills { get; private set; }
         public int Score { get; private set; }
         public int EnemyCount => _enemies.Count;
@@ -65,7 +74,8 @@ namespace Game.Outpost.Sim
         public EnemySnapshot GetEnemy(int index)
         {
             var e = _enemies[index];
-            return new EnemySnapshot(e.Id, _archetypes[e.ArchIndex].Id, e.Pos, e.Hp, _archetypes[e.ArchIndex].MaxHp);
+            var arch = _archetypes[e.ArchIndex];
+            return new EnemySnapshot(e.Id, arch.Id, e.Pos, e.Hp, arch.MaxHp * e.StatScale);
         }
 
         public void Start(BattleSetup setup)
@@ -75,8 +85,6 @@ namespace Game.Outpost.Sim
             if (setup == null) throw new ArgumentNullException(nameof(setup));
             if (setup.Enemies == null || setup.Enemies.Length == 0)
                 throw new ArgumentException("[ReferenceBattleSim] Setup 缺少敌人原型。", nameof(setup));
-            if (setup.Waves == null || setup.Waves.Length == 0)
-                throw new ArgumentException("[ReferenceBattleSim] Setup 缺少波次。", nameof(setup));
 
             _setup = setup;
             _archetypes = setup.Enemies;
@@ -88,6 +96,7 @@ namespace Game.Outpost.Sim
             _player = setup.Player;
             _playerHp = _player.MaxHp;
             _playerAttackCooldown = 0f;
+            _turretAngleDeg = 0f;
 
             BeginWave(1);
         }
@@ -101,11 +110,14 @@ namespace Game.Outpost.Sim
 
         public void ApplyModifier(in PlayerModifier modifier)
         {
-            if (Phase is BattlePhase.Victory or BattlePhase.Defeat || _setup == null) return;
+            if (Phase == BattlePhase.Defeat || _setup == null) return;
             _player.Attack += modifier.AttackAdd;
             _player.AttackInterval = Math.Max(0.05f, _player.AttackInterval * modifier.AttackIntervalScale);
             _player.Range += modifier.RangeAdd;
+            if (_player.MaxRange > 0f && _player.Range > _player.MaxRange)
+                _player.Range = _player.MaxRange; // 索敌半径封顶（不越过缓冲区；到顶后业务侧不再提供该升级）
             _player.RegenPerSecond += modifier.RegenAdd;
+            _player.RotationSpeed += modifier.RotationSpeedAdd;
             if (modifier.MaxHpAdd != 0f)
             {
                 _player.MaxHp += modifier.MaxHpAdd;
@@ -120,7 +132,7 @@ namespace Game.Outpost.Sim
             TickSpawns(deltaTime);
             TickEnemies(deltaTime);       // 抵达基地的敌人自爆、伤害玩家
             if (CheckDefeat()) return;    // 自爆致死：抢在 TickPlayer 回血前判负，避免"已阵亡又被回血救活"
-            TickPlayer(deltaTime);        // 玩家开火拦截（含近距拦截的溅射伤害）
+            TickPlayer(deltaTime);        // 玩家转向 + 开火拦截（含近距拦截的溅射伤害）
             if (CheckDefeat()) return;    // 溅射致死
             CheckWaveEnd();
         }
@@ -144,27 +156,48 @@ namespace Game.Outpost.Sim
             WaveCleared = null;
         }
 
+        // 按成长曲线程序化生成第 waveIndex 波的刷怪流（无限模式：一波比一波多 / 强）。
         private void BeginWave(int waveIndex)
         {
             WaveIndex = waveIndex;
-            var wave = _setup.Waves[waveIndex - 1];
-            int count = wave?.Spawns?.Length ?? 0;
-            _spawns = new SpawnState[count];
-            for (int i = 0; i < count; i++)
-            {
-                var entry = wave.Spawns[i];
-                if (!_archIndexById.TryGetValue(entry.ArchetypeId, out var archIndex))
-                    throw new ArgumentException($"[ReferenceBattleSim] 第 {waveIndex} 波引用了不存在的敌人原型 id={entry.ArchetypeId}。");
-                _spawns[i] = new SpawnState
-                {
-                    ArchIndex = archIndex,
-                    Remaining = entry.Count,
-                    Interval = Math.Max(0.01f, entry.Interval),
-                    Timer = 0f, // 首只立刻刷
-                };
-            }
+            var sc = _setup.Scaling;
+            _waveStatScale = (float)Math.Pow(Math.Max(1f, sc.StatGrowth), waveIndex - 1);
+
+            _streamScratch.Clear();
+            // 无人机（炮灰）：常驻，数量线性增（后期海量）、刷出间隔随波收窄（不低于下限）。
+            AddStream(sc.FodderArchId,
+                sc.FodderBase + (int)Math.Floor((waveIndex - 1) * sc.FodderPerWave),
+                sc.FodderInterval0 - (waveIndex - 1) * sc.FodderIntervalDecay >= sc.FodderIntervalMin
+                    ? sc.FodderInterval0 - (waveIndex - 1) * sc.FodderIntervalDecay
+                    : sc.FodderIntervalMin);
+            // 突袭者（快速突击）：解锁波起按斜率增（至少 1 只）。
+            if (waveIndex >= sc.StrikerUnlockWave)
+                AddStream(sc.StrikerArchId,
+                    Math.Max(1, (int)Math.Floor((waveIndex - sc.StrikerUnlockWave + 1) * sc.StrikerPerWave)),
+                    sc.StrikerInterval);
+            // 装甲兵（重甲）：解锁波起按斜率增（血最高、出场最少，至少 1 只）。
+            if (waveIndex >= sc.HeavyUnlockWave)
+                AddStream(sc.HeavyArchId,
+                    Math.Max(1, (int)Math.Floor((waveIndex - sc.HeavyUnlockWave + 1) * sc.HeavyPerWave)),
+                    sc.HeavyInterval);
+
+            _spawns = _streamScratch.ToArray();
             Phase = BattlePhase.WaveActive;
             WaveStarted?.Invoke(waveIndex);
+        }
+
+        // 追加一条刷怪流；数量 ≤ 0 或角色 id 不在原型表则跳过（角色缺席不报错）。
+        private void AddStream(int archId, int count, float interval)
+        {
+            if (count <= 0) return;
+            if (!_archIndexById.TryGetValue(archId, out var archIndex)) return;
+            _streamScratch.Add(new SpawnState
+            {
+                ArchIndex = archIndex,
+                Remaining = count,
+                Interval = Math.Max(0.01f, interval),
+                Timer = 0f, // 首只立刻刷
+            });
         }
 
         private void TickSpawns(float dt)
@@ -189,15 +222,17 @@ namespace Game.Outpost.Sim
             var pos = new Vector2(
                 (float)Math.Cos(angle) * _setup.ArenaRadius,
                 (float)Math.Sin(angle) * _setup.ArenaRadius);
+            var arch = _archetypes[archIndex];
             var e = new EnemyState
             {
                 Id = _nextEnemyId++,
                 ArchIndex = archIndex,
                 Pos = pos,
-                Hp = _archetypes[archIndex].MaxHp,
+                StatScale = _waveStatScale,
+                Hp = arch.MaxHp * _waveStatScale,
             };
             _enemies.Add(e);
-            EnemySpawned?.Invoke(new EnemySpawnedEvent(e.Id, _archetypes[archIndex].Id, pos));
+            EnemySpawned?.Invoke(new EnemySpawnedEvent(e.Id, arch.Id, pos));
         }
 
         private void TickEnemies(float dt)
@@ -219,9 +254,10 @@ namespace Game.Outpost.Sim
                 }
                 else
                 {
-                    // 抵达哨站：自爆——一次性造成接触伤害后从场上移除（不再贴脸驻留 DPS）。
-                    _playerHp = Math.Max(0f, _playerHp - arch.Attack);
-                    EnemyDetonated?.Invoke(new EnemyDetonatedEvent(e.Id, arch.Id, e.Pos, arch.Attack, _playerHp));
+                    // 抵达哨站：自爆——按成长系数放大的一次性接触伤害后从场上移除（不再贴脸驻留 DPS）。
+                    float dmg = arch.Attack * e.StatScale;
+                    _playerHp = Math.Max(0f, _playerHp - dmg);
+                    EnemyDetonated?.Invoke(new EnemyDetonatedEvent(e.Id, arch.Id, e.Pos, dmg, _playerHp));
                     _enemies[i] = _enemies[^1];
                     _enemies.RemoveAt(_enemies.Count - 1);
                 }
@@ -234,17 +270,32 @@ namespace Game.Outpost.Sim
                 _playerHp = Math.Min(_player.MaxHp, _playerHp + _player.RegenPerSecond * dt);
 
             _playerAttackCooldown -= dt;
-            while (_playerAttackCooldown <= 0f)
+
+            int target = FindNearestInRange();
+            if (target < 0)
             {
-                int target = FindNearestInRange();
-                if (target < 0)
+                // 射程内无目标：冷却不再往负累（不积欠账），朝向保持不动。
+                if (_playerAttackCooldown < 0f) _playerAttackCooldown = 0f;
+                return;
+            }
+
+            // 逐帧把炮口转向目标；越慢，切换分散目标的空当越大。
+            var tpos = _enemies[target].Pos;
+            float desired = (float)(Math.Atan2(tpos.Y, tpos.X) * Rad2Deg);
+            _turretAngleDeg = MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
+
+            // 冷却就绪时：对准才开火，否则钉在 0 等转到位（不积欠账，避免转到瞬间连发补账）。
+            if (_playerAttackCooldown <= 0f)
+            {
+                if (Math.Abs(DeltaAngleDeg(_turretAngleDeg, desired)) <= AimToleranceDeg)
                 {
-                    // 射程内无目标：冷却归零挂起（不积攒欠账），目标一进射程立刻开火。
-                    _playerAttackCooldown = 0f;
-                    return;
+                    DamageEnemy(target, _player.Attack);
+                    _playerAttackCooldown = _player.AttackInterval;
                 }
-                DamageEnemy(target, _player.Attack);
-                _playerAttackCooldown += _player.AttackInterval;
+                else
+                {
+                    _playerAttackCooldown = 0f;
+                }
             }
         }
 
@@ -278,7 +329,7 @@ namespace Game.Outpost.Sim
                 if (_player.SplashRadius > 0f && dist < _player.SplashRadius)
                 {
                     float proximity = 1f - dist / _player.SplashRadius; // 0(边缘)..1(贴脸)
-                    splash = arch.Attack * _player.SplashDamageScale * proximity;
+                    splash = arch.Attack * e.StatScale * _player.SplashDamageScale * proximity;
                     _playerHp = Math.Max(0f, _playerHp - splash);
                 }
                 // swap-remove：末位补位，保持 List 紧凑（索引顺序变化已在接口契约声明）。
@@ -300,15 +351,34 @@ namespace Game.Outpost.Sim
             for (int i = 0; i < _spawns.Length; i++)
                 if (_spawns[i].Remaining > 0) return;
 
-            if (WaveIndex >= WaveCount)
-            {
-                Phase = BattlePhase.Victory;
-            }
-            else
-            {
-                Phase = BattlePhase.WaveCleared;
-                WaveCleared?.Invoke(WaveIndex);
-            }
+            // 无限模式：本波清空即停在 WaveCleared 等升级选择，选完 BeginNextWave 续下一（更难）波，无胜利终态。
+            Phase = BattlePhase.WaveCleared;
+            WaveCleared?.Invoke(WaveIndex);
+        }
+
+        // ── 角度工具（度制，标准数学角）──────────────────────────────────────
+        private static float NormalizeDeg(float a)
+        {
+            a %= 360f;
+            if (a < 0f) a += 360f;
+            return a;
+        }
+
+        // from→to 的最短带符号角差，落在 [-180, 180]。
+        private static float DeltaAngleDeg(float from, float to)
+        {
+            float d = (to - from) % 360f;
+            if (d < -180f) d += 360f;
+            else if (d > 180f) d -= 360f;
+            return d;
+        }
+
+        // 以 maxDelta 为步长把 cur 朝 target 转（不过冲），返回归一化角。
+        private static float MoveTowardsAngleDeg(float cur, float target, float maxDelta)
+        {
+            float d = DeltaAngleDeg(cur, target);
+            if (maxDelta >= Math.Abs(d)) return NormalizeDeg(target);
+            return NormalizeDeg(cur + Math.Sign(d) * maxDelta);
         }
     }
 }

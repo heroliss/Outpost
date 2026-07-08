@@ -3,9 +3,11 @@ using UnityEngine;
 namespace Game.Outpost.Battle
 {
     /// <summary>
-    /// 玩家炮塔表现：六边形工事底座 + 中心发光核心（呼吸脉动、开火时随后坐涨亮），炮管（Pivot 子节点）平滑转向瞄准目标、
+    /// 玩家炮塔表现：六边形工事底座 + 中心发光核心（呼吸脉动、开火时随后坐涨亮），炮管（Pivot 子节点）指向瞄准角、
     /// 开火后坐回弹。底座换形与核心均<b>运行时程序生成</b>（六边形是运行时网格、无资产，只在 Play 生效，不改场景磁盘资产）——
-    /// 让它读成"防御工事"而非一个方块。瞄谁、何时开火全由 <see cref="BattleDirectorSystem"/> 驱动（模拟内核是 hitscan，本组件只负责"演"）。
+    /// 让它读成"防御工事"而非一个方块。
+    /// <para>朝向与开火时机全由模拟内核决定：内核按回转速度逐帧算好炮口角，导演每帧经 <see cref="Face"/> 喂给本组件；
+    /// 内核只在炮口对准目标时才发 <c>EnemyHit</c>，故本组件不再自行平滑转向或判断"是否对准"——只负责把内核给的角度画出来 + 演后坐。</para>
     /// </summary>
     public sealed class TurretView : MonoBehaviour
     {
@@ -18,9 +20,6 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("炮口挂点（Pivot 子节点，曳光的发射起点）。")]
         private Transform _muzzle;
 
-        [SerializeField, Tooltip("转向速度（度/秒）。")]
-        private float _turnSpeed = 720f;
-
         [SerializeField, Tooltip("单次开火的后坐位移（世界单位）。")]
         private float _recoilKick = 0.16f;
 
@@ -30,8 +29,6 @@ namespace Game.Outpost.Battle
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float CoreBaseScale = 0.5f;
 
-        private float _targetAngle;
-        private float _currentAngle;
         private float _recoil;
         private float _barrelBaseX;
 
@@ -45,7 +42,6 @@ namespace Game.Outpost.Battle
         private void Awake()
         {
             _barrelBaseX = _barrelMesh.localPosition.x;
-            _currentAngle = _targetAngle = _pivot.localEulerAngles.z;
             BuildEmplacement();
         }
 
@@ -89,34 +85,14 @@ namespace Game.Outpost.Battle
             _core = go.transform;
         }
 
-        /// <summary>把炮口转向世界坐标目标（平滑追踪，不瞬转）。</summary>
-        public void AimAt(Vector3 worldPos)
-        {
-            var d = worldPos - _pivot.position;
-            if (d.sqrMagnitude < 0.0001f) return;
-            _targetAngle = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
-        }
-
-        /// <summary>
-        /// 炮口当前是否已对准该世界坐标（角度差在容差内）。director 据此把"开火演出"压到炮管转到位后才释放——
-        /// 模拟内核是 hitscan、伤害早已结算，但曳光/炮口闪光要等炮管指向目标才发，避免"还没转过去就冒火"。
-        /// </summary>
-        public bool IsAimedAt(Vector3 worldPos, float toleranceDeg)
-        {
-            var d = worldPos - _pivot.position;
-            if (d.sqrMagnitude < 0.0001f) return true;
-            float target = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
-            return Mathf.Abs(Mathf.DeltaAngle(_currentAngle, target)) <= toleranceDeg;
-        }
+        /// <summary>把炮口摆到模拟内核给定的朝向角（度，标准数学角：0 = +X、逆时针为正；即绕本地 Z）。</summary>
+        public void Face(float angleDeg) => _pivot.localRotation = Quaternion.Euler(0f, 0f, angleDeg);
 
         /// <summary>播放一次开火后坐。</summary>
         public void Fire() => _recoil = _recoilKick;
 
         private void Update()
         {
-            _currentAngle = Mathf.MoveTowardsAngle(_currentAngle, _targetAngle, _turnSpeed * Time.deltaTime);
-            _pivot.localRotation = Quaternion.Euler(0f, 0f, _currentAngle);
-
             _recoil = Mathf.MoveTowards(_recoil, 0f, Time.deltaTime * 1.4f);
             var p = _barrelMesh.localPosition;
             p.x = _barrelBaseX - _recoil;

@@ -1,36 +1,43 @@
 <module name="">
-    <!-- Outpost 切片的战斗配置：敌人原型 / 波次 / 升级 / 全局参数。
-         数值全部在运行时被翻译成 Game.Outpost.Sim 的纯 C# BattleSetup（配置后端不进 Sim 程序集）。 -->
+    <!-- Outpost 切片的战斗配置：敌人原型 / 波次成长 / 升级 / 全局参数。
+         数值全部在运行时被翻译成 Game.Outpost.Sim 的纯 C# BattleSetup（配置后端不进 Sim 程序集）。
+         无限模式：波次不再逐条列举，而是由 WaveScaling 的一行成长参数程序化生成、一波比一波难，直到哨站被摧毁。 -->
 
     <bean name="Enemy" comment="敌人原型">
         <var name="id" type="int" comment="原型 ID（主键，Sim 的 ArchetypeId）"/>
         <var name="name" type="string" comment="名称（M3 起换本地化 key）"/>
-        <var name="hp" type="float" comment="生命上限"/>
+        <var name="hp" type="float" comment="生命上限（第 1 波基准值；实际按波次 statGrowth 放大）"/>
         <var name="moveSpeed" type="float" comment="移动速度（米/秒，径直冲向哨站）"/>
-        <var name="attack" type="float" comment="单次攻击伤害"/>
-        <var name="attackInterval" type="float" comment="攻击间隔（秒）"/>
-        <var name="radius" type="float" comment="碰撞半径（抵近到双方半径之和即停下输出）"/>
+        <var name="attack" type="float" comment="抵达哨站自爆时的一次性伤害（第 1 波基准值；按波次 statGrowth 放大）"/>
+        <var name="attackInterval" type="float" comment="攻击间隔（秒）。当前接触即自爆模型下未使用，保留列以备后续驻留攻击型敌人"/>
+        <var name="radius" type="float" comment="碰撞半径（抵近到双方半径之和即自爆）"/>
         <var name="score" type="int" comment="击杀得分"/>
     </bean>
     <table name="TbEnemy" value="Enemy" index="id" input="*@enemy.json" comment="敌人原型表"/>
 
-    <bean name="WaveSpawn" comment="一条刷怪流：某原型刷 count 只、每 interval 秒一只（首只立刻刷）">
-        <var name="enemyId" type="int" comment="敌人原型 id（对应 TbEnemy.id）"/>
-        <var name="count" type="int" comment="数量"/>
-        <var name="interval" type="float" comment="刷出间隔（秒）"/>
+    <bean name="WaveScaling" comment="无限模式的波次成长曲线（一行参数程序化生成每一波：数量线性增 × 血量/伤害轻指数增，前期有成长感、后期靠数量压垮）。三角色：无人机=慢弱靠量的炮灰、突袭者=快速突击、装甲兵=慢厚重甲；血越高的角色出场越少。">
+        <var name="fodderBase" type="int" comment="无人机（炮灰）第 1 波数量"/>
+        <var name="fodderPerWave" type="float" comment="无人机每波追加量（count = fodderBase + floor((w-1)*本值)）——后期海量、ECS 压力主来源"/>
+        <var name="fodderInterval0" type="float" comment="无人机第 1 波刷出间隔（秒）"/>
+        <var name="fodderIntervalMin" type="float" comment="无人机刷出间隔下限（越后越密，但不低于此）"/>
+        <var name="fodderIntervalDecay" type="float" comment="无人机刷出间隔每波递减量"/>
+        <var name="strikerUnlockWave" type="int" comment="突袭者（快速突击）解锁波次"/>
+        <var name="strikerPerWave" type="float" comment="突袭者每波数量斜率（count = max(1, floor((w-解锁波+1)*本值))）"/>
+        <var name="strikerInterval" type="float" comment="突袭者刷出间隔（秒）"/>
+        <var name="heavyUnlockWave" type="int" comment="装甲兵（重甲）解锁波次"/>
+        <var name="heavyPerWave" type="float" comment="装甲兵每波数量斜率（血最高、出场最少）"/>
+        <var name="heavyInterval" type="float" comment="装甲兵刷出间隔（秒，很稀）"/>
+        <var name="statGrowth" type="float" comment="每波敌人生命 / 自爆伤害的乘法成长底数（如 1.025 = 每波强 2.5%；刻意偏小——难度主要靠数量而非数值膨胀）"/>
     </bean>
-    <bean name="Wave" comment="波次：若干条并行刷怪流，全部刷完且场上清空 = 本波结束">
-        <var name="id" type="int" comment="波次号（1 起、连续，主键）"/>
-        <var name="spawns" type="list,WaveSpawn" comment="并行刷怪流"/>
-    </bean>
-    <table name="TbWave" value="Wave" index="id" input="*@wave.json" comment="波次表（打完最后一波 = 胜利）"/>
+    <table name="TbWaveScaling" value="WaveScaling" mode="one" input="wavescaling.json" comment="波次成长曲线（one 模式：全表一条记录）"/>
 
     <enum name="UpgradeKind" comment="升级效果类型（映射到 Sim 的 PlayerModifier 字段）">
         <var name="Attack" value="0" comment="攻击力 +value"/>
         <var name="AttackSpeed" value="1" comment="攻击间隔 ×value（小于 1 = 更快）"/>
-        <var name="Range" value="2" comment="索敌半径 +value"/>
+        <var name="Range" value="2" comment="索敌半径 +value（到达上限后不再出现在三选一里）"/>
         <var name="MaxHp" value="3" comment="生命上限 +value（同时回复等量当前血）"/>
         <var name="Regen" value="4" comment="每秒回血 +value"/>
+        <var name="RotationSpeed" value="5" comment="炮塔回转速度 +value（度/秒；越快越能追上从各方向快扑的突袭者与后期无人机海）"/>
     </enum>
     <bean name="Upgrade" comment="波间三选一升级">
         <var name="id" type="int" comment="升级 ID（主键）"/>
@@ -39,18 +46,20 @@
         <var name="kind" type="UpgradeKind" comment="效果类型"/>
         <var name="value" type="float" comment="效果数值（语义随 kind）"/>
     </bean>
-    <table name="TbUpgrade" value="Upgrade" index="id" input="*@upgrade.json" comment="升级表（M2 波间三选一消费）"/>
+    <table name="TbUpgrade" value="Upgrade" index="id" input="*@upgrade.json" comment="升级表（波间三选一消费）"/>
 
     <bean name="BattleGlobal" comment="战斗全局参数（玩家初始属性 + 场地/节奏）">
         <var name="playerMaxHp" type="float" comment="玩家生命上限"/>
-        <var name="playerAttack" type="float" comment="玩家单次攻击伤害"/>
-        <var name="playerAttackInterval" type="float" comment="玩家攻击间隔（秒）"/>
-        <var name="playerRange" type="float" comment="玩家索敌半径"/>
+        <var name="playerAttack" type="float" comment="玩家单次攻击伤害（无限模式起手刻意压低，靠升级成长）"/>
+        <var name="playerAttackInterval" type="float" comment="玩家攻击间隔（秒；起手偏慢）"/>
+        <var name="playerRange" type="float" comment="玩家索敌半径（起手偏短）"/>
         <var name="playerRegen" type="float" comment="玩家每秒回血"/>
         <var name="playerRadius" type="float" comment="玩家碰撞半径"/>
+        <var name="playerRotationSpeed" type="float" comment="炮塔回转速度（度/秒；起手偏慢，回转伺服升级提升——切目标要转过去才能开火）"/>
+        <var name="playerMaxRange" type="float" comment="索敌半径升级上限（应小于 arenaRadius，留出拦截缓冲区；到顶后增程雷达不再出现）"/>
         <var name="arenaRadius" type="float" comment="敌人出生环半径"/>
-        <var name="interWaveDelay" type="float" comment="波间停留秒数（M1 自动续波的间歇；M2 起为升级选择的最短展示时间）"/>
-        <var name="resultDelay" type="float" comment="胜负判定后进结算的延迟秒数（留给终局表现）"/>
+        <var name="interWaveDelay" type="float" comment="波间停留秒数（升级选择的最短展示时间）"/>
+        <var name="resultDelay" type="float" comment="哨站失守后进结算的延迟秒数（留给终局表现）"/>
     </bean>
     <table name="TbBattleGlobal" value="BattleGlobal" mode="one" input="battleglobal.json" comment="战斗全局参数（one 模式：全表一条记录）"/>
 </module>

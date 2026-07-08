@@ -32,7 +32,7 @@ namespace Game.Outpost.Windows
             var rec = this.ExecuteCommand(new GetPlayerRecordCommand());
             _record.text = rec.Runs.CurrentValue == 0
                 ? "尚无战绩 —— 开始你的第一场防守"
-                : $"历史最佳 {rec.BestScore.CurrentValue} 分 · 最高波次 {rec.BestWave.CurrentValue} · 胜 {rec.Wins.CurrentValue}/{rec.Runs.CurrentValue}";
+                : $"历史最佳 {rec.BestScore.CurrentValue} 分 · 最远 {rec.BestWave.CurrentValue} 波 · 共 {rec.Runs.CurrentValue} 局";
         }
     }
 }

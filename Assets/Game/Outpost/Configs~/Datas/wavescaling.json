@@ -1,0 +1,14 @@
+{
+    "fodderBase": 4,
+    "fodderPerWave": 1.3,
+    "fodderInterval0": 0.8,
+    "fodderIntervalMin": 0.25,
+    "fodderIntervalDecay": 0.02,
+    "strikerUnlockWave": 3,
+    "strikerPerWave": 0.5,
+    "strikerInterval": 1.5,
+    "heavyUnlockWave": 5,
+    "heavyPerWave": 0.28,
+    "heavyInterval": 3.5,
+    "statGrowth": 1.025
+}

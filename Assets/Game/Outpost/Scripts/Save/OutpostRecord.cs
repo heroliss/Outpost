@@ -22,11 +22,8 @@ namespace Game.Outpost.Save
         /// <summary>历史最高抵达波次。</summary>
         public int BestWave;
 
-        /// <summary>累计对局数（含胜负）。</summary>
+        /// <summary>累计对局数（无限模式每局都以失守收场，此值即"打过多少局"）。</summary>
         public int Runs;
-
-        /// <summary>累计胜利数。</summary>
-        public int Wins;
     }
 
     /// <summary>

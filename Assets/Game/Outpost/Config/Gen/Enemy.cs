@@ -43,7 +43,7 @@ public sealed partial class Enemy : Luban.BeanBase
     /// </summary>
     public readonly string Name;
     /// <summary>
-    /// 生命上限
+    /// 生命上限（第 1 波基准值；实际按波次 statGrowth 放大）
     /// </summary>
     public readonly float Hp;
     /// <summary>
@@ -51,15 +51,15 @@ public sealed partial class Enemy : Luban.BeanBase
     /// </summary>
     public readonly float MoveSpeed;
     /// <summary>
-    /// 单次攻击伤害
+    /// 抵达哨站自爆时的一次性伤害（第 1 波基准值；按波次 statGrowth 放大）
     /// </summary>
     public readonly float Attack;
     /// <summary>
-    /// 攻击间隔（秒）
+    /// 攻击间隔（秒）。当前接触即自爆模型下未使用，保留列以备后续驻留攻击型敌人
     /// </summary>
     public readonly float AttackInterval;
     /// <summary>
-    /// 碰撞半径（抵近到双方半径之和即停下输出）
+    /// 碰撞半径（抵近到双方半径之和即自爆）
     /// </summary>
     public readonly float Radius;
     /// <summary>

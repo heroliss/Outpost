@@ -18,11 +18,11 @@ public partial class Tables
     /// </summary>
     public TbEnemy TbEnemy {get; }
     /// <summary>
-    /// 波次表（打完最后一波 = 胜利）
+    /// 波次成长曲线（one 模式：全表一条记录）
     /// </summary>
-    public TbWave TbWave {get; }
+    public TbWaveScaling TbWaveScaling {get; }
     /// <summary>
-    /// 升级表（M2 波间三选一消费）
+    /// 升级表（波间三选一消费）
     /// </summary>
     public TbUpgrade TbUpgrade {get; }
     /// <summary>
@@ -33,7 +33,7 @@ public partial class Tables
     public Tables(System.Func<string, ByteBuf> loader)
     {
         TbEnemy = new TbEnemy(loader("tbenemy"));
-        TbWave = new TbWave(loader("tbwave"));
+        TbWaveScaling = new TbWaveScaling(loader("tbwavescaling"));
         TbUpgrade = new TbUpgrade(loader("tbupgrade"));
         TbBattleGlobal = new TbBattleGlobal(loader("tbbattleglobal"));
         ResolveRef();
@@ -42,7 +42,7 @@ public partial class Tables
     private void ResolveRef()
     {
         TbEnemy.ResolveRef(this);
-        TbWave.ResolveRef(this);
+        TbWaveScaling.ResolveRef(this);
         TbUpgrade.ResolveRef(this);
         TbBattleGlobal.ResolveRef(this);
     }

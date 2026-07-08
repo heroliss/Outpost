@@ -13,11 +13,18 @@ namespace Game.Outpost.Battle
         private static Mesh _arrowhead;
         private static Mesh _hexagon;
         private static Mesh _unitDisc;
+        private static Mesh _dart;
 
         /// <summary>快速种：指向行进方向的箭头（本地 +X 为箭尖，<see cref="EnemyView"/> 逐帧转向来袭方向 = 冲向哨站）。</summary>
         public static Mesh Arrowhead
         {
             get { if (_arrowhead == null) _arrowhead = BuildArrowhead(); return _arrowhead; }
+        }
+
+        /// <summary>无人机（炮灰）：指向行进方向的小三角（一个顶点朝本地 +X，逐帧转向来袭方向）。比箭头更小更尖、读作成群小飞行器。</summary>
+        public static Mesh Dart
+        {
+            get { if (_dart == null) _dart = BuildPolygon("OutpostDart", 3, 0f, 0.5f); return _dart; }
         }
 
         /// <summary>装甲种：厚重平顶六边形。半径 0.5，由体型直径缩放。</summary>

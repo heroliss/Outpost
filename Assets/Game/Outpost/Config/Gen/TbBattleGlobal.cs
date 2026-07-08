@@ -35,15 +35,15 @@ public partial class TbBattleGlobal
     /// </summary>
      public float PlayerMaxHp => _data.PlayerMaxHp;
     /// <summary>
-    /// 玩家单次攻击伤害
+    /// 玩家单次攻击伤害（无限模式起手刻意压低，靠升级成长）
     /// </summary>
      public float PlayerAttack => _data.PlayerAttack;
     /// <summary>
-    /// 玩家攻击间隔（秒）
+    /// 玩家攻击间隔（秒；起手偏慢）
     /// </summary>
      public float PlayerAttackInterval => _data.PlayerAttackInterval;
     /// <summary>
-    /// 玩家索敌半径
+    /// 玩家索敌半径（起手偏短）
     /// </summary>
      public float PlayerRange => _data.PlayerRange;
     /// <summary>
@@ -55,15 +55,23 @@ public partial class TbBattleGlobal
     /// </summary>
      public float PlayerRadius => _data.PlayerRadius;
     /// <summary>
+    /// 炮塔回转速度（度/秒；起手偏慢，回转伺服升级提升——切目标要转过去才能开火）
+    /// </summary>
+     public float PlayerRotationSpeed => _data.PlayerRotationSpeed;
+    /// <summary>
+    /// 索敌半径升级上限（应小于 arenaRadius，留出拦截缓冲区；到顶后增程雷达不再出现）
+    /// </summary>
+     public float PlayerMaxRange => _data.PlayerMaxRange;
+    /// <summary>
     /// 敌人出生环半径
     /// </summary>
      public float ArenaRadius => _data.ArenaRadius;
     /// <summary>
-    /// 波间停留秒数（M1 自动续波的间歇；M2 起为升级选择的最短展示时间）
+    /// 波间停留秒数（升级选择的最短展示时间）
     /// </summary>
      public float InterWaveDelay => _data.InterWaveDelay;
     /// <summary>
-    /// 胜负判定后进结算的延迟秒数（留给终局表现）
+    /// 哨站失守后进结算的延迟秒数（留给终局表现）
     /// </summary>
      public float ResultDelay => _data.ResultDelay;
     

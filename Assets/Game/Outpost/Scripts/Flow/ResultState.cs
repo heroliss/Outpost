@@ -16,7 +16,7 @@ namespace Game.Outpost.Flow
 
         public ResultState(BattleResult result) => _result = result;
 
-        public override string ToString() => $"结算({(_result.Victory ? "胜" : "败")} {_result.Score}分)";
+        public override string ToString() => $"结算(第{_result.Wave}波 {_result.Score}分)";
 
         protected override async UniTask OnEnter(CancellationToken ct)
         {

@@ -14,7 +14,6 @@ namespace Game.Outpost.Battle
         public readonly ReadOnlyReactiveProperty<float> Hp;
         public readonly ReadOnlyReactiveProperty<float> MaxHp;
         public readonly ReadOnlyReactiveProperty<int> Wave;
-        public readonly ReadOnlyReactiveProperty<int> WaveCount;
         public readonly ReadOnlyReactiveProperty<int> Kills;
         public readonly ReadOnlyReactiveProperty<int> Score;
 
@@ -23,7 +22,6 @@ namespace Game.Outpost.Battle
             Hp = m.PlayerHp;
             MaxHp = m.PlayerMaxHp;
             Wave = m.Wave;
-            WaveCount = m.WaveCount;
             Kills = m.Kills;
             Score = m.Score;
         }

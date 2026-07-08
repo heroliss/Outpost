@@ -13,7 +13,6 @@ namespace Game.Outpost.Battle
         public readonly RP<float> PlayerHp = new(0);
         public readonly RP<float> PlayerMaxHp = new(0);
         public readonly RP<int> Wave = new(0);
-        public readonly RP<int> WaveCount = new(0);
         public readonly RP<int> Kills = new(0);
         public readonly RP<int> Score = new(0);
     }
