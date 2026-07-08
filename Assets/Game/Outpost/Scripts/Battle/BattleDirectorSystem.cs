@@ -242,12 +242,13 @@ namespace Game.Outpost.Battle
                 if (e.Killed)
                 {
                     _enemyViews.Remove(e.EnemyId);
-                    // 拦截爆炸：按原型色扩散大圈 + 亮白核，读作"被打爆的来袭弹"。
+                    // 拦截爆炸：按原型色扩散大圈 + 亮白核 + 一圈冲击波，读作"被打爆的来袭弹"。
                     bool tank = e.ArchetypeId == 2;
-                    var c = (tank ? TankColor : FastColor) * 2.2f;
-                    c.a = 0.92f;
-                    SpawnPulse(WithZ(hitPos, PulseZ), c, 0.4f, tank ? 3.6f : 2.6f, 0.42f);
-                    SpawnPulse(WithZ(hitPos, PulseZ), new Color(2.2f, 2.4f, 2.6f, 0.85f), 0.15f, 1.2f, 0.18f);
+                    var c = (tank ? TankColor : FastColor) * 2.6f;
+                    c.a = 0.95f;
+                    SpawnPulse(WithZ(hitPos, PulseZ), c, 0.4f, tank ? 5.0f : 3.7f, 0.52f);
+                    SpawnPulse(WithZ(hitPos, PulseZ), new Color(2.7f, 2.8f, 3.0f, 0.92f), 0.15f, 1.8f, 0.24f);
+                    SpawnPulse(WithZ(hitPos, PulseZ), c, tank ? 2.0f : 1.4f, tank ? 6.2f : 4.6f, 0.3f); // 外扩冲击波
                     Bag.Despawn(view.gameObject);
                 }
                 else
@@ -262,22 +263,23 @@ namespace Game.Outpost.Battle
         {
             var pos = ToWorld(e.Position);
             var playerPos = _turret.transform.position;
-            _shaker.Shake(0.3f, 0.32f); // 抵达基地的自爆比拦截更重
+            _shaker.Shake(0.42f, 0.42f); // 抵达基地的自爆比拦截更重
 
             SpawnFloater($"-{Mathf.CeilToInt(e.Damage)}", PlayerHitColor,
                 WithZ(playerPos + new Vector3(0f, 0.9f, 0f), FloaterZ));
 
             // 基地受创的红色冲击环。
-            var warn = PlayerHitColor * 1.8f;
-            warn.a = 0.85f;
-            SpawnPulse(WithZ(playerPos, PulseZ), warn, 0.6f, 3.0f, 0.34f);
+            var warn = PlayerHitColor * 2.0f;
+            warn.a = 0.88f;
+            SpawnPulse(WithZ(playerPos, PulseZ), warn, 0.6f, 3.8f, 0.4f);
 
-            // 来袭弹自身的爆炸：按原型色的大脉冲 + 亮白核。
+            // 来袭弹自身的爆炸：按原型色的大脉冲 + 亮白核 + 外扩冲击波。
             bool tank = e.ArchetypeId == 2;
-            var boom = (tank ? TankColor : FastColor) * 2.4f;
-            boom.a = 0.95f;
-            SpawnPulse(WithZ(pos, PulseZ), boom, 0.5f, tank ? 4.2f : 3.0f, 0.46f);
-            SpawnPulse(WithZ(pos, PulseZ), new Color(2.4f, 2.4f, 2.6f, 0.9f), 0.2f, 1.5f, 0.2f);
+            var boom = (tank ? TankColor : FastColor) * 2.7f;
+            boom.a = 1f;
+            SpawnPulse(WithZ(pos, PulseZ), boom, 0.5f, tank ? 5.6f : 4.1f, 0.56f);
+            SpawnPulse(WithZ(pos, PulseZ), new Color(2.9f, 2.9f, 3.1f, 0.95f), 0.2f, 2.1f, 0.28f);
+            SpawnPulse(WithZ(pos, PulseZ), boom, tank ? 2.4f : 1.7f, tank ? 7.0f : 5.2f, 0.34f);
 
             // 回收自爆敌人的视觉（它已从模拟移除）。
             if (_enemyViews.TryGetValue(e.EnemyId, out var view))
