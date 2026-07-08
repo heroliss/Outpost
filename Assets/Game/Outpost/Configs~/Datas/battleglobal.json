@@ -5,7 +5,7 @@
     "playerRange": 7,
     "playerRegen": 2,
     "playerRadius": 0.5,
-    "arenaRadius": 10,
+    "arenaRadius": 13,
     "interWaveDelay": 1.5,
     "resultDelay": 1.2
 }
