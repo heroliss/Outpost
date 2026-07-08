@@ -31,6 +31,7 @@ namespace Game.Outpost.Battle
 
         private float _recoil;
         private float _barrelBaseX;
+        private float _spin; // 射速预热系数 0..1（导演每帧喂），核心随之涨亮
 
         private Transform _core;
         private Material _coreMat; // 运行时创建，OnDestroy 释放
@@ -91,6 +92,9 @@ namespace Game.Outpost.Battle
         /// <summary>播放一次开火后坐。</summary>
         public void Fire() => _recoil = _recoilKick;
 
+        /// <summary>设置射速预热系数（0..1，内核 <c>SpinUp</c>）：越高核心越涨亮，读作"炮管在加速旋转、火力拉满"。</summary>
+        public void SetSpin(float spin) => _spin = Mathf.Clamp01(spin);
+
         private void Update()
         {
             _recoil = Mathf.MoveTowards(_recoil, 0f, Time.deltaTime * 1.4f);
@@ -103,7 +107,8 @@ namespace Game.Outpost.Battle
             {
                 float breath = 1f + 0.12f * Mathf.Sin(Time.time * 4f);
                 float kick = 1f + _recoil * 1.5f;
-                _core.localScale = Vector3.one * (CoreBaseScale * breath * kick);
+                float spin = 1f + 0.5f * _spin; // 预热拉满时核心涨大半圈
+                _core.localScale = Vector3.one * (CoreBaseScale * breath * kick * spin);
             }
         }
 

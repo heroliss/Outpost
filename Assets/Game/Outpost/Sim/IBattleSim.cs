@@ -144,8 +144,17 @@ namespace Game.Outpost.Sim
         /// <summary>玩家当前索敌半径（升级会改变）。表现层据此绘制射程圈。</summary>
         float PlayerRange { get; }
 
+        /// <summary>玩家当前单发攻击力（已含封顶）。业务侧据此判断"攻击已封顶、不再提供该升级"。</summary>
+        float PlayerAttack { get; }
+
+        /// <summary>玩家当前炮塔回转速度（度/秒，已含封顶）。业务侧据此判断"回转已封顶、不再提供该升级"。</summary>
+        float PlayerRotationSpeed { get; }
+
         /// <summary>炮塔当前朝向角（度，标准数学角：0 = +X、逆时针为正）。模拟内核已按回转速度逐帧转向目标，表现层据此画炮管指向。</summary>
         float TurretAngle { get; }
+
+        /// <summary>射速预热系数（0..1）：锁定目标后缓升到 1、脱离后缓降到 0。有效射速 = 基础射速 × 本值；表现层据此调制炮口火墙强度与核心亮度。</summary>
+        float SpinUp { get; }
 
         /// <summary>累计击杀数。</summary>
         int Kills { get; }

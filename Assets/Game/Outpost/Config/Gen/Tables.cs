@@ -18,7 +18,11 @@ public partial class Tables
     /// </summary>
     public TbEnemy TbEnemy {get; }
     /// <summary>
-    /// 波次成长曲线（one 模式：全表一条记录）
+    /// 各敌人角色的波次成长（可扩：加敌人 = 加一行）
+    /// </summary>
+    public TbWaveRole TbWaveRole {get; }
+    /// <summary>
+    /// 波次全局成长（one 模式：全表一条记录）
     /// </summary>
     public TbWaveScaling TbWaveScaling {get; }
     /// <summary>
@@ -33,6 +37,7 @@ public partial class Tables
     public Tables(System.Func<string, ByteBuf> loader)
     {
         TbEnemy = new TbEnemy(loader("tbenemy"));
+        TbWaveRole = new TbWaveRole(loader("tbwaverole"));
         TbWaveScaling = new TbWaveScaling(loader("tbwavescaling"));
         TbUpgrade = new TbUpgrade(loader("tbupgrade"));
         TbBattleGlobal = new TbBattleGlobal(loader("tbbattleglobal"));
@@ -42,6 +47,7 @@ public partial class Tables
     private void ResolveRef()
     {
         TbEnemy.ResolveRef(this);
+        TbWaveRole.ResolveRef(this);
         TbWaveScaling.ResolveRef(this);
         TbUpgrade.ResolveRef(this);
         TbBattleGlobal.ResolveRef(this);

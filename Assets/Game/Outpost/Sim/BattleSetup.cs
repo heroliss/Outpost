@@ -32,7 +32,10 @@ namespace Game.Outpost.Sim
         /// <summary>单次攻击伤害。</summary>
         public float Attack;
 
-        /// <summary>攻击间隔（秒）。</summary>
+        /// <summary>攻击伤害升级上限（&le; 0 = 不封顶）。封顶后敌人不再被秒杀、需多发命中——把"火力"压力交给无上限的射速。</summary>
+        public float MaxAttack;
+
+        /// <summary>攻击间隔（秒）＝基础射速的倒数。攻速升级乘性缩短、<b>无上限</b>；实际射速还要乘 spin-up 预热系数。</summary>
         public float AttackInterval;
 
         /// <summary>索敌半径：只攻击与原点距离不超过它的敌人。</summary>
@@ -55,6 +58,19 @@ namespace Game.Outpost.Sim
         /// 越慢，分散来袭（尤其快速突袭者、后期无人机海）越容易在再瞄的空当里漏过。回转伺服升级提升它。
         /// </summary>
         public float RotationSpeed;
+
+        /// <summary>
+        /// 回转速度升级上限（&le; 0 = 不封顶）。<b>封顶是无限模式能收尾的关键</b>：射速无上限、炮塔面对单一方向火力无穷，
+        /// 但回转封顶后 360° 密集来袭时它每次只能扫一个方向、转身需时——后期密度越大、对面漏得越多，
+        /// 击杀率随数量渐降直至被压垮（难度靠数量，而非"炮塔横扫无限快永不失守"）。
+        /// </summary>
+        public float MaxRotationSpeed;
+
+        /// <summary>射速预热爬升时长（秒）：锁定目标后有效射速在此时间内从 0 线性升到满（近防炮点火感）。</summary>
+        public float SpinUpTime;
+
+        /// <summary>射速预热回落时长（秒）：脱离目标后有效射速在此时间内降回 0。</summary>
+        public float SpinDownTime;
 
         /// <summary>
         /// 拦截溅射的危险半径：在离基地小于此距离处击毁敌人，弹头冲击波仍会连带削基地（越近越疼）。
@@ -90,48 +106,40 @@ namespace Game.Outpost.Sim
     }
 
     /// <summary>
-    /// 无限模式的波次成长曲线：一组成长参数，由 <see cref="ReferenceBattleSim"/> 逐波程序化展开成刷怪流。
-    /// 设计意图：<b>数量线性增长 × 生命/伤害轻指数增长</b>——玩家每波一张升级卡大致线性变强，敌人越来越多，
-    /// 前期有明显成长感、后期数量必然压过单炮塔吞吐 ⇒ 一定会失守（有限局，比拼坚持到第几波）。
-    /// <para>三个角色（血低→高、出场多→少）：<b>无人机</b>=慢弱靠量的炮灰（后期海量，ECS 压力源）、
-    /// <b>突袭者</b>=快速突击（惩罚慢回转）、<b>装甲兵</b>=慢厚重甲（出场最少）。三者原型 id 由业务侧
-    /// （配置→Setup 的工厂）按约定填入；某角色 id 在原型表里不存在则该角色不参与刷怪。</para>
+    /// 一个敌人角色的波次成长定义（由 <see cref="ReferenceBattleSim"/> 逐波展开成一条刷怪流）。
+    /// 统一公式（仅在 w &ge; <see cref="UnlockWave"/> 时出现）：
+    /// <c>数量 = BaseCount + floor((w - UnlockWave) × PerWave)</c>；
+    /// <c>刷出间隔 = max(IntervalMin, Interval0 - (w - UnlockWave) × IntervalDecay)</c>。
+    /// </summary>
+    public struct WaveRole
+    {
+        /// <summary>敌人原型 id（对应 <see cref="EnemyArchetype.Id"/>；不在原型表则该角色被跳过）。</summary>
+        public int EnemyId;
+        /// <summary>解锁波次（w &ge; 本值才出现；常驻角色填 1）。</summary>
+        public int UnlockWave;
+        /// <summary>解锁波的基础数量。</summary>
+        public int BaseCount;
+        /// <summary>每波数量斜率（血越高的角色应越小，即出场越少）。</summary>
+        public float PerWave;
+        /// <summary>解锁波的刷出间隔（秒）。</summary>
+        public float Interval0;
+        /// <summary>刷出间隔下限（越后越密，但不低于此）。</summary>
+        public float IntervalMin;
+        /// <summary>刷出间隔每波递减量。</summary>
+        public float IntervalDecay;
+    }
+
+    /// <summary>
+    /// 无限模式的波次成长曲线：一组按角色（<see cref="WaveRole"/>）定义的刷怪流 + 全局数值成长。
+    /// 设计意图：<b>数量线性增长（各角色）× 生命/伤害轻指数增长（StatGrowth）</b>——玩家线性变强、敌人越来越多，
+    /// 后期数量必然压过单炮塔吞吐 ⇒ 一定会失守。角色表可扩（加敌人＝加一行），血越高的角色 PerWave 越小＝出场越少。
     /// </summary>
     public struct WaveScaling
     {
-        /// <summary>无人机（炮灰）原型 id。</summary>
-        public int FodderArchId;
-        /// <summary>突袭者（快速突击）原型 id。</summary>
-        public int StrikerArchId;
-        /// <summary>装甲兵（重甲）原型 id。</summary>
-        public int HeavyArchId;
+        /// <summary>各敌人角色的成长定义（顺序无关；按各自 UnlockWave 生效）。</summary>
+        public WaveRole[] Roles;
 
-        /// <summary>无人机第 1 波数量。</summary>
-        public int FodderBase;
-        /// <summary>无人机每波追加量：count = FodderBase + floor((w-1) × 本值)。后期海量。</summary>
-        public float FodderPerWave;
-        /// <summary>无人机第 1 波刷出间隔（秒）。</summary>
-        public float FodderInterval0;
-        /// <summary>无人机刷出间隔下限（越后越密，但不低于此）。</summary>
-        public float FodderIntervalMin;
-        /// <summary>无人机刷出间隔每波递减量。</summary>
-        public float FodderIntervalDecay;
-
-        /// <summary>突袭者解锁波次（w &ge; 本值才出现）。</summary>
-        public int StrikerUnlockWave;
-        /// <summary>突袭者每波数量斜率：count = max(1, floor((w - 解锁波 + 1) × 本值))。</summary>
-        public float StrikerPerWave;
-        /// <summary>突袭者刷出间隔（秒）。</summary>
-        public float StrikerInterval;
-
-        /// <summary>装甲兵解锁波次（w &ge; 本值才出现）。</summary>
-        public int HeavyUnlockWave;
-        /// <summary>装甲兵每波数量斜率（血最高、出场最少）。</summary>
-        public float HeavyPerWave;
-        /// <summary>装甲兵刷出间隔（秒，很稀）。</summary>
-        public float HeavyInterval;
-
-        /// <summary>每波敌人生命 / 自爆伤害的乘法成长底数（如 1.025 = 每波强 2.5%）。成长系数 = StatGrowth^(w-1)。刻意偏小：难度主要靠数量。</summary>
+        /// <summary>每波敌人生命 / 自爆伤害的乘法成长底数（如 1.02 = 每波强 2%）。成长系数 = StatGrowth^(w-1)。刻意偏小：难度主要靠数量。</summary>
         public float StatGrowth;
     }
 

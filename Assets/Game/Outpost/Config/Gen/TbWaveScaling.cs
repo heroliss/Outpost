@@ -13,7 +13,7 @@ using Luban;
 namespace OutpostCfg
 {
 /// <summary>
-/// 波次成长曲线（one 模式：全表一条记录）
+/// 波次全局成长（one 模式：全表一条记录）
 /// </summary>
 public partial class TbWaveScaling
 {
@@ -31,51 +31,7 @@ public partial class TbWaveScaling
 
 
     /// <summary>
-    /// 无人机（炮灰）第 1 波数量
-    /// </summary>
-     public int FodderBase => _data.FodderBase;
-    /// <summary>
-    /// 无人机每波追加量（count = fodderBase + floor((w-1)*本值)）——后期海量、ECS 压力主来源
-    /// </summary>
-     public float FodderPerWave => _data.FodderPerWave;
-    /// <summary>
-    /// 无人机第 1 波刷出间隔（秒）
-    /// </summary>
-     public float FodderInterval0 => _data.FodderInterval0;
-    /// <summary>
-    /// 无人机刷出间隔下限（越后越密，但不低于此）
-    /// </summary>
-     public float FodderIntervalMin => _data.FodderIntervalMin;
-    /// <summary>
-    /// 无人机刷出间隔每波递减量
-    /// </summary>
-     public float FodderIntervalDecay => _data.FodderIntervalDecay;
-    /// <summary>
-    /// 突袭者（快速突击）解锁波次
-    /// </summary>
-     public int StrikerUnlockWave => _data.StrikerUnlockWave;
-    /// <summary>
-    /// 突袭者每波数量斜率（count = max(1, floor((w-解锁波+1)*本值))）
-    /// </summary>
-     public float StrikerPerWave => _data.StrikerPerWave;
-    /// <summary>
-    /// 突袭者刷出间隔（秒）
-    /// </summary>
-     public float StrikerInterval => _data.StrikerInterval;
-    /// <summary>
-    /// 装甲兵（重甲）解锁波次
-    /// </summary>
-     public int HeavyUnlockWave => _data.HeavyUnlockWave;
-    /// <summary>
-    /// 装甲兵每波数量斜率（血最高、出场最少）
-    /// </summary>
-     public float HeavyPerWave => _data.HeavyPerWave;
-    /// <summary>
-    /// 装甲兵刷出间隔（秒，很稀）
-    /// </summary>
-     public float HeavyInterval => _data.HeavyInterval;
-    /// <summary>
-    /// 每波敌人生命 / 自爆伤害的乘法成长底数（如 1.025 = 每波强 2.5%；刻意偏小——难度主要靠数量而非数值膨胀）
+    /// 每波敌人生命 / 自爆伤害的乘法成长底数（如 1.02 = 每波强 2%；刻意偏小——难度主要靠数量而非数值膨胀）
     /// </summary>
      public float StatGrowth => _data.StatGrowth;
     

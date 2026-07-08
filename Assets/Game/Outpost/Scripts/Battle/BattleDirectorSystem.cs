@@ -60,6 +60,8 @@ namespace Game.Outpost.Battle
         private float _resultDelay = 1.2f;
         private float _interWaveDelay = 1.5f;
         private float _maxRange;       // 索敌半径升级上限：到顶后三选一不再提供增程雷达
+        private float _maxAttack;      // 攻击升级上限：到顶后三选一不再提供强化弹头
+        private float _maxRotation;    // 回转升级上限：到顶后三选一不再提供回转伺服
         private bool _ending;
         private float _endTimer;
         private bool _betweenWaves;
@@ -77,11 +79,19 @@ namespace Game.Outpost.Battle
         // 所有一次性特效（曳光 / 脉冲 / 飘字 / 碎片）的统一回收列表——都实现 ITimedEffect。
         private readonly List<MonoBehaviour> _effects = new();
 
+        // 高射速下每帧的命中 / 击毁演出预算——超出即降级（不再生成曳光/爆炸，伤害仍每发结算），防池爆 + 刷屏。
+        // 也是 OOP 后端在弹幕级吞吐下"看得出压力"的地方（M6 换 ECS 后同场景应流畅）。
+        private const int HitFxPerFrame = 12;
+        private const int KillFxPerFrame = 6;
+        private int _hitFxBudget;
+        private int _killFxBudget;
+
         // 原型演出参数（表未含表现字段，进表是后续项）。按原型 id 选色 / 形 / 体量 / 爆炸倍率。
         private static readonly Color FodderColor = new(0.75f, 1.0f, 0.35f);  // 无人机（炮灰，黄绿）
         private static readonly Color StrikerColor = new(1.0f, 0.34f, 0.22f); // 突袭者（快速突击，橙红）
         private static readonly Color HeavyColor = new(0.72f, 0.42f, 1.0f);   // 装甲兵（重甲，紫）
-        private static readonly Color FloaterHitColor = new(1f, 0.95f, 0.55f);
+        private static readonly Color ScoutColor = new(0.35f, 0.95f, 1.0f);   // 掠袭机（极速，青）
+        private static readonly Color SiegeColor = new(1.0f, 0.55f, 0.15f);   // 攻城核（重装，橙）
         private static readonly Color PlayerHitColor = new(1f, 0.30f, 0.24f);
         private static readonly Color TracerColor = new(0.9f, 3.2f, 3.0f, 1f);
         private static readonly Color ImpactColor = new(2.0f, 2.4f, 2.4f, 0.85f);
@@ -113,11 +123,13 @@ namespace Game.Outpost.Battle
             }
         }
 
-        // 原型 id → 表现参数（约定同 BattleSetupFactory：1 无人机 / 2 突袭者 / 3 装甲兵）。
+        // 原型 id → 表现参数（约定同 enemy.json：1 无人机 / 2 突袭者 / 3 装甲兵 / 4 掠袭机 / 5 攻城核）。
         private static EnemyVisual GetVisual(int archId) => archId switch
         {
             1 => new EnemyVisual(FodderColor, 0.5f, OutpostMeshes.Dart, true, 0.55f),
             3 => new EnemyVisual(HeavyColor, 1.35f, OutpostMeshes.Hexagon, false, 1.4f),
+            4 => new EnemyVisual(ScoutColor, 0.55f, OutpostMeshes.Needle, true, 0.7f),
+            5 => new EnemyVisual(SiegeColor, 1.8f, OutpostMeshes.Octagon, false, 2.0f),
             _ => new EnemyVisual(StrikerColor, 0.85f, OutpostMeshes.Arrowhead, true, 1.0f),
         };
 
@@ -141,6 +153,8 @@ namespace Game.Outpost.Battle
             _resultDelay = cfg.TbBattleGlobal.Data.ResultDelay;
             _interWaveDelay = cfg.TbBattleGlobal.Data.InterWaveDelay;
             _maxRange = cfg.TbBattleGlobal.Data.PlayerMaxRange;
+            _maxAttack = cfg.TbBattleGlobal.Data.PlayerMaxAttack;
+            _maxRotation = cfg.TbBattleGlobal.Data.PlayerMaxRotationSpeed;
 
             _model = this.GetModel<BattleModel>();
             _upgradeModel = this.GetModel<UpgradeModel>();
@@ -163,6 +177,8 @@ namespace Game.Outpost.Battle
         private void Update()
         {
             float dt = Time.deltaTime;
+            _hitFxBudget = HitFxPerFrame;   // 每帧刷新演出预算（高射速下超出即降级，见 OnEnemyHit）
+            _killFxBudget = KillFxPerFrame;
             AdvanceEffects();
             if (!_ready || _sim == null) return;
 
@@ -178,6 +194,7 @@ namespace Game.Outpost.Battle
             {
                 SyncEnemyViews();
                 _turret.Face(_sim.TurretAngle);
+                _turret.SetSpin(_sim.SpinUp);
                 return;
             }
 
@@ -198,6 +215,7 @@ namespace Game.Outpost.Battle
             SyncEnemyViews();
             SyncRangeRing();
             _turret.Face(_sim.TurretAngle); // 内核已按回转速度算好朝向，表现层照画
+            _turret.SetSpin(_sim.SpinUp);   // 射速预热 → 炮塔核心涨亮
             WriteModel();
 
             if (_sim.Phase == BattlePhase.Defeat)
@@ -230,13 +248,15 @@ namespace Game.Outpost.Battle
         {
             var hitPos = ToWorld(e.Position);
 
-            // 内核只在炮口对准目标时才发本事件，故命中即开火演出（炮口闪光 + 曳光），不再判断/缓冲瞄准。
-            FireBurst(hitPos);
+            // 开火演出（炮口闪光 + 曳光 + 命中冲击）——高射速下每帧限量，超预算即只结算伤害不出特效（防池爆 + 刷屏）。
+            if (_hitFxBudget > 0)
+            {
+                _hitFxBudget--;
+                FireBurst(hitPos);
+                SpawnPulse(WithZ(hitPos, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f);
+            }
 
-            SpawnFloater(((int)e.Damage).ToString(), FloaterHitColor, ToWorld(e.Position, FloaterZ));
-            SpawnPulse(WithZ(hitPos, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f);
-
-            // 近距拦截的溅射警示：击毁点离基地过近，弹片仍连带削基地（基地红色冲击 + 轻震 + 飘字）。
+            // 近距拦截的溅射警示：击毁点离基地过近，弹片仍连带削基地（基地红色冲击 + 轻震 + 飘字）。始终演（rare、要紧）。
             if (e.SplashDamage > 0f)
             {
                 _shaker.Shake(0.14f, 0.16f);
@@ -252,7 +272,7 @@ namespace Game.Outpost.Battle
                 if (e.Killed)
                 {
                     _enemyViews.Remove(e.EnemyId);
-                    SpawnKillExplosion(hitPos, e.ArchetypeId);
+                    if (_killFxBudget > 0) { _killFxBudget--; SpawnKillExplosion(hitPos, e.ArchetypeId); }
                     Bag.Despawn(view.gameObject);
                 }
                 else
@@ -305,9 +325,13 @@ namespace Game.Outpost.Battle
             c.a = 0.95f;
             SpawnPulse(WithZ(hitPos, PulseZ), c, 0.4f, 3.7f * v.ExplosionScale, 0.52f);
             SpawnPulse(WithZ(hitPos, PulseZ), new Color(2.7f, 2.8f, 3.0f, 0.92f), 0.15f, 1.8f * v.ExplosionScale, 0.24f);
-            SpawnPulse(WithZ(hitPos, PulseZ), c, 1.4f * v.ExplosionScale, 4.6f * v.ExplosionScale, 0.3f); // 外扩冲击波
-            SpawnDebris(hitPos, 5, 1.7f * v.ExplosionScale, 0.28f);
-            SpawnSmoke(hitPos, 0.3f, 1.6f * v.ExplosionScale, 0.6f);
+            // 大个体（突袭者及以上）才加外扩冲击波 + 碎片 + 烟；炮灰 / 掠袭机只留脉冲，省得后期海量击杀刷屏。
+            if (v.ExplosionScale >= 0.8f)
+            {
+                SpawnPulse(WithZ(hitPos, PulseZ), c, 1.4f * v.ExplosionScale, 4.6f * v.ExplosionScale, 0.3f); // 外扩冲击波
+                SpawnDebris(hitPos, 5, 1.7f * v.ExplosionScale, 0.28f);
+                SpawnSmoke(hitPos, 0.3f, 1.6f * v.ExplosionScale, 0.6f);
+            }
         }
 
         private void OnWaveCleared(int wave)
@@ -323,11 +347,15 @@ namespace Game.Outpost.Battle
         private void OfferUpgrades()
         {
             bool rangeCapped = _maxRange > 0f && _sim.PlayerRange >= _maxRange - 0.001f;
+            bool attackCapped = _maxAttack > 0f && _sim.PlayerAttack >= _maxAttack - 0.001f;
+            bool rotCapped = _maxRotation > 0f && _sim.PlayerRotationSpeed >= _maxRotation - 0.001f;
 
             _upgradePool.Clear();
             foreach (var u in _cfg.TbUpgrade.DataList)
             {
                 if (rangeCapped && u.Kind == UpgradeKind.Range) continue;
+                if (attackCapped && u.Kind == UpgradeKind.Attack) continue;          // 攻击已封顶：溢出无意义，移出抽卡池
+                if (rotCapped && u.Kind == UpgradeKind.RotationSpeed) continue;      // 回转已封顶
                 _upgradePool.Add(u);
             }
             // 部分 Fisher–Yates：把随机选中的项换到前 ChoiceCount 个位置。

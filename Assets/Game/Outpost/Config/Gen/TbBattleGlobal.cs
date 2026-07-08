@@ -39,6 +39,10 @@ public partial class TbBattleGlobal
     /// </summary>
      public float PlayerAttack => _data.PlayerAttack;
     /// <summary>
+    /// 攻击伤害升级上限（≤0=不封顶）。封顶后敌人不再被秒杀，火力压力交给无上限的射速升级
+    /// </summary>
+     public float PlayerMaxAttack => _data.PlayerMaxAttack;
+    /// <summary>
     /// 玩家攻击间隔（秒；起手偏慢）
     /// </summary>
      public float PlayerAttackInterval => _data.PlayerAttackInterval;
@@ -58,6 +62,10 @@ public partial class TbBattleGlobal
     /// 炮塔回转速度（度/秒；起手偏慢，回转伺服升级提升——切目标要转过去才能开火）
     /// </summary>
      public float PlayerRotationSpeed => _data.PlayerRotationSpeed;
+    /// <summary>
+    /// 回转速度升级上限（≤0=不封顶）。封顶是无限模式能收尾的关键：后期 360&#176; 密集来袭时炮塔扫不过来、对面漏怪，击杀率随数量渐降直至被压垮
+    /// </summary>
+     public float PlayerMaxRotationSpeed => _data.PlayerMaxRotationSpeed;
     /// <summary>
     /// 索敌半径升级上限（应小于 arenaRadius，留出拦截缓冲区；到顶后增程雷达不再出现）
     /// </summary>

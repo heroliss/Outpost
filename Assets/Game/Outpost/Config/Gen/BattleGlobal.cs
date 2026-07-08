@@ -21,11 +21,13 @@ public sealed partial class BattleGlobal : Luban.BeanBase
     {
         PlayerMaxHp = _buf.ReadFloat();
         PlayerAttack = _buf.ReadFloat();
+        PlayerMaxAttack = _buf.ReadFloat();
         PlayerAttackInterval = _buf.ReadFloat();
         PlayerRange = _buf.ReadFloat();
         PlayerRegen = _buf.ReadFloat();
         PlayerRadius = _buf.ReadFloat();
         PlayerRotationSpeed = _buf.ReadFloat();
+        PlayerMaxRotationSpeed = _buf.ReadFloat();
         PlayerMaxRange = _buf.ReadFloat();
         ArenaRadius = _buf.ReadFloat();
         InterWaveDelay = _buf.ReadFloat();
@@ -46,6 +48,10 @@ public sealed partial class BattleGlobal : Luban.BeanBase
     /// </summary>
     public readonly float PlayerAttack;
     /// <summary>
+    /// 攻击伤害升级上限（≤0=不封顶）。封顶后敌人不再被秒杀，火力压力交给无上限的射速升级
+    /// </summary>
+    public readonly float PlayerMaxAttack;
+    /// <summary>
     /// 玩家攻击间隔（秒；起手偏慢）
     /// </summary>
     public readonly float PlayerAttackInterval;
@@ -65,6 +71,10 @@ public sealed partial class BattleGlobal : Luban.BeanBase
     /// 炮塔回转速度（度/秒；起手偏慢，回转伺服升级提升——切目标要转过去才能开火）
     /// </summary>
     public readonly float PlayerRotationSpeed;
+    /// <summary>
+    /// 回转速度升级上限（≤0=不封顶）。封顶是无限模式能收尾的关键：后期 360&#176; 密集来袭时炮塔扫不过来、对面漏怪，击杀率随数量渐降直至被压垮
+    /// </summary>
+    public readonly float PlayerMaxRotationSpeed;
     /// <summary>
     /// 索敌半径升级上限（应小于 arenaRadius，留出拦截缓冲区；到顶后增程雷达不再出现）
     /// </summary>
@@ -94,11 +104,13 @@ public sealed partial class BattleGlobal : Luban.BeanBase
         return "{ "
         + "playerMaxHp:" + PlayerMaxHp + ","
         + "playerAttack:" + PlayerAttack + ","
+        + "playerMaxAttack:" + PlayerMaxAttack + ","
         + "playerAttackInterval:" + PlayerAttackInterval + ","
         + "playerRange:" + PlayerRange + ","
         + "playerRegen:" + PlayerRegen + ","
         + "playerRadius:" + PlayerRadius + ","
         + "playerRotationSpeed:" + PlayerRotationSpeed + ","
+        + "playerMaxRotationSpeed:" + PlayerMaxRotationSpeed + ","
         + "playerMaxRange:" + PlayerMaxRange + ","
         + "arenaRadius:" + ArenaRadius + ","
         + "interWaveDelay:" + InterWaveDelay + ","

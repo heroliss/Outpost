@@ -37,6 +37,7 @@ namespace Game.Outpost.Sim
         }
 
         private const float AimToleranceDeg = 6f;   // 炮口角度差在此内即视为对准、可开火
+        private const int MaxShotsPerTick = 64;      // 无上限射速下单帧最多发数（防病态循环；远超玩法所需）
         private const double Rad2Deg = 180.0 / Math.PI;
 
         private BattleSetup _setup;
@@ -52,6 +53,7 @@ namespace Game.Outpost.Sim
         private float _playerHp;
         private float _playerAttackCooldown;
         private float _turretAngleDeg;      // 炮塔当前朝向（度）；逐帧按回转速度趋近最近目标
+        private float _spinUp;              // 射速预热系数 0..1：有目标缓升、无目标缓降
         private float _waveStatScale = 1f;  // 当前波次的敌人成长系数（StatGrowth^(w-1)），出生时写进 EnemyState
         private int _nextEnemyId = 1;
 
@@ -60,7 +62,10 @@ namespace Game.Outpost.Sim
         public float PlayerHp => _playerHp;
         public float PlayerMaxHp => _player.MaxHp;
         public float PlayerRange => _player.Range;
+        public float PlayerAttack => _player.Attack;
+        public float PlayerRotationSpeed => _player.RotationSpeed;
         public float TurretAngle => _turretAngleDeg;
+        public float SpinUp => _spinUp;
         public int Kills { get; private set; }
         public int Score { get; private set; }
         public int EnemyCount => _enemies.Count;
@@ -97,6 +102,7 @@ namespace Game.Outpost.Sim
             _playerHp = _player.MaxHp;
             _playerAttackCooldown = 0f;
             _turretAngleDeg = 0f;
+            _spinUp = 0f;
 
             BeginWave(1);
         }
@@ -112,12 +118,17 @@ namespace Game.Outpost.Sim
         {
             if (Phase == BattlePhase.Defeat || _setup == null) return;
             _player.Attack += modifier.AttackAdd;
-            _player.AttackInterval = Math.Max(0.05f, _player.AttackInterval * modifier.AttackIntervalScale);
+            if (_player.MaxAttack > 0f && _player.Attack > _player.MaxAttack)
+                _player.Attack = _player.MaxAttack; // 攻击封顶：不再秒杀，火力压力交给无上限射速
+            // 攻速无上限：仅留极小下限防除零 / 单帧过多次开火（~75000 发/分，远超玩法所需）
+            _player.AttackInterval = Math.Max(0.0008f, _player.AttackInterval * modifier.AttackIntervalScale);
             _player.Range += modifier.RangeAdd;
             if (_player.MaxRange > 0f && _player.Range > _player.MaxRange)
                 _player.Range = _player.MaxRange; // 索敌半径封顶（不越过缓冲区；到顶后业务侧不再提供该升级）
             _player.RegenPerSecond += modifier.RegenAdd;
             _player.RotationSpeed += modifier.RotationSpeedAdd;
+            if (_player.MaxRotationSpeed > 0f && _player.RotationSpeed > _player.MaxRotationSpeed)
+                _player.RotationSpeed = _player.MaxRotationSpeed; // 回转封顶（见 PlayerSetup.MaxRotationSpeed）
             if (modifier.MaxHpAdd != 0f)
             {
                 _player.MaxHp += modifier.MaxHpAdd;
@@ -156,7 +167,7 @@ namespace Game.Outpost.Sim
             WaveCleared = null;
         }
 
-        // 按成长曲线程序化生成第 waveIndex 波的刷怪流（无限模式：一波比一波多 / 强）。
+        // 按成长曲线程序化生成第 waveIndex 波的刷怪流（无限模式：一波比一波多 / 强）。逐角色统一公式展开。
         private void BeginWave(int waveIndex)
         {
             WaveIndex = waveIndex;
@@ -164,22 +175,20 @@ namespace Game.Outpost.Sim
             _waveStatScale = (float)Math.Pow(Math.Max(1f, sc.StatGrowth), waveIndex - 1);
 
             _streamScratch.Clear();
-            // 无人机（炮灰）：常驻，数量线性增（后期海量）、刷出间隔随波收窄（不低于下限）。
-            AddStream(sc.FodderArchId,
-                sc.FodderBase + (int)Math.Floor((waveIndex - 1) * sc.FodderPerWave),
-                sc.FodderInterval0 - (waveIndex - 1) * sc.FodderIntervalDecay >= sc.FodderIntervalMin
-                    ? sc.FodderInterval0 - (waveIndex - 1) * sc.FodderIntervalDecay
-                    : sc.FodderIntervalMin);
-            // 突袭者（快速突击）：解锁波起按斜率增（至少 1 只）。
-            if (waveIndex >= sc.StrikerUnlockWave)
-                AddStream(sc.StrikerArchId,
-                    Math.Max(1, (int)Math.Floor((waveIndex - sc.StrikerUnlockWave + 1) * sc.StrikerPerWave)),
-                    sc.StrikerInterval);
-            // 装甲兵（重甲）：解锁波起按斜率增（血最高、出场最少，至少 1 只）。
-            if (waveIndex >= sc.HeavyUnlockWave)
-                AddStream(sc.HeavyArchId,
-                    Math.Max(1, (int)Math.Floor((waveIndex - sc.HeavyUnlockWave + 1) * sc.HeavyPerWave)),
-                    sc.HeavyInterval);
+            var roles = sc.Roles;
+            if (roles != null)
+            {
+                for (int r = 0; r < roles.Length; r++)
+                {
+                    var role = roles[r];
+                    if (waveIndex < role.UnlockWave) continue;
+                    int step = waveIndex - role.UnlockWave;                 // 解锁后经过的波数
+                    int count = role.BaseCount + (int)Math.Floor(step * role.PerWave);
+                    float interval = role.Interval0 - step * role.IntervalDecay;
+                    if (interval < role.IntervalMin) interval = role.IntervalMin;
+                    AddStream(role.EnemyId, count, interval);              // count ≤ 0 或原型缺失则内部跳过
+                }
+            }
 
             _spawns = _streamScratch.ToArray();
             Phase = BattlePhase.WaveActive;
@@ -269,34 +278,41 @@ namespace Game.Outpost.Sim
             if (_player.RegenPerSecond > 0f)
                 _playerHp = Math.Min(_player.MaxHp, _playerHp + _player.RegenPerSecond * dt);
 
-            _playerAttackCooldown -= dt;
-
             int target = FindNearestInRange();
             if (target < 0)
             {
-                // 射程内无目标：冷却不再往负累（不积欠账），朝向保持不动。
+                // 射程内无目标：射速预热缓降；冷却不往负累（不积欠账），朝向保持不动。
+                _spinUp = _player.SpinDownTime > 0f ? Math.Max(0f, _spinUp - dt / _player.SpinDownTime) : 0f;
                 if (_playerAttackCooldown < 0f) _playerAttackCooldown = 0f;
                 return;
             }
 
-            // 逐帧把炮口转向目标；越慢，切换分散目标的空当越大。
+            // 锁定目标：射速预热缓升（近防炮点火感）+ 逐帧把炮口转向目标（越慢，切换分散目标的空当越大）。
+            _spinUp = _player.SpinUpTime > 0f ? Math.Min(1f, _spinUp + dt / _player.SpinUpTime) : 1f;
             var tpos = _enemies[target].Pos;
             float desired = (float)(Math.Atan2(tpos.Y, tpos.X) * Rad2Deg);
             _turretAngleDeg = MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
 
-            // 冷却就绪时：对准才开火，否则钉在 0 等转到位（不积欠账，避免转到瞬间连发补账）。
-            if (_playerAttackCooldown <= 0f)
+            // 开火：有效射速 = 基础射速 × spinUp（无上限）。只打炮口对准的最近目标——最近目标不在炮口方向即本 tick 停火、
+            // 下 tick 转过去（"瞄准后才射"：密集怪海里炮口总有目标＝连续扫射的火墙，稀疏时是逐个锁定点射）。单帧可多发。
+            _playerAttackCooldown -= dt;
+            if (_spinUp > 0.001f)
             {
-                if (Math.Abs(DeltaAngleDeg(_turretAngleDeg, desired)) <= AimToleranceDeg)
+                float effInterval = _player.AttackInterval / _spinUp;
+                int shots = 0;
+                while (_playerAttackCooldown <= 0f && shots < MaxShotsPerTick)
                 {
-                    DamageEnemy(target, _player.Attack);
-                    _playerAttackCooldown = _player.AttackInterval;
-                }
-                else
-                {
-                    _playerAttackCooldown = 0f;
+                    int t = FindNearestInRange();
+                    if (t < 0) break;
+                    var p = _enemies[t].Pos;
+                    float a = (float)(Math.Atan2(p.Y, p.X) * Rad2Deg);
+                    if (Math.Abs(DeltaAngleDeg(_turretAngleDeg, a)) > AimToleranceDeg) break;
+                    DamageEnemy(t, _player.Attack);
+                    _playerAttackCooldown += effInterval;
+                    shots++;
                 }
             }
+            if (_playerAttackCooldown < 0f) _playerAttackCooldown = 0f;
         }
 
         private int FindNearestInRange()

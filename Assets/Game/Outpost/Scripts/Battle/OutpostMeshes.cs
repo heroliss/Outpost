@@ -14,6 +14,8 @@ namespace Game.Outpost.Battle
         private static Mesh _hexagon;
         private static Mesh _unitDisc;
         private static Mesh _dart;
+        private static Mesh _needle;
+        private static Mesh _octagon;
 
         /// <summary>快速种：指向行进方向的箭头（本地 +X 为箭尖，<see cref="EnemyView"/> 逐帧转向来袭方向 = 冲向哨站）。</summary>
         public static Mesh Arrowhead
@@ -25,6 +27,32 @@ namespace Game.Outpost.Battle
         public static Mesh Dart
         {
             get { if (_dart == null) _dart = BuildPolygon("OutpostDart", 3, 0f, 0.5f); return _dart; }
+        }
+
+        /// <summary>掠袭机（极速种）：细长尖针，指向行进方向（本地 +X 为针尖，逐帧转向来袭方向）。比箭头更瘦更尖，读作高速掠袭。</summary>
+        public static Mesh Needle
+        {
+            get { if (_needle == null) _needle = BuildNeedle(); return _needle; }
+        }
+
+        /// <summary>攻城核（重装种）：厚重八边形。半径 0.5，由体型直径缩放。</summary>
+        public static Mesh Octagon
+        {
+            get { if (_octagon == null) _octagon = BuildPolygon("OutpostOctagon", 8, 22.5f, 0.5f); return _octagon; }
+        }
+
+        // 细长针：针尖朝本地 +X，尾部凹口，整体细窄，缩放后读作高速掠袭体。
+        private static Mesh BuildNeedle()
+        {
+            var v = new[]
+            {
+                new Vector3(0.68f, 0f, 0f),      // 0 针尖（+X）
+                new Vector3(-0.42f, 0.16f, 0f),  // 1 左后翼
+                new Vector3(-0.28f, 0f, 0f),     // 2 尾部凹口
+                new Vector3(-0.42f, -0.16f, 0f)  // 3 右后翼
+            };
+            var t = new[] { 0, 1, 2, 0, 2, 3 };
+            return Build("OutpostNeedle", v, t);
         }
 
         /// <summary>装甲种：厚重平顶六边形。半径 0.5，由体型直径缩放。</summary>

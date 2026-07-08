@@ -1,0 +1,7 @@
+[
+    { "enemyId": 1, "unlockWave": 1,  "baseCount": 3, "perWave": 1.3,  "interval0": 0.9, "intervalMin": 0.1,  "intervalDecay": 0.02 },
+    { "enemyId": 2, "unlockWave": 6,  "baseCount": 1, "perWave": 0.4,  "interval0": 1.5, "intervalMin": 0.35, "intervalDecay": 0.02 },
+    { "enemyId": 3, "unlockWave": 14, "baseCount": 1, "perWave": 0.22, "interval0": 3.0, "intervalMin": 1.2,  "intervalDecay": 0.03 },
+    { "enemyId": 4, "unlockWave": 30, "baseCount": 2, "perWave": 0.45, "interval0": 1.0, "intervalMin": 0.25, "intervalDecay": 0.02 },
+    { "enemyId": 5, "unlockWave": 48, "baseCount": 1, "perWave": 0.12, "interval0": 4.5, "intervalMin": 2.8,  "intervalDecay": 0.04 }
+]

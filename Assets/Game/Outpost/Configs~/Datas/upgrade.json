@@ -4,5 +4,5 @@
     { "id": 3, "name": "增程雷达", "desc": "索敌半径 +2", "kind": "Range", "value": 2 },
     { "id": 4, "name": "装甲镀层", "desc": "生命上限 +30（并回复 30）", "kind": "MaxHp", "value": 30 },
     { "id": 5, "name": "纳米修复", "desc": "每秒回血 +1.5", "kind": "Regen", "value": 1.5 },
-    { "id": 6, "name": "回转伺服", "desc": "炮塔回转 +55°/秒", "kind": "RotationSpeed", "value": 55 }
+    { "id": 6, "name": "回转伺服", "desc": "炮塔回转 +80°/秒", "kind": "RotationSpeed", "value": 80 }
 ]

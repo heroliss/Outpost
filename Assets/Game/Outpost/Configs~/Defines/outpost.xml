@@ -15,21 +15,21 @@
     </bean>
     <table name="TbEnemy" value="Enemy" index="id" input="*@enemy.json" comment="敌人原型表"/>
 
-    <bean name="WaveScaling" comment="无限模式的波次成长曲线（一行参数程序化生成每一波：数量线性增 × 血量/伤害轻指数增，前期有成长感、后期靠数量压垮）。三角色：无人机=慢弱靠量的炮灰、突袭者=快速突击、装甲兵=慢厚重甲；血越高的角色出场越少。">
-        <var name="fodderBase" type="int" comment="无人机（炮灰）第 1 波数量"/>
-        <var name="fodderPerWave" type="float" comment="无人机每波追加量（count = fodderBase + floor((w-1)*本值)）——后期海量、ECS 压力主来源"/>
-        <var name="fodderInterval0" type="float" comment="无人机第 1 波刷出间隔（秒）"/>
-        <var name="fodderIntervalMin" type="float" comment="无人机刷出间隔下限（越后越密，但不低于此）"/>
-        <var name="fodderIntervalDecay" type="float" comment="无人机刷出间隔每波递减量"/>
-        <var name="strikerUnlockWave" type="int" comment="突袭者（快速突击）解锁波次"/>
-        <var name="strikerPerWave" type="float" comment="突袭者每波数量斜率（count = max(1, floor((w-解锁波+1)*本值))）"/>
-        <var name="strikerInterval" type="float" comment="突袭者刷出间隔（秒）"/>
-        <var name="heavyUnlockWave" type="int" comment="装甲兵（重甲）解锁波次"/>
-        <var name="heavyPerWave" type="float" comment="装甲兵每波数量斜率（血最高、出场最少）"/>
-        <var name="heavyInterval" type="float" comment="装甲兵刷出间隔（秒，很稀）"/>
-        <var name="statGrowth" type="float" comment="每波敌人生命 / 自爆伤害的乘法成长底数（如 1.025 = 每波强 2.5%；刻意偏小——难度主要靠数量而非数值膨胀）"/>
+    <bean name="WaveRole" comment="一个敌人角色的波次成长：统一公式逐波展开成一条刷怪流。数量=baseCount+floor((w-unlockWave)*perWave)，间隔=max(intervalMin, interval0-(w-unlockWave)*intervalDecay)">
+        <var name="enemyId" type="int" comment="敌人原型 id（主键，对应 TbEnemy.id）"/>
+        <var name="unlockWave" type="int" comment="解锁波次（w ≥ 本值才出现；常驻角色填 1）"/>
+        <var name="baseCount" type="int" comment="解锁波的基础数量"/>
+        <var name="perWave" type="float" comment="每波数量斜率（血越高的角色应越小 = 出场越少）"/>
+        <var name="interval0" type="float" comment="解锁波的刷出间隔（秒）"/>
+        <var name="intervalMin" type="float" comment="刷出间隔下限（越后越密，但不低于此）"/>
+        <var name="intervalDecay" type="float" comment="刷出间隔每波递减量"/>
     </bean>
-    <table name="TbWaveScaling" value="WaveScaling" mode="one" input="wavescaling.json" comment="波次成长曲线（one 模式：全表一条记录）"/>
+    <table name="TbWaveRole" value="WaveRole" index="enemyId" input="*@waverole.json" comment="各敌人角色的波次成长（可扩：加敌人 = 加一行）"/>
+
+    <bean name="WaveScaling" comment="波次全局成长参数">
+        <var name="statGrowth" type="float" comment="每波敌人生命 / 自爆伤害的乘法成长底数（如 1.02 = 每波强 2%；刻意偏小——难度主要靠数量而非数值膨胀）"/>
+    </bean>
+    <table name="TbWaveScaling" value="WaveScaling" mode="one" input="wavescaling.json" comment="波次全局成长（one 模式：全表一条记录）"/>
 
     <enum name="UpgradeKind" comment="升级效果类型（映射到 Sim 的 PlayerModifier 字段）">
         <var name="Attack" value="0" comment="攻击力 +value"/>
@@ -51,11 +51,13 @@
     <bean name="BattleGlobal" comment="战斗全局参数（玩家初始属性 + 场地/节奏）">
         <var name="playerMaxHp" type="float" comment="玩家生命上限"/>
         <var name="playerAttack" type="float" comment="玩家单次攻击伤害（无限模式起手刻意压低，靠升级成长）"/>
+        <var name="playerMaxAttack" type="float" comment="攻击伤害升级上限（≤0=不封顶）。封顶后敌人不再被秒杀，火力压力交给无上限的射速升级"/>
         <var name="playerAttackInterval" type="float" comment="玩家攻击间隔（秒；起手偏慢）"/>
         <var name="playerRange" type="float" comment="玩家索敌半径（起手偏短）"/>
         <var name="playerRegen" type="float" comment="玩家每秒回血"/>
         <var name="playerRadius" type="float" comment="玩家碰撞半径"/>
         <var name="playerRotationSpeed" type="float" comment="炮塔回转速度（度/秒；起手偏慢，回转伺服升级提升——切目标要转过去才能开火）"/>
+        <var name="playerMaxRotationSpeed" type="float" comment="回转速度升级上限（≤0=不封顶）。封顶是无限模式能收尾的关键：后期 360° 密集来袭时炮塔扫不过来、对面漏怪，击杀率随数量渐降直至被压垮"/>
         <var name="playerMaxRange" type="float" comment="索敌半径升级上限（应小于 arenaRadius，留出拦截缓冲区；到顶后增程雷达不再出现）"/>
         <var name="arenaRadius" type="float" comment="敌人出生环半径"/>
         <var name="interWaveDelay" type="float" comment="波间停留秒数（升级选择的最短展示时间）"/>

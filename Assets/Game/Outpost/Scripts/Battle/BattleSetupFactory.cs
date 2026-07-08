@@ -10,11 +10,9 @@ namespace Game.Outpost.Battle
     /// </summary>
     public static class BattleSetupFactory
     {
-        // 波次成长的三个角色 → 敌人原型 id 的约定映射（住在业务侧，与 enemy.json 的 id 对齐；
-        // 改敌人 id / 增删种类时同步这里）。Sim 只认 id，不认"炮灰/突击/重甲"这些角色语义。
-        private const int FodderArchId = 1;  // 无人机（慢弱靠量的炮灰）
-        private const int StrikerArchId = 2; // 突袭者（快速突击）
-        private const int HeavyArchId = 3;   // 装甲兵（慢厚重甲）
+        // 射速预热时长（近防炮点火感）——原型常量、未进配置表；数值调优 / 进表是后续项。
+        private const float SpinUpTime = 0.5f;
+        private const float SpinDownTime = 0.9f;
 
         public static BattleSetup Build(Tables cfg, int seed)
         {
@@ -33,7 +31,23 @@ namespace Game.Outpost.Battle
                     Score = e.Score,
                 });
 
-            var sc = cfg.TbWaveScaling.Data;
+            // 波次角色表 → Sim 的成长定义（角色 = 敌人原型 id + 一条成长曲线；顺序无关，Sim 按各自 UnlockWave 生效）。
+            var roleRows = cfg.TbWaveRole.DataList;
+            var roles = new Sim.WaveRole[roleRows.Count];
+            for (int i = 0; i < roleRows.Count; i++)
+            {
+                var r = roleRows[i];
+                roles[i] = new Sim.WaveRole
+                {
+                    EnemyId = r.EnemyId,
+                    UnlockWave = r.UnlockWave,
+                    BaseCount = r.BaseCount,
+                    PerWave = r.PerWave,
+                    Interval0 = r.Interval0,
+                    IntervalMin = r.IntervalMin,
+                    IntervalDecay = r.IntervalDecay,
+                };
+            }
 
             return new BattleSetup
             {
@@ -43,12 +57,16 @@ namespace Game.Outpost.Battle
                 {
                     MaxHp = g.PlayerMaxHp,
                     Attack = g.PlayerAttack,
+                    MaxAttack = g.PlayerMaxAttack,
                     AttackInterval = g.PlayerAttackInterval,
                     Range = g.PlayerRange,
                     MaxRange = g.PlayerMaxRange,
                     RegenPerSecond = g.PlayerRegen,
                     Radius = g.PlayerRadius,
                     RotationSpeed = g.PlayerRotationSpeed,
+                    MaxRotationSpeed = g.PlayerMaxRotationSpeed,
+                    SpinUpTime = SpinUpTime,
+                    SpinDownTime = SpinDownTime,
                     // 拦截溅射（近防炮张力）暂用原型常量、未进配置表——数值调优 / 进表是后续项。
                     SplashRadius = 2.2f,
                     SplashDamageScale = 0.6f,
@@ -56,21 +74,8 @@ namespace Game.Outpost.Battle
                 Enemies = enemies.ToArray(),
                 Scaling = new Sim.WaveScaling
                 {
-                    FodderArchId = FodderArchId,
-                    StrikerArchId = StrikerArchId,
-                    HeavyArchId = HeavyArchId,
-                    FodderBase = sc.FodderBase,
-                    FodderPerWave = sc.FodderPerWave,
-                    FodderInterval0 = sc.FodderInterval0,
-                    FodderIntervalMin = sc.FodderIntervalMin,
-                    FodderIntervalDecay = sc.FodderIntervalDecay,
-                    StrikerUnlockWave = sc.StrikerUnlockWave,
-                    StrikerPerWave = sc.StrikerPerWave,
-                    StrikerInterval = sc.StrikerInterval,
-                    HeavyUnlockWave = sc.HeavyUnlockWave,
-                    HeavyPerWave = sc.HeavyPerWave,
-                    HeavyInterval = sc.HeavyInterval,
-                    StatGrowth = sc.StatGrowth,
+                    Roles = roles,
+                    StatGrowth = cfg.TbWaveScaling.Data.StatGrowth,
                 },
             };
         }
