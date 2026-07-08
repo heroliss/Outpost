@@ -38,6 +38,7 @@ namespace Game.Outpost.Sim
 
         private const float AimToleranceDeg = 6f;   // 炮口角度差在此内即视为对准、可开火
         private const int MaxShotsPerTick = 64;      // 无上限射速下单帧最多发数（防病态循环；远超玩法所需）
+        private const float FirehoseFireInterval = 0.06f; // 有效射速间隔低于此即进"火墙"：炮口未对准也持续击发（边转边扫、空放不结算伤害）
         private const double Rad2Deg = 180.0 / Math.PI;
 
         private BattleSetup _setup;
@@ -72,6 +73,7 @@ namespace Game.Outpost.Sim
 
         public event Action<EnemySpawnedEvent> EnemySpawned;
         public event Action<EnemyHitEvent> EnemyHit;
+        public event Action<TurretFiredEvent> TurretFired;
         public event Action<EnemyDetonatedEvent> EnemyDetonated;
         public event Action<int> WaveStarted;
         public event Action<int> WaveCleared;
@@ -162,6 +164,7 @@ namespace Game.Outpost.Sim
             // 参考实现无非托管资源；清空事件防止终局后订阅方被迟到回调（接口为 ECS 后端的 World 释放而设）。
             EnemySpawned = null;
             EnemyHit = null;
+            TurretFired = null;
             EnemyDetonated = null;
             WaveStarted = null;
             WaveCleared = null;
@@ -293,26 +296,62 @@ namespace Game.Outpost.Sim
             float desired = (float)(Math.Atan2(tpos.Y, tpos.X) * Rad2Deg);
             _turretAngleDeg = MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
 
-            // 开火：有效射速 = 基础射速 × spinUp（无上限）。只打炮口对准的最近目标——最近目标不在炮口方向即本 tick 停火、
-            // 下 tick 转过去（"瞄准后才射"：密集怪海里炮口总有目标＝连续扫射的火墙，稀疏时是逐个锁定点射）。单帧可多发。
+            // 开火：有效射速 = 基础射速 × spinUp（无上限）。每发打的是"炮口锥内的最近敌人"——炮管指着谁就打谁，
+            // 不必是全局最近（回转扫过的其他敌人照样命中、照样结算伤害）。炮塔另按回转速度转向"全局最近"(target)＝想咬住的主威胁，
+            // 扫掠途中顺带清掉挡在炮口上的其余敌人。炮口锥内为空时——
+            //   · 低射速：本 tick 停火、下 tick 把炮口转过去（"瞄准后才发"的点射，转向途中静默蓄势）；
+            //   · 高射速(火墙)：炮口在转向途中也持续击发，空放射向炮口方向（此刻真无敌人可命中、不结算伤害），画出"边转边扫"的火舌。
+            // 单帧可多发。
             _playerAttackCooldown -= dt;
             if (_spinUp > 0.001f)
             {
                 float effInterval = _player.AttackInterval / _spinUp;
+                bool firehose = effInterval < FirehoseFireInterval;
                 int shots = 0;
                 while (_playerAttackCooldown <= 0f && shots < MaxShotsPerTick)
                 {
-                    int t = FindNearestInRange();
-                    if (t < 0) break;
-                    var p = _enemies[t].Pos;
-                    float a = (float)(Math.Atan2(p.Y, p.X) * Rad2Deg);
-                    if (Math.Abs(DeltaAngleDeg(_turretAngleDeg, a)) > AimToleranceDeg) break;
-                    DamageEnemy(t, _player.Attack);
+                    int t = FindNearestInCone(_turretAngleDeg, AimToleranceDeg); // 炮口锥内最近敌人（指哪打哪，扫过即中）
+                    if (t >= 0)
+                    {
+                        var p = _enemies[t].Pos;
+                        DamageEnemy(t, _player.Attack);                     // 命中：结算伤害（内部发 EnemyHit）
+                        TurretFired?.Invoke(new TurretFiredEvent(p, true));
+                    }
+                    else if (firehose && FindNearestInRange() >= 0)
+                    {
+                        TurretFired?.Invoke(new TurretFiredEvent(BarrelPoint(), false)); // 炮口空、射程内尚有敌：转向途中空放
+                    }
+                    else break;                                            // 低射速静默蓄势 / 射程内已空：停火
                     _playerAttackCooldown += effInterval;
                     shots++;
                 }
             }
             if (_playerAttackCooldown < 0f) _playerAttackCooldown = 0f;
+        }
+
+        // 炮口锥内(与炮口夹角 ≤ toleranceDeg)、射程内的最近敌人索引；无则 -1。炮管指哪打哪——回转扫过的敌人即被此命中。
+        private int FindNearestInCone(float angleDeg, float toleranceDeg)
+        {
+            int best = -1;
+            float bestSq = _player.Range * _player.Range;
+            for (int i = 0; i < _enemies.Count; i++)
+            {
+                var pos = _enemies[i].Pos;
+                float dsq = pos.LengthSquared();
+                if (dsq > bestSq) continue;
+                float a = (float)(Math.Atan2(pos.Y, pos.X) * Rad2Deg);
+                if (Math.Abs(DeltaAngleDeg(angleDeg, a)) > toleranceDeg) continue;
+                bestSq = dsq;
+                best = i;
+            }
+            return best;
+        }
+
+        // 炮口方向在射程边缘上的落点（空放曳光的终点，让"边转边扫"的火舌有可见去向）。
+        private Vector2 BarrelPoint()
+        {
+            double rad = _turretAngleDeg / Rad2Deg;
+            return new Vector2((float)Math.Cos(rad) * _player.Range, (float)Math.Sin(rad) * _player.Range);
         }
 
         private int FindNearestInRange()

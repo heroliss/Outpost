@@ -84,6 +84,27 @@ namespace Game.Outpost.Sim
     }
 
     /// <summary>
+    /// 炮塔击发一发——<b>每发都触发，无论是否命中</b>。表现层据此画炮口闪光 + 曳光；刻意与"敌人被击中"
+    /// (<see cref="EnemyHitEvent"/>) 分离：前者是"炮管吐了一发"，后者是"某敌人挨了打"，一发命中会两者都触发。
+    /// 高射速火墙里炮口在转向途中也持续击发，<see cref="Hit"/> 为 false 的是尚未对准目标的空放
+    /// （不结算伤害、曳光射向炮口方向），正是"边转边扫"火舌的可见来源。
+    /// </summary>
+    public readonly struct TurretFiredEvent
+    {
+        /// <summary>这一发的落点：命中时为目标敌人位置；空放时为炮口方向在射程边缘上的点。</summary>
+        public readonly Vector2 Aim;
+
+        /// <summary>是否命中了敌人（false = 转向途中未对准的空放）。</summary>
+        public readonly bool Hit;
+
+        public TurretFiredEvent(Vector2 aim, bool hit)
+        {
+            Aim = aim;
+            Hit = hit;
+        }
+    }
+
+    /// <summary>
     /// 敌人抵达玩家并自爆：一次性造成 <see cref="Damage"/> 伤害后<b>即从存活列表移除</b>（不再贴脸驻留输出）。
     /// 表现层据 <see cref="EnemyId"/> 回收该敌人视觉、<see cref="ArchetypeId"/> 选爆炸颜色 / 体量、<see cref="Position"/> 定位爆点。
     /// </summary>
@@ -123,8 +144,10 @@ namespace Game.Outpost.Sim
     /// 事件回调里只做读取与外发，<b>不要</b>回调内再调本接口的写方法（Start / Tick / BeginNextWave / ApplyModifier）。<br/>
     /// <b>接触模型</b>：敌人径直冲向玩家，抵达即<b>自爆</b>（<see cref="EnemyDetonated"/>，一次性伤害后移除，不驻留输出）；
     /// 玩家在离基地过近处击毁敌人会吃<b>拦截溅射</b>（<see cref="EnemyHitEvent.SplashDamage"/>，越近越疼、随 <c>PlayerSetup.SplashRadius/SplashDamageScale</c> 配置）。<br/>
-    /// <b>开火模型</b>：炮塔按 <c>PlayerSetup.RotationSpeed</c> 逐帧转向最近目标，炮口指向目标（容差内）且冷却就绪才开火（hitscan 命中即结算）——
-    /// 回转越慢，切换分散目标的空当越大、越易漏怪（<see cref="TurretAngle"/> 供表现层画炮管）。<br/>
+    /// <b>开火模型</b>：炮塔按 <c>PlayerSetup.RotationSpeed</c> 逐帧转向最近目标；锁定目标后射速<b>预热</b>缓升（<see cref="SpinUp"/>）。
+    /// 命中为 hitscan（对准最近目标即同帧结算，无飞行物）。低射速下"瞄准后才发"——转向途中静默；
+    /// 有效射速够高（火墙）时炮口在转向途中<b>也持续击发</b>（<see cref="TurretFired"/>，未对准的空放不结算伤害），
+    /// 使回转越慢越难覆盖四面来袭、越易漏怪（<see cref="TurretAngle"/> 供表现层画炮管）。<br/>
     /// <b>无限模式</b>：波次由 <c>WaveScaling</c> 逐波程序化生成、越来越难，唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>）；无胜利。<br/>
     /// <b>聚合读取</b>：属性在两次 Tick 之间保持稳定；存活敌人经 <see cref="EnemyCount"/> + <see cref="GetEnemy"/>
     /// 按索引零分配遍历（索引顺序会因移除而变化，跨帧跟踪用 <see cref="EnemySnapshot.Id"/>）。<br/>
@@ -170,6 +193,9 @@ namespace Game.Outpost.Sim
 
         event Action<EnemySpawnedEvent> EnemySpawned;
         event Action<EnemyHitEvent> EnemyHit;
+
+        /// <summary>炮塔击发一发（命中或空放都触发）。表现层据此画炮口闪光 / 曳光，与 <see cref="EnemyHit"/>（敌人反应）分离；高射速火墙中转向途中的空放 <see cref="TurretFiredEvent.Hit"/> = false。</summary>
+        event Action<TurretFiredEvent> TurretFired;
 
         /// <summary>敌人抵达玩家并自爆（一次性伤害后即从存活列表移除）。取代了旧的"驻留逐拍攻击"模型。</summary>
         event Action<EnemyDetonatedEvent> EnemyDetonated;

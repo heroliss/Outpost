@@ -14,8 +14,9 @@ namespace Game.Outpost.Battle
 {
     /// <summary>
     /// 战斗导演：把纯 C# 模拟内核（<see cref="IBattleSim"/>）接到 Unity 表现与框架数据流上——
-    /// 每帧 <c>Tick</c> 模拟、把聚合值写进 <see cref="BattleModel"/>（HUD 只读订阅）、把逐事件（刷怪/命中/受击/击杀）
+    /// 每帧 <c>Tick</c> 模拟、把聚合值写进 <see cref="BattleModel"/>（HUD 只读订阅）、把逐事件（刷怪/击发/命中/自爆/击杀）
     /// 翻成池化演出（敌人视觉 / 弹道曳光 / 脉冲圈 / 烟雾 / 碎片 / 伤害飘字 / 相机震动 / 炮塔朝向），终局把战绩交给 <see cref="IGameFlow"/> 进结算。
+    /// "炮塔击发一发"(<c>TurretFired</c>)与"敌人被击中"(<c>EnemyHit</c>)是两条独立事件：前者驱动炮口/曳光（含火墙里转向途中的空放），后者驱动敌人白闪/击杀爆炸。
     /// <para>模拟内核对 Unity 一无所知，置换为 ECS 后端时本类的"事件→视觉/Model"翻译层原样保留（接缝价值所在）。
     /// System 层不能 ExecuteCommand（防环），故终局直接 <c>GetUtility&lt;IGameFlow&gt;()</c> 驱动流程。</para>
     /// <para>无限模式：波次一波比一波难，唯一终态是哨站失守；炮塔朝向与开火时机由内核决定（内核按回转速度转向、对准才发命中事件），
@@ -99,6 +100,9 @@ namespace Game.Outpost.Battle
         private static readonly Color SmokeColor = new(0.42f, 0.42f, 0.46f, 0.55f); // 非 HDR 灰烟（不发光，读成烟）
         private static readonly Color DebrisColor = new(2.6f, 1.5f, 0.5f, 1f);       // HDR 暖橙火花碎片
 
+        // 高射速火墙的曳光散射半径（世界单位）：按预热系数缩放，让密集连发读成一片弹雨而非一条直线（纯表现，不改内核命中）。
+        private const float TracerScatter = 0.42f;
+
         // 表现层的 Z 分层（相机 -10 朝 +Z 看）：地板 0.5 > 地面环 0.3 > 单位 0 > 脉冲 -0.2 > 曳光 -0.3 > 飘字 -0.8。
         private const float PulseZ = -0.2f;
         private const float TracerZ = -0.3f;
@@ -163,6 +167,7 @@ namespace Game.Outpost.Battle
             _sim = new ReferenceBattleSim();
             _sim.EnemySpawned += OnEnemySpawned;
             _sim.EnemyHit += OnEnemyHit;
+            _sim.TurretFired += OnTurretFired;
             _sim.EnemyDetonated += OnEnemyDetonated;
             _sim.WaveCleared += OnWaveCleared;
 
@@ -244,17 +249,18 @@ namespace Game.Outpost.Battle
             SpawnPulse(ToWorld(e.Position, PulseZ), c, 2.6f * v.ExplosionScale, 0.4f, 0.35f);
         }
 
+        // 炮塔击发一发（命中或空放都触发）：画炮口闪光 + 曳光 + 命中冲击。与 OnEnemyHit（敌人反应）分离——
+        // 转向途中的空放也走这里，画出射向炮口方向的火舌。高射速下每帧限量，超预算即跳过（伤害早已在内核结算，防池爆 + 刷屏）。
+        private void OnTurretFired(TurretFiredEvent e)
+        {
+            if (_hitFxBudget <= 0) return;
+            _hitFxBudget--;
+            FireBurst(ToWorld(e.Aim), e.Hit);
+        }
+
         private void OnEnemyHit(EnemyHitEvent e)
         {
             var hitPos = ToWorld(e.Position);
-
-            // 开火演出（炮口闪光 + 曳光 + 命中冲击）——高射速下每帧限量，超预算即只结算伤害不出特效（防池爆 + 刷屏）。
-            if (_hitFxBudget > 0)
-            {
-                _hitFxBudget--;
-                FireBurst(hitPos);
-                SpawnPulse(WithZ(hitPos, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f);
-            }
 
             // 近距拦截的溅射警示：击毁点离基地过近，弹片仍连带削基地（基地红色冲击 + 轻震 + 飘字）。始终演（rare、要紧）。
             if (e.SplashDamage > 0f)
@@ -420,15 +426,26 @@ namespace Game.Outpost.Battle
             _decor.SetRange(_lastRange);
         }
 
-        // 开火演出：炮管后坐 + 炮口闪光 + 曳光从当前炮口飞向目标点（hitscan 伤害早已结算，此处纯装饰）。
-        private void FireBurst(Vector3 targetPos)
+        // 开火演出：炮管后坐 + 炮口闪光 + 曳光从当前炮口飞向落点（hitscan 伤害早已结算，此处纯装饰）。
+        // 落点按预热强度做随机散射——高射速下密集连发才不会叠成一条直线，读成一片弹雨；命中冲击仍落在真实弹着点、不随散射抖。
+        private void FireBurst(Vector3 aim, bool hit)
         {
             _turret.Fire();
             var muzzle = WithZ(_turret.MuzzleWorldPos, TracerZ);
             SpawnPulse(muzzle, MuzzleColor, 0.15f, 0.55f, 0.12f);
+
+            var end = aim;
+            float scatter = TracerScatter * _sim.SpinUp; // 越预热越散（点射时几乎不散、火墙时散成弹雨）
+            if (scatter > 0.001f)
+            {
+                var j = Random.insideUnitCircle * scatter;
+                end += new Vector3(j.x, j.y, 0f);
+            }
             var tracer = Bag.Spawn(_tracerPrefab, _arenaRoot).GetComponent<ProjectileTracer>();
-            tracer.Play(muzzle, WithZ(targetPos, TracerZ), TracerColor);
+            tracer.Play(muzzle, WithZ(end, TracerZ), TracerColor);
             _effects.Add(tracer);
+
+            if (hit) SpawnPulse(WithZ(aim, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f); // 命中冲击落在真实弹着点
         }
 
         // 击毁 / 自爆的碎片飞溅：从爆点向随机方向抛出若干短促发光碎片流（复用曳光，指定飞行时长拉出可见弧）。
