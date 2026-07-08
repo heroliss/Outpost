@@ -3,8 +3,8 @@
         "id": 1,
         "name": "无人机",
         "hp": 14,
-        "moveSpeed": 2.2,
-        "attack": 3,
+        "moveSpeed": 2.0,
+        "attack": 4,
         "attackInterval": 1.0,
         "radius": 0.3,
         "score": 5
@@ -13,8 +13,8 @@
         "id": 2,
         "name": "突袭者",
         "hp": 26,
-        "moveSpeed": 4.5,
-        "attack": 6,
+        "moveSpeed": 4.0,
+        "attack": 8,
         "attackInterval": 1.0,
         "radius": 0.4,
         "score": 12
@@ -22,9 +22,9 @@
     {
         "id": 3,
         "name": "装甲兵",
-        "hp": 90,
-        "moveSpeed": 1.5,
-        "attack": 16,
+        "hp": 80,
+        "moveSpeed": 1.35,
+        "attack": 18,
         "attackInterval": 1.0,
         "radius": 0.7,
         "score": 32
