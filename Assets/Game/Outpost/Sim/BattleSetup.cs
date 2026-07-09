@@ -66,12 +66,6 @@ namespace Game.Outpost.Sim
         /// </summary>
         public float MaxRotationSpeed;
 
-        /// <summary>射速预热爬升时长（秒）：锁定目标后有效射速在此时间内从 0 线性升到满（近防炮点火感）。</summary>
-        public float SpinUpTime;
-
-        /// <summary>射速预热回落时长（秒）：脱离目标后有效射速在此时间内降回 0。</summary>
-        public float SpinDownTime;
-
         /// <summary>
         /// 拦截溅射的危险半径：在离基地小于此距离处击毁敌人，弹头冲击波仍会连带削基地（越近越疼）。
         /// 0 = 关闭溅射。这是"近防炮"的核心张力来源——逼玩家尽量在远处早拦，也让"射程"升级有意义。

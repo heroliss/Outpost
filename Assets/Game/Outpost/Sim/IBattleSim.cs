@@ -144,9 +144,8 @@ namespace Game.Outpost.Sim
     /// 事件回调里只做读取与外发，<b>不要</b>回调内再调本接口的写方法（Start / Tick / BeginNextWave / ApplyModifier）。<br/>
     /// <b>接触模型</b>：敌人径直冲向玩家，抵达即<b>自爆</b>（<see cref="EnemyDetonated"/>，一次性伤害后移除，不驻留输出）；
     /// 玩家在离基地过近处击毁敌人会吃<b>拦截溅射</b>（<see cref="EnemyHitEvent.SplashDamage"/>，越近越疼、随 <c>PlayerSetup.SplashRadius/SplashDamageScale</c> 配置）。<br/>
-    /// <b>开火模型</b>：炮塔按 <c>PlayerSetup.RotationSpeed</c> 逐帧转向最近目标；锁定目标后射速<b>预热</b>缓升（<see cref="SpinUp"/>）。
-    /// 命中为 hitscan（对准最近目标即同帧结算，无飞行物）。低射速下"瞄准后才发"——转向途中静默；
-    /// 有效射速够高（火墙）时炮口在转向途中<b>也持续击发</b>（<see cref="TurretFired"/>，未对准的空放不结算伤害），
+    /// <b>开火模型</b>：炮塔按 <c>PlayerSetup.RotationSpeed</c> 逐帧转向最近目标；命中为 hitscan（对准最近目标即同帧结算，无飞行物）。
+    /// 低射速下"瞄准后才发"——转向途中静默；有效射速够高（火墙）时炮口在转向途中<b>也持续击发</b>（<see cref="TurretFired"/>，未对准的空放不结算伤害），
     /// 使回转越慢越难覆盖四面来袭、越易漏怪（<see cref="TurretAngle"/> 供表现层画炮管）。<br/>
     /// <b>无限模式</b>：波次由 <c>WaveScaling</c> 逐波程序化生成、越来越难，唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>）；无胜利。<br/>
     /// <b>聚合读取</b>：属性在两次 Tick 之间保持稳定；存活敌人经 <see cref="EnemyCount"/> + <see cref="GetEnemy"/>
@@ -175,9 +174,6 @@ namespace Game.Outpost.Sim
 
         /// <summary>炮塔当前朝向角（度，标准数学角：0 = +X、逆时针为正）。模拟内核已按回转速度逐帧转向目标，表现层据此画炮管指向。</summary>
         float TurretAngle { get; }
-
-        /// <summary>射速预热系数（0..1）：锁定目标后缓升到 1、脱离后缓降到 0。有效射速 = 基础射速 × 本值；表现层据此调制炮口火墙强度与核心亮度。</summary>
-        float SpinUp { get; }
 
         /// <summary>累计击杀数。</summary>
         int Kills { get; }

@@ -54,7 +54,6 @@ namespace Game.Outpost.Sim
         private float _playerHp;
         private float _playerAttackCooldown;
         private float _turretAngleDeg;      // 炮塔当前朝向（度）；逐帧按回转速度趋近最近目标
-        private float _spinUp;              // 射速预热系数 0..1：有目标缓升、无目标缓降
         private float _waveStatScale = 1f;  // 当前波次的敌人成长系数（StatGrowth^(w-1)），出生时写进 EnemyState
         private int _nextEnemyId = 1;
 
@@ -66,7 +65,6 @@ namespace Game.Outpost.Sim
         public float PlayerAttack => _player.Attack;
         public float PlayerRotationSpeed => _player.RotationSpeed;
         public float TurretAngle => _turretAngleDeg;
-        public float SpinUp => _spinUp;
         public int Kills { get; private set; }
         public int Score { get; private set; }
         public int EnemyCount => _enemies.Count;
@@ -104,7 +102,6 @@ namespace Game.Outpost.Sim
             _playerHp = _player.MaxHp;
             _playerAttackCooldown = 0f;
             _turretAngleDeg = 0f;
-            _spinUp = 0f;
 
             BeginWave(1);
         }
@@ -284,47 +281,42 @@ namespace Game.Outpost.Sim
             int target = FindNearestInRange();
             if (target < 0)
             {
-                // 射程内无目标：射速预热缓降；冷却不往负累（不积欠账），朝向保持不动。
-                _spinUp = _player.SpinDownTime > 0f ? Math.Max(0f, _spinUp - dt / _player.SpinDownTime) : 0f;
+                // 射程内无目标：冷却不往负累（不积欠账），朝向保持不动。
                 if (_playerAttackCooldown < 0f) _playerAttackCooldown = 0f;
                 return;
             }
 
-            // 锁定目标：射速预热缓升（近防炮点火感）+ 逐帧把炮口转向目标（越慢，切换分散目标的空当越大）。
-            _spinUp = _player.SpinUpTime > 0f ? Math.Min(1f, _spinUp + dt / _player.SpinUpTime) : 1f;
+            // 锁定目标：逐帧把炮口转向目标（越慢，切换分散目标的空当越大）。
             var tpos = _enemies[target].Pos;
             float desired = (float)(Math.Atan2(tpos.Y, tpos.X) * Rad2Deg);
             _turretAngleDeg = MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
 
-            // 开火：有效射速 = 基础射速 × spinUp（无上限）。每发打的是"炮口锥内的最近敌人"——炮管指着谁就打谁，
+            // 开火：有效射速 = 基础射速（无上限、无预热）。每发打的是"炮口锥内的最近敌人"——炮管指着谁就打谁，
             // 不必是全局最近（回转扫过的其他敌人照样命中、照样结算伤害）。炮塔另按回转速度转向"全局最近"(target)＝想咬住的主威胁，
             // 扫掠途中顺带清掉挡在炮口上的其余敌人。炮口锥内为空时——
-            //   · 低射速：本 tick 停火、下 tick 把炮口转过去（"瞄准后才发"的点射，转向途中静默蓄势）；
+            //   · 低射速：本 tick 停火、下 tick 把炮口转过去（"瞄准后才发"的点射，转向途中静默）；
             //   · 高射速(火墙)：炮口在转向途中也持续击发，空放射向炮口方向（此刻真无敌人可命中、不结算伤害），画出"边转边扫"的火舌。
             // 单帧可多发。
             _playerAttackCooldown -= dt;
-            if (_spinUp > 0.001f)
+            float effInterval = _player.AttackInterval;
+            bool firehose = effInterval < FirehoseFireInterval;
+            int shots = 0;
+            while (_playerAttackCooldown <= 0f && shots < MaxShotsPerTick)
             {
-                float effInterval = _player.AttackInterval / _spinUp;
-                bool firehose = effInterval < FirehoseFireInterval;
-                int shots = 0;
-                while (_playerAttackCooldown <= 0f && shots < MaxShotsPerTick)
+                int t = FindNearestInCone(_turretAngleDeg, AimToleranceDeg); // 炮口锥内最近敌人（指哪打哪，扫过即中）
+                if (t >= 0)
                 {
-                    int t = FindNearestInCone(_turretAngleDeg, AimToleranceDeg); // 炮口锥内最近敌人（指哪打哪，扫过即中）
-                    if (t >= 0)
-                    {
-                        var p = _enemies[t].Pos;
-                        DamageEnemy(t, _player.Attack);                     // 命中：结算伤害（内部发 EnemyHit）
-                        TurretFired?.Invoke(new TurretFiredEvent(p, true));
-                    }
-                    else if (firehose && FindNearestInRange() >= 0)
-                    {
-                        TurretFired?.Invoke(new TurretFiredEvent(BarrelPoint(), false)); // 炮口空、射程内尚有敌：转向途中空放
-                    }
-                    else break;                                            // 低射速静默蓄势 / 射程内已空：停火
-                    _playerAttackCooldown += effInterval;
-                    shots++;
+                    var p = _enemies[t].Pos;
+                    DamageEnemy(t, _player.Attack);                     // 命中：结算伤害（内部发 EnemyHit）
+                    TurretFired?.Invoke(new TurretFiredEvent(p, true));
                 }
+                else if (firehose && FindNearestInRange() >= 0)
+                {
+                    TurretFired?.Invoke(new TurretFiredEvent(BarrelPoint(), false)); // 炮口空、射程内尚有敌：转向途中空放
+                }
+                else break;                                            // 低射速静默 / 射程内已空：停火
+                _playerAttackCooldown += effInterval;
+                shots++;
             }
             if (_playerAttackCooldown < 0f) _playerAttackCooldown = 0f;
         }

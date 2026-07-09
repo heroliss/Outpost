@@ -10,10 +10,6 @@ namespace Game.Outpost.Battle
     /// </summary>
     public static class BattleSetupFactory
     {
-        // 射速预热时长（近防炮点火感）——原型常量、未进配置表；数值调优 / 进表是后续项。
-        private const float SpinUpTime = 0.5f;
-        private const float SpinDownTime = 0.9f;
-
         public static BattleSetup Build(Tables cfg, int seed)
         {
             var g = cfg.TbBattleGlobal.Data;
@@ -65,8 +61,6 @@ namespace Game.Outpost.Battle
                     Radius = g.PlayerRadius,
                     RotationSpeed = g.PlayerRotationSpeed,
                     MaxRotationSpeed = g.PlayerMaxRotationSpeed,
-                    SpinUpTime = SpinUpTime,
-                    SpinDownTime = SpinDownTime,
                     // 拦截溅射（近防炮张力）暂用原型常量、未进配置表——数值调优 / 进表是后续项。
                     SplashRadius = 2.2f,
                     SplashDamageScale = 0.6f,

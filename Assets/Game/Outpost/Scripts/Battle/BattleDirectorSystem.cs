@@ -104,8 +104,19 @@ namespace Game.Outpost.Battle
         private static readonly Color SmokeColor = new(0.42f, 0.42f, 0.46f, 0.55f); // 非 HDR 灰烟（不发光，读成烟）
         private static readonly Color DebrisColor = new(2.6f, 1.5f, 0.5f, 1f);       // HDR 暖橙火花碎片
 
-        // 高射速火墙的曳光散射半径（世界单位）：按预热系数缩放，让密集连发读成一片弹雨而非一条直线（纯表现，不改内核命中）。
+        // 高射速火墙的曳光散射半径（世界单位）：按火力热度缩放，让密集连发读成一片弹雨而非一条直线（纯表现，不改内核命中）。
         private const float TracerScatter = 0.42f;
+
+        // 表现层自算的「火力热度」(0..1)：从 TurretFired 击发节奏推断当前射速，驱动炮塔辉光与曳光散射。
+        // 取代已从 sim 移除的射速预热——内核只管开火逻辑，"点射收拢 → 火墙涨亮铺开"的渐变属于表现层、不进确定性内核。
+        private const float HeatIntervalHot = 0.06f;    // 击发间隔 ≤ 此值算火墙 → 热度趋 1
+        private const float HeatIntervalCold = 0.5f;    // 击发间隔 ≥ 此值算点射 → 热度趋 0
+        private const float HeatLerpUp = 8f;            // 热度上升速度（火力拉起快）
+        private const float HeatLerpDown = 4f;          // 热度回落速度（停火冷却稍缓）
+        private const float FireIdleTimeout = 0.2f;     // 超过此时长没击发 = 停火，热度归 0
+        private float _fireHeat;                          // 当前火力热度
+        private float _lastFireTime = -1f;                // 上次 TurretFired 的时刻（Time.time；-1 = 从未击发）
+        private float _fireInterval = 1f;                 // 最近两发的间隔（秒）——越小 = 射速越高
 
         // 表现层的 Z 分层（相机 -10 朝 +Z 看）：地板 0.5 > 地面环 0.3 > 单位 0 > 脉冲 -0.2 > 曳光 -0.3 > 飘字 -0.8。
         private const float PulseZ = -0.2f;
@@ -189,6 +200,7 @@ namespace Game.Outpost.Battle
             _hitFxBudget = HitFxPerFrame;   // 每帧刷新演出预算（高射速下超出即降级，见 OnEnemyHit）
             _killFxBudget = KillFxPerFrame;
             AdvanceEffects();
+            UpdateFireHeat(dt); // 表现层火力热度：驱动炮塔辉光（与 sim 解耦、纯 cosmetic，停火即冷却）
             if (!_ready || _sim == null) return;
 
             if (_ending)
@@ -203,7 +215,6 @@ namespace Game.Outpost.Battle
             {
                 SyncEnemyViews();
                 _turret.Face(_sim.TurretAngle);
-                _turret.SetSpin(_sim.SpinUp);
                 // 托管中：卡片亮相片刻后按优先级自动选定（纯观战）。中途关掉托管即停止倒计时、回到手动。
                 if (_upgradeModel.AutoManaged.Value)
                 {
@@ -230,7 +241,6 @@ namespace Game.Outpost.Battle
             SyncEnemyViews();
             SyncRangeRing();
             _turret.Face(_sim.TurretAngle); // 内核已按回转速度算好朝向，表现层照画
-            _turret.SetSpin(_sim.SpinUp);   // 射速预热 → 炮塔核心涨亮
             WriteModel();
 
             if (_sim.Phase == BattlePhase.Defeat)
@@ -263,9 +273,28 @@ namespace Game.Outpost.Battle
         // 转向途中的空放也走这里，画出射向炮口方向的火舌。高射速下每帧限量，超预算即跳过（伤害早已在内核结算，防池爆 + 刷屏）。
         private void OnTurretFired(TurretFiredEvent e)
         {
+            // 记录击发节奏（超 FX 预算也照记，让热度反映真实射速）：与上一发的间隔喂给火力热度。
+            float now = Time.time;
+            if (_lastFireTime >= 0f) _fireInterval = now - _lastFireTime;
+            _lastFireTime = now;
+
             if (_hitFxBudget <= 0) return;
             _hitFxBudget--;
             FireBurst(ToWorld(e.Aim), e.Hit);
+        }
+
+        // 表现层自算「火力热度」(0..1)：从 TurretFired 击发节奏推断当前射速——密集(火墙)→热度趋 1、稀疏(点射)→趋 0、停火→归零。
+        // 平滑趋近后驱动炮塔辉光与曳光散射，取代已从 sim 移除的射速预热（确定性内核不含表现渐变，表现层自己插值）。
+        private void UpdateFireHeat(float dt)
+        {
+            float target;
+            if (_lastFireTime < 0f || Time.time - _lastFireTime > FireIdleTimeout)
+                target = 0f; // 停火：热度冷却归零
+            else
+                target = Mathf.Clamp01(Mathf.InverseLerp(HeatIntervalCold, HeatIntervalHot, _fireInterval)); // 间隔越小越热
+            float speed = target > _fireHeat ? HeatLerpUp : HeatLerpDown;
+            _fireHeat = Mathf.MoveTowards(_fireHeat, target, speed * dt);
+            _turret.SetSpin(_fireHeat); // 核心亮度：读作"炮管火力拉满/收拢"
         }
 
         private void OnEnemyHit(EnemyHitEvent e)
@@ -476,7 +505,7 @@ namespace Game.Outpost.Battle
         }
 
         // 开火演出：炮管后坐 + 炮口闪光 + 曳光从当前炮口飞向落点（hitscan 伤害早已结算，此处纯装饰）。
-        // 落点按预热强度做随机散射——高射速下密集连发才不会叠成一条直线，读成一片弹雨；命中冲击仍落在真实弹着点、不随散射抖。
+        // 落点按火力热度做随机散射——高射速下密集连发才不会叠成一条直线，读成一片弹雨；命中冲击仍落在真实弹着点、不随散射抖。
         private void FireBurst(Vector3 aim, bool hit)
         {
             _turret.Fire();
@@ -484,7 +513,7 @@ namespace Game.Outpost.Battle
             SpawnPulse(muzzle, MuzzleColor, 0.15f, 0.55f, 0.12f);
 
             var end = aim;
-            float scatter = TracerScatter * _sim.SpinUp; // 越预热越散（点射时几乎不散、火墙时散成弹雨）
+            float scatter = TracerScatter * _fireHeat; // 越热越散（点射时几乎不散、火墙时散成弹雨）
             if (scatter > 0.001f)
             {
                 var j = Random.insideUnitCircle * scatter;

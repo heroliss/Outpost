@@ -92,7 +92,7 @@ namespace Game.Outpost.Battle
         /// <summary>播放一次开火后坐。</summary>
         public void Fire() => _recoil = _recoilKick;
 
-        /// <summary>设置射速预热系数（0..1，内核 <c>SpinUp</c>）：越高核心越涨亮，读作"炮管在加速旋转、火力拉满"。</summary>
+        /// <summary>设置炮塔核心亮度（0..1「火力热度」）：越高核心越涨亮、读作"火力拉满"，低时收拢暗淡。由导演按击发节奏自算传入。</summary>
         public void SetSpin(float spin) => _spin = Mathf.Clamp01(spin);
 
         private void Update()
