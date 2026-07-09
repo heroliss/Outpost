@@ -69,6 +69,10 @@ namespace Game.Outpost.Battle
         private float _waveTimer;
         private bool _awaitingChoice; // 波清空后停在此、等玩家三选一（IsChoosing 面板弹出中）
         private float _lastRange = -1f;
+        private float _autoPickTimer; // 托管：卡片亮相后到自动选定的倒计时（等待抉择期间生效）
+
+        // 托管自动选卡前的亮相延迟：让三选一卡片先露个脸再被自动选掉，观战时看得清导演选了什么。
+        private const float AutoPickRevealDelay = 0.6f;
 
         // 波间三选一：从（当前可用的）升级里随机取 3 个不同的候选。随机是纯展示（玩家的选择才是真输入），用领域 List 免每次分配。
         private const int ChoiceCount = 3;
@@ -200,6 +204,12 @@ namespace Game.Outpost.Battle
                 SyncEnemyViews();
                 _turret.Face(_sim.TurretAngle);
                 _turret.SetSpin(_sim.SpinUp);
+                // 托管中：卡片亮相片刻后按优先级自动选定（纯观战）。中途关掉托管即停止倒计时、回到手动。
+                if (_upgradeModel.AutoManaged.Value)
+                {
+                    _autoPickTimer -= dt;
+                    if (_autoPickTimer <= 0f) AutoPickUpgrade();
+                }
                 return;
             }
 
@@ -381,6 +391,7 @@ namespace Game.Outpost.Battle
 
             _awaitingChoice = true;
             _upgradeModel.IsChoosing.Value = true;
+            _autoPickTimer = AutoPickRevealDelay; // 托管时用：卡片先亮相再自动选
         }
 
         /// <summary>
@@ -404,6 +415,44 @@ namespace Game.Outpost.Battle
             _betweenWaves = true;
             _waveTimer = Mathf.Min(_interWaveDelay, 0.6f); // 抉择已占足停顿，进下一波只留一个短拍
         }
+
+        /// <summary>
+        /// 切换托管模式（由 <see cref="SetAutoManageCommand"/> 经命令中转调入）：记录状态到 <see cref="UpgradeModel"/>。
+        /// 若正等待抉择时开启，重置亮相延迟——让卡片露个脸再自动选、而非瞬选；关掉即回手动。可随时开关。
+        /// </summary>
+        public void SetAutoManaged(bool on)
+        {
+            if (_upgradeModel == null) return;
+            _upgradeModel.AutoManaged.Value = on;
+            if (on && _awaitingChoice) _autoPickTimer = AutoPickRevealDelay;
+        }
+
+        // 托管自动选卡：从当前候选里挑优先级最高的一张，走与手动同一条 ChooseUpgrade 路径（应用 + 推进下一波）。
+        private void AutoPickUpgrade()
+        {
+            int bestId = -1;
+            int bestRank = int.MaxValue;
+            foreach (var opt in _upgradeModel.Choices)
+            {
+                var up = _cfg.TbUpgrade.GetOrDefault(opt.Id);
+                if (up == null) continue;
+                int rank = AutoPriority(up.Kind);
+                if (rank < bestRank) { bestRank = rank; bestId = opt.Id; }
+            }
+            if (bestId >= 0) ChooseUpgrade(bestId);
+        }
+
+        // 托管选卡优先级（数字越小越优先）：攻速 / 转速是火力与覆盖的核心，探测范围其次；血上限 / 回血 / 攻击对火墙流意义小，尽量不选。
+        private static int AutoPriority(UpgradeKind kind) => kind switch
+        {
+            UpgradeKind.AttackSpeed => 0,
+            UpgradeKind.RotationSpeed => 1,
+            UpgradeKind.Range => 2,
+            UpgradeKind.MaxHp => 3,
+            UpgradeKind.Regen => 4,
+            UpgradeKind.Attack => 5,
+            _ => 6,
+        };
 
         private void SyncEnemyViews()
         {

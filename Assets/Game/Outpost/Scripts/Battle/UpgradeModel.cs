@@ -31,5 +31,11 @@ namespace Game.Outpost.Battle
     {
         public readonly ObservableList<UpgradeOption> Choices = new();
         public readonly RP<bool> IsChoosing = new(false);
+
+        /// <summary>
+        /// 托管模式开关：开启后波间三选一由 <see cref="BattleDirectorSystem"/> 按优先级自动选定，玩家进入纯观战；可随时开关。
+        /// 同样由导演单向写入（经开关命令中转），HUD 托管按钮只读订阅回显——读写分离同上。
+        /// </summary>
+        public readonly RP<bool> AutoManaged = new(false);
     }
 }

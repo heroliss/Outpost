@@ -15,10 +15,14 @@ namespace Game.Outpost.Battle
         public readonly IReadOnlyObservableList<UpgradeOption> Choices;
         public readonly ReadOnlyReactiveProperty<bool> IsChoosing;
 
+        /// <summary>是否托管（自动选卡 / 纯观战）；HUD 托管按钮订阅它回显开/关文案与配色。</summary>
+        public readonly ReadOnlyReactiveProperty<bool> AutoManaged;
+
         public UpgradeChoiceReadModel(UpgradeModel m)
         {
             Choices = m.Choices;
             IsChoosing = m.IsChoosing;
+            AutoManaged = m.AutoManaged;
         }
     }
 
@@ -39,5 +43,19 @@ namespace Game.Outpost.Battle
         public ChooseUpgradeCommand(int upgradeId) => _upgradeId = upgradeId;
 
         public void Execute(ICommandContext ctx) => ctx.GetSystem<BattleDirectorSystem>().ChooseUpgrade(_upgradeId);
+    }
+
+    /// <summary>
+    /// 切换托管模式（自动选卡 / 纯观战）：转交 <see cref="BattleDirectorSystem"/> 记录状态。
+    /// 若在等待抉择时开启，导演会让卡片亮相片刻后按优先级自动选定；可随时开关，关掉即回手动。
+    /// 同 <see cref="ChooseUpgradeCommand"/> 走「意图 → 导演」一跳——View 不能直接调 System。
+    /// </summary>
+    public readonly struct SetAutoManageCommand : ICommand
+    {
+        private readonly bool _on;
+
+        public SetAutoManageCommand(bool on) => _on = on;
+
+        public void Execute(ICommandContext ctx) => ctx.GetSystem<BattleDirectorSystem>().SetAutoManaged(_on);
     }
 }
