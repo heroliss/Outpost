@@ -11,11 +11,15 @@ namespace Game.Outpost.Flow
         public readonly int Score;
         public readonly int Kills;
 
-        public BattleResult(int wave, int score, int kills)
+        /// <summary>是否主动撤离（true = 玩家按撤离键收束一局；false = 哨站被摧毁）。只影响结算文案，成绩口径相同。</summary>
+        public readonly bool Retreated;
+
+        public BattleResult(int wave, int score, int kills, bool retreated = false)
         {
             Wave = wave;
             Score = score;
             Kills = kills;
+            Retreated = retreated;
         }
     }
 

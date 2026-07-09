@@ -17,6 +17,15 @@ namespace Game.Outpost.Battle
         public readonly ReadOnlyReactiveProperty<int> Kills;
         public readonly ReadOnlyReactiveProperty<int> Score;
 
+        /// <summary>当前存活敌人数（HUD 性能行）。</summary>
+        public readonly ReadOnlyReactiveProperty<int> EnemyCount;
+
+        /// <summary>模拟单帧耗时（毫秒，HUD 性能行——两个 Sim 后端同题对比的度量）。</summary>
+        public readonly ReadOnlyReactiveProperty<float> SimTickMs;
+
+        /// <summary>当前模拟后端名。</summary>
+        public readonly ReadOnlyReactiveProperty<string> Backend;
+
         public BattleReadModel(BattleModel m)
         {
             Hp = m.PlayerHp;
@@ -24,6 +33,9 @@ namespace Game.Outpost.Battle
             Wave = m.Wave;
             Kills = m.Kills;
             Score = m.Score;
+            EnemyCount = m.EnemyCount;
+            SimTickMs = m.SimTickMs;
+            Backend = m.Backend;
         }
     }
 

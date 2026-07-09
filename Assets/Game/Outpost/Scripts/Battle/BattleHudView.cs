@@ -29,6 +29,9 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("受击红屏闪（全屏 Image，blocksRaycasts 必须关）。")]
         private Image _damageFlash;
 
+        [SerializeField, Tooltip("性能行（后端 | 敌人数 | 模拟耗时 | fps）——两个 Sim 后端同题对比的实时度量。")]
+        private TMP_Text _perfText;
+
         private static readonly Color HpGreen = new(0.35f, 0.92f, 0.45f);
         private static readonly Color HpAmber = new(0.95f, 0.75f, 0.30f);
         private static readonly Color HpRed = new(0.95f, 0.30f, 0.25f);
@@ -37,6 +40,14 @@ namespace Game.Outpost.Battle
         private float _flashAlpha;
         private int _bannerWave;
         private float _bannerElapsed = float.MaxValue;
+
+        // 性能行的订阅缓存（订阅只写字段，Update 按节流间隔拼串——避免每帧 3 个流各自触发字符串分配）。
+        private string _backendName = "";
+        private int _enemyCount;
+        private float _simTickMs;
+        private float _fpsSmoothed;
+        private float _perfRefreshTimer;
+        private const float PerfRefreshInterval = 0.25f;
 
         private const float BannerIn = 0.15f;
         private const float BannerHold = 1.0f;
@@ -58,7 +69,9 @@ namespace Game.Outpost.Battle
                     : Color.Lerp(HpRed, HpAmber, ratio * 2f);
                 _hpText.text = $"{Mathf.CeilToInt(t.hp)} / {Mathf.CeilToInt(t.max)}";
 
-                if (!float.IsNaN(_prevHp) && t.hp < _prevHp - 0.01f)
+                // 红屏闪只对"明显掉血"触发：平台期漏怪伤害是持续小流量（每帧都在掉一点），
+                // 逐帧触发会变成常亮红雾——阈值取上限的 2%（导演侧的受创演出另有聚合窗口）。
+                if (!float.IsNaN(_prevHp) && _prevHp - t.hp > Mathf.Max(1f, t.max * 0.02f))
                     _flashAlpha = 0.32f;
                 _prevHp = t.hp;
             });
@@ -78,10 +91,25 @@ namespace Game.Outpost.Battle
 
             Bag.Subscribe(rm.Kills, k => _killsText.text = $"击杀 {k}");
             Bag.Subscribe(rm.Score, s => _scoreText.text = $"得分 {s}");
+
+            // 性能行：订阅只缓存值，拼串在 Update 里节流——EnemyCount/SimTickMs 每帧都变，逐次拼串太浪费。
+            Bag.Subscribe(rm.Backend, b => _backendName = b);
+            Bag.Subscribe(rm.EnemyCount, c => _enemyCount = c);
+            Bag.Subscribe(rm.SimTickMs, ms => _simTickMs = ms);
         }
 
         private void Update()
         {
+            // 性能行：fps 指数平滑，按节流间隔刷新文本。
+            float fps = Time.unscaledDeltaTime > 0f ? 1f / Time.unscaledDeltaTime : 0f;
+            _fpsSmoothed = _fpsSmoothed <= 0f ? fps : Mathf.Lerp(_fpsSmoothed, fps, 0.1f);
+            _perfRefreshTimer -= Time.unscaledDeltaTime;
+            if (_perfRefreshTimer <= 0f)
+            {
+                _perfRefreshTimer = PerfRefreshInterval;
+                _perfText.text = $"{_backendName} · 敌 {_enemyCount} · 模拟 {_simTickMs:F2}ms · {_fpsSmoothed:F0}fps";
+            }
+
             // 受击红闪衰减。
             if (_flashAlpha > 0f)
             {

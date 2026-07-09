@@ -15,5 +15,14 @@ namespace Game.Outpost.Battle
         public readonly RP<int> Wave = new(0);
         public readonly RP<int> Kills = new(0);
         public readonly RP<int> Score = new(0);
+
+        /// <summary>当前存活敌人数（性能行展示 + 两个 Sim 后端同题对比的规模指标）。</summary>
+        public readonly RP<int> EnemyCount = new(0);
+
+        /// <summary>模拟内核单帧 Tick 耗时（毫秒，指数平滑）——后端对比的核心度量。</summary>
+        public readonly RP<float> SimTickMs = new(0);
+
+        /// <summary>当前模拟后端名（Reference / Ecs…），开局写入一次。</summary>
+        public readonly RP<string> Backend = new("");
     }
 }
