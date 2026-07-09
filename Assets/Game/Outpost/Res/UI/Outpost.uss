@@ -1,0 +1,94 @@
+/* Outpost 全部 Toolkit 窗口共用的主题样式。
+   uxml 内经 <Style src="Outpost.uss"/> 引用（backend 只 clone uxml、不单独挂 uss——引用随 clone 生效）。
+   色板：警戒橙 #FF9E40 为主题色，深空蓝灰为底。 */
+
+/* ── 全屏页（标题 / 结算） ─────────────────────────────── */
+
+.op-page {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.op-page--title { background-color: rgb(18, 26, 36); }
+.op-page--result { background-color: rgb(18, 28, 20); }
+
+.op-title {
+    -unity-font-style: bold;
+    font-size: 34px;
+    color: rgb(255, 158, 64);
+    letter-spacing: 4px;
+    margin-bottom: 18px;
+}
+
+.op-label {
+    color: rgb(217, 224, 242);
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+/* 次要信息（历史战绩等）——比正文更收敛的灰蓝 */
+.op-label--dim { color: rgb(166, 184, 204); }
+
+/* 结算判定行（主动撤离 / 哨站失守），颜色由代码按结局设置 */
+.op-verdict { font-size: 22px; }
+
+.op-btn {
+    margin-top: 8px;
+    min-width: 220px;
+    height: 36px;
+    font-size: 14px;
+}
+
+/* ── 模态卡片（框架看点弹窗） ──────────────────────────── */
+
+/* 卡片外层定位容器：铺满并居中卡片；picking-mode 在 uxml 上设为 Ignore（点击透传给遮罩/下层） */
+.op-overlay {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.op-card {
+    /* 用确定宽度而非 max-width：收缩容器里的换行 Label 会先按无界宽度测高（单行）、
+       再被 max-width 钳住换行——父容器高度不随之重算，条目互相压叠。定宽让首轮测量即约束。 */
+    width: 520px;
+    padding: 14px 20px;
+    background-color: rgba(26, 33, 43, 0.98);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgb(255, 158, 64);
+}
+
+.op-card__title {
+    -unity-font-style: bold;
+    font-size: 18px;
+    color: rgb(255, 158, 64);
+    margin-bottom: 10px;
+}
+
+/* 一条「看点」= 单个富文本 Label（橙色小标题行 + 灰色说明行，颜色/字号走 rich text 标签）。
+   刻意不做「标题 Label + 说明 Label 套容器」的嵌套：容器高度按子元素首轮（未换行）测量结果结算、
+   说明换行后不回填父高，条目会互相压叠——单 Label 自测自高没有这层不同步。 */
+.op-bullet {
+    font-size: 11px;
+    color: rgb(184, 196, 217);
+    white-space: normal;
+    margin-bottom: 7px;
+}
+
+/* 脚注小灰字（指向文档路径等） */
+.op-hint {
+    color: rgb(140, 153, 173);
+    font-size: 10px;
+    margin-top: 4px;
+    white-space: normal;
+}
+
+/* 卡片内按钮比全屏页按钮矮一档 */
+.op-card .op-btn {
+    height: 30px;
+    margin-top: 6px;
+}

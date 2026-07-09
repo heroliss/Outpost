@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「框架看点」模态弹窗布局：把游戏里看得见的现象接到框架能力上（静态内容直接写在 uxml，接线只有关闭按钮）。
+     外层 overlay 铺满但 picking-mode=Ignore（点击透传给模态遮罩），卡片本身默认吃事件。
+     每条看点是单个富文本 Label（.op-bullet 注释解释了为什么不做嵌套结构）；总览从简，深读指向 outpost-guide。 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Outpost.uss" />
+    <ui:VisualElement class="op-overlay" picking-mode="Ignore">
+        <ui:VisualElement class="op-card">
+            <ui:Label text="框架看点 · 这个 demo 串起了什么" class="op-card__title" enable-rich-text="false" />
+
+            <ui:Label class="op-bullet" text="&lt;size=12&gt;&lt;b&gt;&lt;color=#FF9E40&gt;▸ 读写分离&lt;/color&gt;&lt;/b&gt;&lt;/size&gt;&#10;HUD / 升级面板只读订阅、写只走命令。看 BattleHudView、UpgradeChoiceView" />
+            <ui:Label class="op-bullet" text="&lt;size=12&gt;&lt;b&gt;&lt;color=#FF9E40&gt;▸ 纯 C# 模拟接缝，后端可置换&lt;/color&gt;&lt;/b&gt;&lt;/size&gt;&#10;战斗规则在零引擎依赖的 IBattleSim 后：可单测、可无头跑数调平衡；换 ECS 后端只改一个工厂分支。看 Sim 程序集" />
+            <ui:Label class="op-bullet" text="&lt;size=12&gt;&lt;b&gt;&lt;color=#FF9E40&gt;▸ 实例化渲染 × 对象池分工&lt;/color&gt;&lt;/b&gt;&lt;/size&gt;&#10;数千同屏敌人海批量绘制（零 GameObject），瞬时特效走对象池。看 SwarmRenderer + HUD 性能行" />
+            <ui:Label class="op-bullet" text="&lt;size=12&gt;&lt;b&gt;&lt;color=#FF9E40&gt;▸ 窗口 = UXML 资产 + 代码接线&lt;/color&gt;&lt;/b&gt;&lt;/size&gt;&#10;三个窗口都经 [UIWindow(Asset)] 加载 uxml、共享 Outpost.uss 主题。看 Res/UI" />
+            <ui:Label class="op-bullet" text="&lt;size=12&gt;&lt;b&gt;&lt;color=#FF9E40&gt;▸ 流程状态机 × 子上下文整棵撤&lt;/color&gt;&lt;/b&gt;&lt;/size&gt;&#10;Boot→Title→Battle→Result 走 IGameFlow；战斗私有的 Model / 对象池注册在 BattleContext，退场即销毁" />
+
+            <ui:Label text="完整「游戏现象 ↔ 框架能力 ↔ 源码位置」对照见 docs/outpost-guide.md" class="op-hint" enable-rich-text="false" />
+            <ui:Button name="close" text="关闭" class="op-btn" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

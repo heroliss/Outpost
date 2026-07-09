@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 结算页布局。窗口类 ResultWindow 经 [UIWindow(Asset = "ResultWindow")] 加载本文件，
+     verdict / detail / record 的文案与颜色在 OnOpen 按本局结果填充。 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Outpost.uss" />
+    <ui:VisualElement class="op-page op-page--result">
+        <ui:Label text="结算" class="op-title" enable-rich-text="false" />
+        <ui:Label name="verdict" text="" class="op-label op-verdict" enable-rich-text="false" />
+        <ui:Label name="detail" text="" class="op-label" enable-rich-text="false" />
+        <ui:Label name="record" text="" class="op-label" enable-rich-text="false" />
+        <ui:Button name="back" text="回标题" class="op-btn" />
+    </ui:VisualElement>
+</ui:UXML>
