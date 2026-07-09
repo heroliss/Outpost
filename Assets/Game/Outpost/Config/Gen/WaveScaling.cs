@@ -20,6 +20,7 @@ public sealed partial class WaveScaling : Luban.BeanBase
     public WaveScaling(ByteBuf _buf) 
     {
         StatGrowth = _buf.ReadFloat();
+        MaxStatScale = _buf.ReadFloat();
     }
 
     public static WaveScaling DeserializeWaveScaling(ByteBuf _buf)
@@ -31,6 +32,10 @@ public sealed partial class WaveScaling : Luban.BeanBase
     /// 每波敌人生命 / 自爆伤害的乘法成长底数（如 1.02 = 每波强 2%；刻意偏小——难度主要靠数量而非数值膨胀）
     /// </summary>
     public readonly float StatGrowth;
+    /// <summary>
+    /// 数值成长系数封顶（≤0=不封顶）。永续的必要条件：不封顶则 statGrowth^w 无界，后期单只漏怪伤害迟早超过全血
+    /// </summary>
+    public readonly float MaxStatScale;
    
     public const int __ID__ = 1376587310;
     public override int GetTypeId() => __ID__;
@@ -43,6 +48,7 @@ public sealed partial class WaveScaling : Luban.BeanBase
     {
         return "{ "
         + "statGrowth:" + StatGrowth + ","
+        + "maxStatScale:" + MaxStatScale + ","
         + "}";
     }
 }

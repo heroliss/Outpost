@@ -1,8 +1,8 @@
 [
     { "id": 1, "name": "强化弹头", "desc": "攻击力 +5", "kind": "Attack", "value": 5 },
-    { "id": 2, "name": "速射装置", "desc": "攻击间隔 ×0.85", "kind": "AttackSpeed", "value": 0.85 },
+    { "id": 2, "name": "速射装置", "desc": "攻击间隔 ×0.65", "kind": "AttackSpeed", "value": 0.65 },
     { "id": 3, "name": "增程雷达", "desc": "索敌半径 +2", "kind": "Range", "value": 2 },
-    { "id": 4, "name": "装甲镀层", "desc": "生命上限 +30（并回复 30）", "kind": "MaxHp", "value": 30 },
-    { "id": 5, "name": "纳米修复", "desc": "每秒回血 +1.5", "kind": "Regen", "value": 1.5 },
-    { "id": 6, "name": "回转伺服", "desc": "炮塔回转 +80°/秒", "kind": "RotationSpeed", "value": 80 }
+    { "id": 4, "name": "装甲镀层", "desc": "生命上限 +80（并回复 80）", "kind": "MaxHp", "value": 80 },
+    { "id": 5, "name": "纳米修复", "desc": "每秒回血 +2", "kind": "Regen", "value": 2 },
+    { "id": 6, "name": "回转伺服", "desc": "炮塔回转 +60°/秒", "kind": "RotationSpeed", "value": 60 }
 ]

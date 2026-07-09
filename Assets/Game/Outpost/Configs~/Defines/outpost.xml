@@ -3,23 +3,28 @@
          数值全部在运行时被翻译成 Game.Outpost.Sim 的纯 C# BattleSetup（配置后端不进 Sim 程序集）。
          无限模式：波次不再逐条列举，而是由 WaveScaling 的一行成长参数程序化生成、一波比一波难，直到哨站被摧毁。 -->
 
-    <bean name="Enemy" comment="敌人原型">
+    <bean name="Enemy" comment="敌人原型（数值列进 Sim；表现列由表现层直接读表——接缝保持主题中立，Sim 不认识颜色/形状）">
         <var name="id" type="int" comment="原型 ID（主键，Sim 的 ArchetypeId）"/>
         <var name="name" type="string" comment="名称（M3 起换本地化 key）"/>
         <var name="hp" type="float" comment="生命上限（第 1 波基准值；实际按波次 statGrowth 放大）"/>
         <var name="moveSpeed" type="float" comment="移动速度（米/秒，径直冲向哨站）"/>
         <var name="attack" type="float" comment="抵达哨站自爆时的一次性伤害（第 1 波基准值；按波次 statGrowth 放大）"/>
-        <var name="attackInterval" type="float" comment="攻击间隔（秒）。当前接触即自爆模型下未使用，保留列以备后续驻留攻击型敌人"/>
         <var name="radius" type="float" comment="碰撞半径（抵近到双方半径之和即自爆）"/>
         <var name="score" type="int" comment="击杀得分"/>
+        <var name="colorHex" type="string" comment="表现：主体色（RRGGBB 十六进制，无 # 前缀）"/>
+        <var name="shape" type="string" comment="表现：程序网格形状（dart/arrowhead/hexagon/needle/octagon，映射 OutpostMeshes；有向形状会逐帧转向来袭方向）"/>
+        <var name="diameter" type="float" comment="表现：体型直径（世界单位）"/>
+        <var name="explosionScale" type="float" comment="表现：爆炸体量倍率（&lt;0.8 的炮灰只留脉冲，不出碎片/烟——海量击杀防刷屏）"/>
     </bean>
     <table name="TbEnemy" value="Enemy" index="id" input="*@enemy.json" comment="敌人原型表"/>
 
-    <bean name="WaveRole" comment="一个敌人角色的波次成长：统一公式逐波展开成一条刷怪流。数量=baseCount+floor((w-unlockWave)*perWave)，间隔=max(intervalMin, interval0-(w-unlockWave)*intervalDecay)">
+    <bean name="WaveRole" comment="一个敌人角色的波次成长：统一公式逐波展开成一条刷怪流（step=w-unlockWave）。数量=min(maxCount, floor(baseCount*countGrowth^step)+floor(step*perWave))，间隔=max(intervalMin, interval0/countGrowth^step-step*intervalDecay)——间隔随数量同步乘性收缩，单波刷怪时长≈baseCount*interval0 恒定。乘性 countGrowth 让数量十几波爬到千级，maxCount 封顶=规模平台期（托管永续的前提）">
         <var name="enemyId" type="int" comment="敌人原型 id（主键，对应 TbEnemy.id）"/>
         <var name="unlockWave" type="int" comment="解锁波次（w ≥ 本值才出现；常驻角色填 1）"/>
         <var name="baseCount" type="int" comment="解锁波的基础数量"/>
-        <var name="perWave" type="float" comment="每波数量斜率（血越高的角色应越小 = 出场越少）"/>
+        <var name="countGrowth" type="float" comment="每波数量乘性成长底数（如 1.35 = 每波多 35%；1 = 不乘性增长）。海量炮灰靠它指数爬坡"/>
+        <var name="perWave" type="float" comment="每波数量线性斜率（与乘性叠加；低频角色可只用线性）"/>
+        <var name="maxCount" type="int" comment="数量封顶（≤0=不封顶）。到顶即平台期——每波压力恒定，无限模式能永续"/>
         <var name="interval0" type="float" comment="解锁波的刷出间隔（秒）"/>
         <var name="intervalMin" type="float" comment="刷出间隔下限（越后越密，但不低于此）"/>
         <var name="intervalDecay" type="float" comment="刷出间隔每波递减量"/>
@@ -28,6 +33,7 @@
 
     <bean name="WaveScaling" comment="波次全局成长参数">
         <var name="statGrowth" type="float" comment="每波敌人生命 / 自爆伤害的乘法成长底数（如 1.02 = 每波强 2%；刻意偏小——难度主要靠数量而非数值膨胀）"/>
+        <var name="maxStatScale" type="float" comment="数值成长系数封顶（≤0=不封顶）。永续的必要条件：不封顶则 statGrowth^w 无界，后期单只漏怪伤害迟早超过全血"/>
     </bean>
     <table name="TbWaveScaling" value="WaveScaling" mode="one" input="wavescaling.json" comment="波次全局成长（one 模式：全表一条记录）"/>
 
@@ -53,12 +59,17 @@
         <var name="playerAttack" type="float" comment="玩家单次攻击伤害（无限模式起手刻意压低，靠升级成长）"/>
         <var name="playerMaxAttack" type="float" comment="攻击伤害升级上限（≤0=不封顶）。封顶后敌人不再被秒杀，火力压力交给无上限的射速升级"/>
         <var name="playerAttackInterval" type="float" comment="玩家攻击间隔（秒；起手偏慢）"/>
+        <var name="playerMinAttackInterval" type="float" comment="攻击间隔下限（≤0=仅防除零）。玩家全部成长封顶是永续稳态的前提；0.004≈每分钟一万五千发，后期仍是火墙"/>
         <var name="playerRange" type="float" comment="玩家索敌半径（起手偏短）"/>
         <var name="playerRegen" type="float" comment="玩家每秒回血"/>
+        <var name="playerMaxRegen" type="float" comment="每秒回血升级上限（≤0=不封顶）。同为平台期稳态服务"/>
+        <var name="playerMaxHpCap" type="float" comment="生命上限的升级上限（≤0=不封顶）。同为平台期稳态服务"/>
         <var name="playerRadius" type="float" comment="玩家碰撞半径"/>
         <var name="playerRotationSpeed" type="float" comment="炮塔回转速度（度/秒；起手偏慢，回转伺服升级提升——切目标要转过去才能开火）"/>
         <var name="playerMaxRotationSpeed" type="float" comment="回转速度升级上限（≤0=不封顶）。封顶是无限模式能收尾的关键：后期 360° 密集来袭时炮塔扫不过来、对面漏怪，击杀率随数量渐降直至被压垮"/>
         <var name="playerMaxRange" type="float" comment="索敌半径升级上限（应小于 arenaRadius，留出拦截缓冲区；到顶后增程雷达不再出现）"/>
+        <var name="splashRadius" type="float" comment="拦截溅射危险半径：在离基地小于此距离处击毁敌人，冲击波连带削基地（越近越疼；0=关闭）——近防炮'远处早拦'的张力来源"/>
+        <var name="splashDamageScale" type="float" comment="溅射伤害系数：实际溅射 = 敌人自爆伤害 × 本系数 × 贴近度(0..1)"/>
         <var name="arenaRadius" type="float" comment="敌人出生环半径"/>
         <var name="interWaveDelay" type="float" comment="波间停留秒数（升级选择的最短展示时间）"/>
         <var name="resultDelay" type="float" comment="哨站失守后进结算的延迟秒数（留给终局表现）"/>

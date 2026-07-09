@@ -34,6 +34,10 @@ public partial class TbWaveScaling
     /// 每波敌人生命 / 自爆伤害的乘法成长底数（如 1.02 = 每波强 2%；刻意偏小——难度主要靠数量而非数值膨胀）
     /// </summary>
      public float StatGrowth => _data.StatGrowth;
+    /// <summary>
+    /// 数值成长系数封顶（≤0=不封顶）。永续的必要条件：不封顶则 statGrowth^w 无界，后期单只漏怪伤害迟早超过全血
+    /// </summary>
+     public float MaxStatScale => _data.MaxStatScale;
     
     public void ResolveRef(Tables tables)
     {

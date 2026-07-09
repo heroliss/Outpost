@@ -3,50 +3,65 @@
         "id": 1,
         "name": "无人机",
         "hp": 14,
-        "moveSpeed": 2.0,
-        "attack": 3,
-        "attackInterval": 1.0,
+        "moveSpeed": 1.3,
+        "attack": 0.04,
         "radius": 0.3,
-        "score": 5
+        "score": 5,
+        "colorHex": "BFFF59",
+        "shape": "dart",
+        "diameter": 0.5,
+        "explosionScale": 0.55
     },
     {
         "id": 2,
         "name": "突袭者",
         "hp": 26,
         "moveSpeed": 4.0,
-        "attack": 7,
-        "attackInterval": 1.0,
+        "attack": 3,
         "radius": 0.4,
-        "score": 12
+        "score": 12,
+        "colorHex": "FF5738",
+        "shape": "arrowhead",
+        "diameter": 0.85,
+        "explosionScale": 1.0
     },
     {
         "id": 3,
         "name": "装甲兵",
-        "hp": 90,
+        "hp": 110,
         "moveSpeed": 1.35,
-        "attack": 16,
-        "attackInterval": 1.0,
+        "attack": 8,
         "radius": 0.7,
-        "score": 32
+        "score": 32,
+        "colorHex": "B86BFF",
+        "shape": "hexagon",
+        "diameter": 1.35,
+        "explosionScale": 1.4
     },
     {
         "id": 4,
         "name": "掠袭机",
         "hp": 12,
         "moveSpeed": 7.0,
-        "attack": 5,
-        "attackInterval": 1.0,
+        "attack": 1,
         "radius": 0.28,
-        "score": 10
+        "score": 10,
+        "colorHex": "59F2FF",
+        "shape": "needle",
+        "diameter": 0.55,
+        "explosionScale": 0.7
     },
     {
         "id": 5,
         "name": "攻城核",
-        "hp": 420,
+        "hp": 450,
         "moveSpeed": 1.0,
         "attack": 20,
-        "attackInterval": 1.0,
         "radius": 0.9,
-        "score": 60
+        "score": 60,
+        "colorHex": "FF8C26",
+        "shape": "octagon",
+        "diameter": 1.8,
+        "explosionScale": 2.0
     }
 ]

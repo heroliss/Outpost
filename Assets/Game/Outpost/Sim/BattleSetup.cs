@@ -35,8 +35,15 @@ namespace Game.Outpost.Sim
         /// <summary>攻击伤害升级上限（&le; 0 = 不封顶）。封顶后敌人不再被秒杀、需多发命中——把"火力"压力交给无上限的射速。</summary>
         public float MaxAttack;
 
-        /// <summary>攻击间隔（秒）＝基础射速的倒数。攻速升级乘性缩短、<b>无上限</b>；实际射速还要乘 spin-up 预热系数。</summary>
+        /// <summary>攻击间隔（秒）＝射速的倒数。攻速升级乘性缩短，下限见 <see cref="MinAttackInterval"/>。</summary>
         public float AttackInterval;
+
+        /// <summary>
+        /// 攻击间隔下限（&le; 0 = 仅防除零的极小值）。<b>玩家全部成长都封顶是永续稳态的前提</b>：
+        /// 敌人规模进平台期后若玩家火力仍无限成长，每波消耗会衰减到零、失去张力。
+        /// 下限取 0.004（250 发/秒 ≈ 每分钟一万五千发）时后期仍是可观的火墙。
+        /// </summary>
+        public float MinAttackInterval;
 
         /// <summary>索敌半径：只攻击与原点距离不超过它的敌人。</summary>
         public float Range;
@@ -49,6 +56,12 @@ namespace Game.Outpost.Sim
 
         /// <summary>每秒回血（不超过上限；只在波次进行中生效）。</summary>
         public float RegenPerSecond;
+
+        /// <summary>每秒回血的升级上限（&le; 0 = 不封顶）。与其余封顶同理：平台期玩家不再变强。</summary>
+        public float MaxRegen;
+
+        /// <summary>生命上限的升级上限（&le; 0 = 不封顶）。与其余封顶同理：平台期玩家不再变强。</summary>
+        public float MaxHpCap;
 
         /// <summary>玩家碰撞半径：敌人抵近到「双方半径之和」即自爆。</summary>
         public float Radius;
@@ -89,9 +102,6 @@ namespace Game.Outpost.Sim
         /// <summary>抵达玩家自爆时对玩家的一次性伤害（第 1 波基准值；实际伤害 = 本值 × 该波成长系数）。</summary>
         public float Attack;
 
-        /// <summary>攻击间隔（秒）。当前"接触即自爆"模型下未使用，保留列以备后续"驻留攻击型"敌人。</summary>
-        public float AttackInterval;
-
         /// <summary>碰撞半径（决定抵达自爆的接触距离 = 与玩家半径之和）。</summary>
         public float Radius;
 
@@ -101,9 +111,12 @@ namespace Game.Outpost.Sim
 
     /// <summary>
     /// 一个敌人角色的波次成长定义（由 <see cref="ReferenceBattleSim"/> 逐波展开成一条刷怪流）。
-    /// 统一公式（仅在 w &ge; <see cref="UnlockWave"/> 时出现）：
-    /// <c>数量 = BaseCount + floor((w - UnlockWave) × PerWave)</c>；
-    /// <c>刷出间隔 = max(IntervalMin, Interval0 - (w - UnlockWave) × IntervalDecay)</c>。
+    /// 统一公式（仅在 w &ge; <see cref="UnlockWave"/> 时出现，step = w - UnlockWave）：
+    /// <c>数量 = min(MaxCount, floor(BaseCount × CountGrowth^step) + floor(step × PerWave))</c>；
+    /// <c>刷出间隔 = max(IntervalMin, Interval0 / CountGrowth^step - step × IntervalDecay)</c>——
+    /// 间隔随数量同步乘性收缩，单波刷怪时长（≈ BaseCount × Interval0）近似恒定。
+    /// 乘性 <see cref="CountGrowth"/> 让数量能在十几波内爬到千级，<see cref="MaxCount"/> 封顶即"规模平台期"——
+    /// 之后每波压力恒定，托管稳态可以永续（难度曲线 = 爬坡段 + 平台段）。
     /// </summary>
     public struct WaveRole
     {
@@ -113,8 +126,12 @@ namespace Game.Outpost.Sim
         public int UnlockWave;
         /// <summary>解锁波的基础数量。</summary>
         public int BaseCount;
-        /// <summary>每波数量斜率（血越高的角色应越小，即出场越少）。</summary>
+        /// <summary>每波数量的乘性成长底数（如 1.35 = 每波多 35%；1 = 不乘性增长）。海量炮灰角色靠它指数爬坡。</summary>
+        public float CountGrowth;
+        /// <summary>每波数量的线性斜率（与乘性成长叠加；低频角色可只用线性）。</summary>
         public float PerWave;
+        /// <summary>数量封顶（&le; 0 = 不封顶）。到顶即该角色进入平台期——无限模式能"永续"的前提。</summary>
+        public int MaxCount;
         /// <summary>解锁波的刷出间隔（秒）。</summary>
         public float Interval0;
         /// <summary>刷出间隔下限（越后越密，但不低于此）。</summary>
@@ -125,8 +142,9 @@ namespace Game.Outpost.Sim
 
     /// <summary>
     /// 无限模式的波次成长曲线：一组按角色（<see cref="WaveRole"/>）定义的刷怪流 + 全局数值成长。
-    /// 设计意图：<b>数量线性增长（各角色）× 生命/伤害轻指数增长（StatGrowth）</b>——玩家线性变强、敌人越来越多，
-    /// 后期数量必然压过单炮塔吞吐 ⇒ 一定会失守。角色表可扩（加敌人＝加一行），血越高的角色 PerWave 越小＝出场越少。
+    /// 设计意图：<b>数量指数爬坡到平台期（各角色 CountGrowth/MaxCount）× 生命/伤害轻指数增长（StatGrowth，同样封顶）</b>——
+    /// 玩家升级变强、敌人前期越来越多，约 20 波后双方都到顶进入稳态：每波压力恒定（目标≈消耗一半维修血量）、托管永续。
+    /// 角色表可扩（加敌人＝加一行），血越高的角色数量参数越小＝出场越少。
     /// </summary>
     public struct WaveScaling
     {
@@ -135,6 +153,12 @@ namespace Game.Outpost.Sim
 
         /// <summary>每波敌人生命 / 自爆伤害的乘法成长底数（如 1.02 = 每波强 2%）。成长系数 = StatGrowth^(w-1)。刻意偏小：难度主要靠数量。</summary>
         public float StatGrowth;
+
+        /// <summary>
+        /// 数值成长系数封顶（&le; 0 = 不封顶）。<b>永续的必要条件</b>：不封顶则 StatGrowth^w 无界，
+        /// 后期单只漏怪的自爆伤害迟早超过玩家全血，任何稳态都会被击穿。与数量封顶一起构成平台期。
+        /// </summary>
+        public float MaxStatScale;
     }
 
     /// <summary>

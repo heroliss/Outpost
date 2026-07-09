@@ -147,7 +147,10 @@ namespace Game.Outpost.Sim
     /// <b>开火模型</b>：炮塔按 <c>PlayerSetup.RotationSpeed</c> 逐帧转向最近目标；命中为 hitscan（对准最近目标即同帧结算，无飞行物）。
     /// 低射速下"瞄准后才发"——转向途中静默；有效射速够高（火墙）时炮口在转向途中<b>也持续击发</b>（<see cref="TurretFired"/>，未对准的空放不结算伤害），
     /// 使回转越慢越难覆盖四面来袭、越易漏怪（<see cref="TurretAngle"/> 供表现层画炮管）。<br/>
-    /// <b>无限模式</b>：波次由 <c>WaveScaling</c> 逐波程序化生成、越来越难，唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>）；无胜利。<br/>
+    /// <b>无限模式</b>：波次由 <c>WaveScaling</c> 逐波程序化生成——数量指数爬坡、约 20 波后到各角色 MaxCount 进入平台期（每波压力恒定）；
+    /// 唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>），无胜利。<br/>
+    /// <b>波间维修</b>：撑过一波（进入 <see cref="BattlePhase.WaveCleared"/> 时）血量自动回满——血量语义是"本波承受力"，
+    /// 失守只发生在单波承伤超过全血时；主动结束一局由业务层负责（撤离）。<br/>
     /// <b>聚合读取</b>：属性在两次 Tick 之间保持稳定；存活敌人经 <see cref="EnemyCount"/> + <see cref="GetEnemy"/>
     /// 按索引零分配遍历（索引顺序会因移除而变化，跨帧跟踪用 <see cref="EnemySnapshot.Id"/>）。<br/>
     /// <b>Dispose</b>：参考实现无资源可释放；ECS 后端会持有 World，消费方按 IDisposable 统一管理。
@@ -168,6 +171,12 @@ namespace Game.Outpost.Sim
 
         /// <summary>玩家当前单发攻击力（已含封顶）。业务侧据此判断"攻击已封顶、不再提供该升级"。</summary>
         float PlayerAttack { get; }
+
+        /// <summary>玩家当前攻击间隔（秒，已含下限）。业务侧据此判断"攻速已到顶、不再提供该升级"。</summary>
+        float PlayerAttackInterval { get; }
+
+        /// <summary>玩家当前每秒回血（已含封顶）。业务侧据此判断"回血已封顶、不再提供该升级"。</summary>
+        float PlayerRegen { get; }
 
         /// <summary>玩家当前炮塔回转速度（度/秒，已含封顶）。业务侧据此判断"回转已封顶、不再提供该升级"。</summary>
         float PlayerRotationSpeed { get; }

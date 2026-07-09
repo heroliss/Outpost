@@ -14,6 +14,7 @@ namespace Game.Outpost.Battle
         {
             var g = cfg.TbBattleGlobal.Data;
 
+            // 只映射数值列；表现列（colorHex/shape/diameter/explosionScale）由表现层直接读表——接缝保持主题中立。
             var enemies = new List<EnemyArchetype>(cfg.TbEnemy.DataList.Count);
             foreach (var e in cfg.TbEnemy.DataList)
                 enemies.Add(new EnemyArchetype
@@ -22,7 +23,6 @@ namespace Game.Outpost.Battle
                     MaxHp = e.Hp,
                     MoveSpeed = e.MoveSpeed,
                     Attack = e.Attack,
-                    AttackInterval = e.AttackInterval,
                     Radius = e.Radius,
                     Score = e.Score,
                 });
@@ -38,7 +38,9 @@ namespace Game.Outpost.Battle
                     EnemyId = r.EnemyId,
                     UnlockWave = r.UnlockWave,
                     BaseCount = r.BaseCount,
+                    CountGrowth = r.CountGrowth,
                     PerWave = r.PerWave,
+                    MaxCount = r.MaxCount,
                     Interval0 = r.Interval0,
                     IntervalMin = r.IntervalMin,
                     IntervalDecay = r.IntervalDecay,
@@ -52,24 +54,27 @@ namespace Game.Outpost.Battle
                 Player = new PlayerSetup
                 {
                     MaxHp = g.PlayerMaxHp,
+                    MaxHpCap = g.PlayerMaxHpCap,
                     Attack = g.PlayerAttack,
                     MaxAttack = g.PlayerMaxAttack,
                     AttackInterval = g.PlayerAttackInterval,
+                    MinAttackInterval = g.PlayerMinAttackInterval,
                     Range = g.PlayerRange,
                     MaxRange = g.PlayerMaxRange,
                     RegenPerSecond = g.PlayerRegen,
+                    MaxRegen = g.PlayerMaxRegen,
                     Radius = g.PlayerRadius,
                     RotationSpeed = g.PlayerRotationSpeed,
                     MaxRotationSpeed = g.PlayerMaxRotationSpeed,
-                    // 拦截溅射（近防炮张力）暂用原型常量、未进配置表——数值调优 / 进表是后续项。
-                    SplashRadius = 2.2f,
-                    SplashDamageScale = 0.6f,
+                    SplashRadius = g.SplashRadius,
+                    SplashDamageScale = g.SplashDamageScale,
                 },
                 Enemies = enemies.ToArray(),
                 Scaling = new Sim.WaveScaling
                 {
                     Roles = roles,
                     StatGrowth = cfg.TbWaveScaling.Data.StatGrowth,
+                    MaxStatScale = cfg.TbWaveScaling.Data.MaxStatScale,
                 },
             };
         }

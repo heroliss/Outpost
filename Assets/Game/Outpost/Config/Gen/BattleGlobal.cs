@@ -23,12 +23,17 @@ public sealed partial class BattleGlobal : Luban.BeanBase
         PlayerAttack = _buf.ReadFloat();
         PlayerMaxAttack = _buf.ReadFloat();
         PlayerAttackInterval = _buf.ReadFloat();
+        PlayerMinAttackInterval = _buf.ReadFloat();
         PlayerRange = _buf.ReadFloat();
         PlayerRegen = _buf.ReadFloat();
+        PlayerMaxRegen = _buf.ReadFloat();
+        PlayerMaxHpCap = _buf.ReadFloat();
         PlayerRadius = _buf.ReadFloat();
         PlayerRotationSpeed = _buf.ReadFloat();
         PlayerMaxRotationSpeed = _buf.ReadFloat();
         PlayerMaxRange = _buf.ReadFloat();
+        SplashRadius = _buf.ReadFloat();
+        SplashDamageScale = _buf.ReadFloat();
         ArenaRadius = _buf.ReadFloat();
         InterWaveDelay = _buf.ReadFloat();
         ResultDelay = _buf.ReadFloat();
@@ -56,6 +61,10 @@ public sealed partial class BattleGlobal : Luban.BeanBase
     /// </summary>
     public readonly float PlayerAttackInterval;
     /// <summary>
+    /// 攻击间隔下限（≤0=仅防除零）。玩家全部成长封顶是永续稳态的前提；0.004≈每分钟一万五千发，后期仍是火墙
+    /// </summary>
+    public readonly float PlayerMinAttackInterval;
+    /// <summary>
     /// 玩家索敌半径（起手偏短）
     /// </summary>
     public readonly float PlayerRange;
@@ -63,6 +72,14 @@ public sealed partial class BattleGlobal : Luban.BeanBase
     /// 玩家每秒回血
     /// </summary>
     public readonly float PlayerRegen;
+    /// <summary>
+    /// 每秒回血升级上限（≤0=不封顶）。同为平台期稳态服务
+    /// </summary>
+    public readonly float PlayerMaxRegen;
+    /// <summary>
+    /// 生命上限的升级上限（≤0=不封顶）。同为平台期稳态服务
+    /// </summary>
+    public readonly float PlayerMaxHpCap;
     /// <summary>
     /// 玩家碰撞半径
     /// </summary>
@@ -79,6 +96,14 @@ public sealed partial class BattleGlobal : Luban.BeanBase
     /// 索敌半径升级上限（应小于 arenaRadius，留出拦截缓冲区；到顶后增程雷达不再出现）
     /// </summary>
     public readonly float PlayerMaxRange;
+    /// <summary>
+    /// 拦截溅射危险半径：在离基地小于此距离处击毁敌人，冲击波连带削基地（越近越疼；0=关闭）——近防炮&#39;远处早拦&#39;的张力来源
+    /// </summary>
+    public readonly float SplashRadius;
+    /// <summary>
+    /// 溅射伤害系数：实际溅射 = 敌人自爆伤害 &#215; 本系数 &#215; 贴近度(0..1)
+    /// </summary>
+    public readonly float SplashDamageScale;
     /// <summary>
     /// 敌人出生环半径
     /// </summary>
@@ -106,12 +131,17 @@ public sealed partial class BattleGlobal : Luban.BeanBase
         + "playerAttack:" + PlayerAttack + ","
         + "playerMaxAttack:" + PlayerMaxAttack + ","
         + "playerAttackInterval:" + PlayerAttackInterval + ","
+        + "playerMinAttackInterval:" + PlayerMinAttackInterval + ","
         + "playerRange:" + PlayerRange + ","
         + "playerRegen:" + PlayerRegen + ","
+        + "playerMaxRegen:" + PlayerMaxRegen + ","
+        + "playerMaxHpCap:" + PlayerMaxHpCap + ","
         + "playerRadius:" + PlayerRadius + ","
         + "playerRotationSpeed:" + PlayerRotationSpeed + ","
         + "playerMaxRotationSpeed:" + PlayerMaxRotationSpeed + ","
         + "playerMaxRange:" + PlayerMaxRange + ","
+        + "splashRadius:" + SplashRadius + ","
+        + "splashDamageScale:" + SplashDamageScale + ","
         + "arenaRadius:" + ArenaRadius + ","
         + "interWaveDelay:" + InterWaveDelay + ","
         + "resultDelay:" + ResultDelay + ","

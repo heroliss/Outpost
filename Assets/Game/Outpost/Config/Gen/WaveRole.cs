@@ -13,7 +13,7 @@ using Luban;
 namespace OutpostCfg
 {
 /// <summary>
-/// 一个敌人角色的波次成长：统一公式逐波展开成一条刷怪流。数量=baseCount+floor((w-unlockWave)*perWave)，间隔=max(intervalMin, interval0-(w-unlockWave)*intervalDecay)
+/// 一个敌人角色的波次成长：统一公式逐波展开成一条刷怪流（step=w-unlockWave）。数量=min(maxCount, floor(baseCount*countGrowth^step)+floor(step*perWave))，间隔=max(intervalMin, interval0/countGrowth^step-step*intervalDecay)——间隔随数量同步乘性收缩，单波刷怪时长≈baseCount*interval0 恒定。乘性 countGrowth 让数量十几波爬到千级，maxCount 封顶=规模平台期（托管永续的前提）
 /// </summary>
 public sealed partial class WaveRole : Luban.BeanBase
 {
@@ -22,7 +22,9 @@ public sealed partial class WaveRole : Luban.BeanBase
         EnemyId = _buf.ReadInt();
         UnlockWave = _buf.ReadInt();
         BaseCount = _buf.ReadInt();
+        CountGrowth = _buf.ReadFloat();
         PerWave = _buf.ReadFloat();
+        MaxCount = _buf.ReadInt();
         Interval0 = _buf.ReadFloat();
         IntervalMin = _buf.ReadFloat();
         IntervalDecay = _buf.ReadFloat();
@@ -46,9 +48,17 @@ public sealed partial class WaveRole : Luban.BeanBase
     /// </summary>
     public readonly int BaseCount;
     /// <summary>
-    /// 每波数量斜率（血越高的角色应越小 = 出场越少）
+    /// 每波数量乘性成长底数（如 1.35 = 每波多 35%；1 = 不乘性增长）。海量炮灰靠它指数爬坡
+    /// </summary>
+    public readonly float CountGrowth;
+    /// <summary>
+    /// 每波数量线性斜率（与乘性叠加；低频角色可只用线性）
     /// </summary>
     public readonly float PerWave;
+    /// <summary>
+    /// 数量封顶（≤0=不封顶）。到顶即平台期——每波压力恒定，无限模式能永续
+    /// </summary>
+    public readonly int MaxCount;
     /// <summary>
     /// 解锁波的刷出间隔（秒）
     /// </summary>
@@ -75,7 +85,9 @@ public sealed partial class WaveRole : Luban.BeanBase
         + "enemyId:" + EnemyId + ","
         + "unlockWave:" + UnlockWave + ","
         + "baseCount:" + BaseCount + ","
+        + "countGrowth:" + CountGrowth + ","
         + "perWave:" + PerWave + ","
+        + "maxCount:" + MaxCount + ","
         + "interval0:" + Interval0 + ","
         + "intervalMin:" + IntervalMin + ","
         + "intervalDecay:" + IntervalDecay + ","

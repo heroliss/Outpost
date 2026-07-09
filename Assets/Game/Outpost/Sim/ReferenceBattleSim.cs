@@ -5,9 +5,9 @@ using System.Numerics;
 namespace Game.Outpost.Sim
 {
     /// <summary>
-    /// <see cref="IBattleSim"/> 的参考实现：面向对象的直白写法（列表 + 结构体逐帧演算），
-    /// 规模目标是切片的"几十只"量级。作为接缝的第一后端，它同时是规则的可执行规格——
-    /// 纯 C# 可直接单测；后续 ECS 后端（压力波次）与它同题对比。
+    /// <see cref="IBattleSim"/> 的参考实现：面向对象的直白写法（列表 + 结构体逐帧演算，索敌 / 命中都是 O(n) 线性扫描，
+    /// 不做空间分区）。平台期的数千同屏它仍能演算，但这份"直白"正是与后续 ECS 后端同题对比的基线——
+    /// 作为接缝的第一后端，它同时是规则的可执行规格，纯 C# 可直接单测 / 无头跑数。
     /// </summary>
     /// <remarks>
     /// 确定性：随机源仅出生角度（<see cref="BattleSetup.Seed"/> 种子化的 <see cref="Random"/>）；
@@ -37,6 +37,7 @@ namespace Game.Outpost.Sim
         }
 
         private const float AimToleranceDeg = 6f;   // 炮口角度差在此内即视为对准、可开火
+        private static readonly float AimToleranceCosSq = (float)Math.Pow(Math.Cos(AimToleranceDeg * Math.PI / 180.0), 2); // 锥判定用 cos²(容差)，见 FindNearestInCone
         private const int MaxShotsPerTick = 64;      // 无上限射速下单帧最多发数（防病态循环；远超玩法所需）
         private const float FirehoseFireInterval = 0.06f; // 有效射速间隔低于此即进"火墙"：炮口未对准也持续击发（边转边扫、空放不结算伤害）
         private const double Rad2Deg = 180.0 / Math.PI;
@@ -63,6 +64,8 @@ namespace Game.Outpost.Sim
         public float PlayerMaxHp => _player.MaxHp;
         public float PlayerRange => _player.Range;
         public float PlayerAttack => _player.Attack;
+        public float PlayerAttackInterval => _player.AttackInterval;
+        public float PlayerRegen => _player.RegenPerSecond;
         public float PlayerRotationSpeed => _player.RotationSpeed;
         public float TurretAngle => _turretAngleDeg;
         public int Kills { get; private set; }
@@ -116,22 +119,29 @@ namespace Game.Outpost.Sim
         public void ApplyModifier(in PlayerModifier modifier)
         {
             if (Phase == BattlePhase.Defeat || _setup == null) return;
+            // 全部成长封顶（见 PlayerSetup 各 Max* 字段）：敌人规模进平台期后玩家也不再变强，
+            // 稳态的"每波消耗"才不会随成长衰减到零。到顶的升级由业务侧移出三选一池。
             _player.Attack += modifier.AttackAdd;
             if (_player.MaxAttack > 0f && _player.Attack > _player.MaxAttack)
-                _player.Attack = _player.MaxAttack; // 攻击封顶：不再秒杀，火力压力交给无上限射速
-            // 攻速无上限：仅留极小下限防除零 / 单帧过多次开火（~75000 发/分，远超玩法所需）
-            _player.AttackInterval = Math.Max(0.0008f, _player.AttackInterval * modifier.AttackIntervalScale);
+                _player.Attack = _player.MaxAttack;
+            float minInterval = _player.MinAttackInterval > 0f ? _player.MinAttackInterval : 0.0008f; // 兜底防除零
+            _player.AttackInterval = Math.Max(minInterval, _player.AttackInterval * modifier.AttackIntervalScale);
             _player.Range += modifier.RangeAdd;
             if (_player.MaxRange > 0f && _player.Range > _player.MaxRange)
-                _player.Range = _player.MaxRange; // 索敌半径封顶（不越过缓冲区；到顶后业务侧不再提供该升级）
+                _player.Range = _player.MaxRange; // 索敌半径不越过拦截缓冲区
             _player.RegenPerSecond += modifier.RegenAdd;
+            if (_player.MaxRegen > 0f && _player.RegenPerSecond > _player.MaxRegen)
+                _player.RegenPerSecond = _player.MaxRegen;
             _player.RotationSpeed += modifier.RotationSpeedAdd;
             if (_player.MaxRotationSpeed > 0f && _player.RotationSpeed > _player.MaxRotationSpeed)
-                _player.RotationSpeed = _player.MaxRotationSpeed; // 回转封顶（见 PlayerSetup.MaxRotationSpeed）
+                _player.RotationSpeed = _player.MaxRotationSpeed;
             if (modifier.MaxHpAdd != 0f)
             {
-                _player.MaxHp += modifier.MaxHpAdd;
-                _playerHp = Math.Min(_player.MaxHp, _playerHp + modifier.MaxHpAdd);
+                float newMax = _player.MaxHp + modifier.MaxHpAdd;
+                if (_player.MaxHpCap > 0f && newMax > _player.MaxHpCap) newMax = _player.MaxHpCap;
+                float gained = newMax - _player.MaxHp; // 实际提升量（可能被封顶截短），回复等量当前血
+                _player.MaxHp = newMax;
+                _playerHp = Math.Min(_player.MaxHp, _playerHp + Math.Max(0f, gained));
             }
         }
 
@@ -167,12 +177,14 @@ namespace Game.Outpost.Sim
             WaveCleared = null;
         }
 
-        // 按成长曲线程序化生成第 waveIndex 波的刷怪流（无限模式：一波比一波多 / 强）。逐角色统一公式展开。
+        // 按成长曲线程序化生成第 waveIndex 波的刷怪流（无限模式：数量指数爬坡、到 MaxCount 进平台期）。逐角色统一公式展开。
         private void BeginWave(int waveIndex)
         {
             WaveIndex = waveIndex;
             var sc = _setup.Scaling;
             _waveStatScale = (float)Math.Pow(Math.Max(1f, sc.StatGrowth), waveIndex - 1);
+            if (sc.MaxStatScale > 0f && _waveStatScale > sc.MaxStatScale)
+                _waveStatScale = sc.MaxStatScale; // 数值成长封顶：平台期敌人不再变强（永续的必要条件，见 WaveScaling.MaxStatScale）
 
             _streamScratch.Clear();
             var roles = sc.Roles;
@@ -183,8 +195,15 @@ namespace Game.Outpost.Sim
                     var role = roles[r];
                     if (waveIndex < role.UnlockWave) continue;
                     int step = waveIndex - role.UnlockWave;                 // 解锁后经过的波数
-                    int count = role.BaseCount + (int)Math.Floor(step * role.PerWave);
-                    float interval = role.Interval0 - step * role.IntervalDecay;
+                    // 数量 = 乘性爬坡 + 线性斜率，封顶进平台期（公式见 WaveRole 文档）。
+                    // 先在 double 域封顶再转 int：指数增长几十波后会溢出 int（转出负数 = 刷怪流凭空消失）。
+                    double growth = role.CountGrowth > 1f ? Math.Pow(role.CountGrowth, step) : 1.0;
+                    double rawCount = Math.Floor(role.BaseCount * growth) + Math.Floor(step * role.PerWave);
+                    if (role.MaxCount > 0 && rawCount > role.MaxCount) rawCount = role.MaxCount;
+                    int count = rawCount >= int.MaxValue ? int.MaxValue : (int)rawCount;
+                    // 刷出间隔随数量同步乘性收缩（数量 ×k ⇒ 间隔 ÷k），单波刷怪时长近似恒定——
+                    // 若用线性递减，指数涨的数量会让间隔突然撞底、波形从"细流"骤变"闸门"。
+                    float interval = (float)(role.Interval0 / growth) - step * role.IntervalDecay;
                     if (interval < role.IntervalMin) interval = role.IntervalMin;
                     AddStream(role.EnemyId, count, interval);              // count ≤ 0 或原型缺失则内部跳过
                 }
@@ -204,7 +223,7 @@ namespace Game.Outpost.Sim
             {
                 ArchIndex = archIndex,
                 Remaining = count,
-                Interval = Math.Max(0.01f, interval),
+                Interval = Math.Max(0.001f, interval), // 仅防零/负；真实下限由 WaveRole.IntervalMin 配置
                 Timer = 0f, // 首只立刻刷
             });
         }
@@ -291,6 +310,10 @@ namespace Game.Outpost.Sim
             float desired = (float)(Math.Atan2(tpos.Y, tpos.X) * Rad2Deg);
             _turretAngleDeg = MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
 
+            // 炮口方向单位向量（本 tick 内朝向不变，shots 循环共用）——锥内判定用点积，免逐敌 Atan2。
+            double muzzleRad = _turretAngleDeg / Rad2Deg;
+            var muzzleDir = new Vector2((float)Math.Cos(muzzleRad), (float)Math.Sin(muzzleRad));
+
             // 开火：有效射速 = 基础射速（无上限、无预热）。每发打的是"炮口锥内的最近敌人"——炮管指着谁就打谁，
             // 不必是全局最近（回转扫过的其他敌人照样命中、照样结算伤害）。炮塔另按回转速度转向"全局最近"(target)＝想咬住的主威胁，
             // 扫掠途中顺带清掉挡在炮口上的其余敌人。炮口锥内为空时——
@@ -301,28 +324,36 @@ namespace Game.Outpost.Sim
             float effInterval = _player.AttackInterval;
             bool firehose = effInterval < FirehoseFireInterval;
             int shots = 0;
+            // 循环内敌人不移动、空放不改战场——锥一旦扫空整个 tick 都空，"射程内尚有敌"也只需查一次。
+            // 缓存两者，避免高射速下每发空放重复 O(n) 扫描。
+            bool coneEmpty = false;
+            bool anyInRange = true, anyInRangeChecked = false;
             while (_playerAttackCooldown <= 0f && shots < MaxShotsPerTick)
             {
-                int t = FindNearestInCone(_turretAngleDeg, AimToleranceDeg); // 炮口锥内最近敌人（指哪打哪，扫过即中）
+                int t = coneEmpty ? -1 : FindNearestInCone(muzzleDir); // 炮口锥内最近敌人（指哪打哪，扫过即中）
                 if (t >= 0)
                 {
                     var p = _enemies[t].Pos;
                     DamageEnemy(t, _player.Attack);                     // 命中：结算伤害（内部发 EnemyHit）
                     TurretFired?.Invoke(new TurretFiredEvent(p, true));
                 }
-                else if (firehose && FindNearestInRange() >= 0)
+                else
                 {
+                    coneEmpty = true;
+                    if (!anyInRangeChecked) { anyInRange = FindNearestInRange() >= 0; anyInRangeChecked = true; }
+                    if (!firehose || !anyInRange) break;               // 低射速静默 / 射程内已空：停火
                     TurretFired?.Invoke(new TurretFiredEvent(BarrelPoint(), false)); // 炮口空、射程内尚有敌：转向途中空放
                 }
-                else break;                                            // 低射速静默 / 射程内已空：停火
                 _playerAttackCooldown += effInterval;
                 shots++;
             }
             if (_playerAttackCooldown < 0f) _playerAttackCooldown = 0f;
         }
 
-        // 炮口锥内(与炮口夹角 ≤ toleranceDeg)、射程内的最近敌人索引；无则 -1。炮管指哪打哪——回转扫过的敌人即被此命中。
-        private int FindNearestInCone(float angleDeg, float toleranceDeg)
+        // 炮口锥内(与炮口夹角 ≤ AimToleranceDeg)、射程内的最近敌人索引；无则 -1。炮管指哪打哪——回转扫过的敌人即被此命中。
+        // 判定用点积（dot ≥ cos(容差)·|p| ⟺ dot² ≥ cos²·|p|²，且 dot > 0）——这是每发都跑的最热路径，
+        // 数千同屏 × 每秒上千发时逐敌 Atan2 会成为主要开销，点积与角度比较数学等价且零三角函数。
+        private int FindNearestInCone(Vector2 muzzleDir)
         {
             int best = -1;
             float bestSq = _player.Range * _player.Range;
@@ -331,8 +362,8 @@ namespace Game.Outpost.Sim
                 var pos = _enemies[i].Pos;
                 float dsq = pos.LengthSquared();
                 if (dsq > bestSq) continue;
-                float a = (float)(Math.Atan2(pos.Y, pos.X) * Rad2Deg);
-                if (Math.Abs(DeltaAngleDeg(angleDeg, a)) > toleranceDeg) continue;
+                float dot = muzzleDir.X * pos.X + muzzleDir.Y * pos.Y;
+                if (dot <= 0f || dot * dot < AimToleranceCosSq * dsq) continue;
                 bestSq = dsq;
                 best = i;
             }
@@ -397,6 +428,10 @@ namespace Game.Outpost.Sim
             if (_enemies.Count > 0) return;
             for (int i = 0; i < _spawns.Length; i++)
                 if (_spawns[i].Remaining > 0) return;
+
+            // 波间维修：撑过一波即回满血——"每波消耗多少血"成为独立的单波压力指标（目标≈一半），
+            // 不与持续回血叠加出"伤害小于回血则永生、大于则必死"的双稳态；失守只发生在单波承伤超过全血时。
+            _playerHp = _player.MaxHp;
 
             // 无限模式：本波清空即停在 WaveCleared 等升级选择，选完 BeginNextWave 续下一（更难）波，无胜利终态。
             Phase = BattlePhase.WaveCleared;

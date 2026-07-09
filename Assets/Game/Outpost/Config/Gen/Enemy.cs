@@ -13,7 +13,7 @@ using Luban;
 namespace OutpostCfg
 {
 /// <summary>
-/// 敌人原型
+/// 敌人原型（数值列进 Sim；表现列由表现层直接读表——接缝保持主题中立，Sim 不认识颜色/形状）
 /// </summary>
 public sealed partial class Enemy : Luban.BeanBase
 {
@@ -24,9 +24,12 @@ public sealed partial class Enemy : Luban.BeanBase
         Hp = _buf.ReadFloat();
         MoveSpeed = _buf.ReadFloat();
         Attack = _buf.ReadFloat();
-        AttackInterval = _buf.ReadFloat();
         Radius = _buf.ReadFloat();
         Score = _buf.ReadInt();
+        ColorHex = _buf.ReadString();
+        Shape = _buf.ReadString();
+        Diameter = _buf.ReadFloat();
+        ExplosionScale = _buf.ReadFloat();
     }
 
     public static Enemy DeserializeEnemy(ByteBuf _buf)
@@ -55,10 +58,6 @@ public sealed partial class Enemy : Luban.BeanBase
     /// </summary>
     public readonly float Attack;
     /// <summary>
-    /// 攻击间隔（秒）。当前接触即自爆模型下未使用，保留列以备后续驻留攻击型敌人
-    /// </summary>
-    public readonly float AttackInterval;
-    /// <summary>
     /// 碰撞半径（抵近到双方半径之和即自爆）
     /// </summary>
     public readonly float Radius;
@@ -66,6 +65,22 @@ public sealed partial class Enemy : Luban.BeanBase
     /// 击杀得分
     /// </summary>
     public readonly int Score;
+    /// <summary>
+    /// 表现：主体色（RRGGBB 十六进制，无 # 前缀）
+    /// </summary>
+    public readonly string ColorHex;
+    /// <summary>
+    /// 表现：程序网格形状（dart/arrowhead/hexagon/needle/octagon，映射 OutpostMeshes；有向形状会逐帧转向来袭方向）
+    /// </summary>
+    public readonly string Shape;
+    /// <summary>
+    /// 表现：体型直径（世界单位）
+    /// </summary>
+    public readonly float Diameter;
+    /// <summary>
+    /// 表现：爆炸体量倍率（&lt;0.8 的炮灰只留脉冲，不出碎片/烟——海量击杀防刷屏）
+    /// </summary>
+    public readonly float ExplosionScale;
    
     public const int __ID__ = 67100520;
     public override int GetTypeId() => __ID__;
@@ -82,9 +97,12 @@ public sealed partial class Enemy : Luban.BeanBase
         + "hp:" + Hp + ","
         + "moveSpeed:" + MoveSpeed + ","
         + "attack:" + Attack + ","
-        + "attackInterval:" + AttackInterval + ","
         + "radius:" + Radius + ","
         + "score:" + Score + ","
+        + "colorHex:" + ColorHex + ","
+        + "shape:" + Shape + ","
+        + "diameter:" + Diameter + ","
+        + "explosionScale:" + ExplosionScale + ","
         + "}";
     }
 }
