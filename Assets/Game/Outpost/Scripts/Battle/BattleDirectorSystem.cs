@@ -31,7 +31,8 @@ namespace Game.Outpost.Battle
     /// <para><b>表现层双轨</b>：海量常驻敌人走 <see cref="SwarmRenderer"/> 实例化绘制（无 GameObject）；
     /// 少量瞬时特效（曳光/脉冲/飘字/烟/碎片）走 <c>Bag.Spawn</c> 对象池。模拟内核对两者一无所知，
     /// 置换 ECS 后端（<see cref="BattleSimBackend"/>）时本类的翻译层原样保留。</para>
-    /// <para><b>海量下的演出纪律</b>：命中/击杀/出生特效各有每帧预算（超出只结算数值不演出）；
+    /// <para><b>海量下的演出纪律</b>：命中/击杀/出生特效各有每帧预算（超出只结算数值不演出），
+    /// 击杀的保底反馈是残骸——每具都留存进 <see cref="SwarmRenderer"/> 的残骸层、不占预算；
     /// 玩家受创（漏怪自爆 + 拦截溅射）在短窗口内聚合成一次震屏/红闪/汇总飘字——每秒上百次受创时逐条演出会刷屏。</para>
     /// <para>System 层不能 ExecuteCommand（防环），故终局直接 <c>GetUtility&lt;IGameFlow&gt;()</c> 驱动流程。</para>
     /// </summary>
@@ -66,6 +67,10 @@ namespace Game.Outpost.Battle
 
         [SerializeField, Tooltip("随机种子；0 = 用启动时间（每局不同的出生角度）。战斗结果几乎与种子无关——竞技场旋转对称。")]
         private int _seed;
+
+        [SerializeField, Tooltip("起始波次（≤1 = 正常从第 1 波开局）。>1 时开局无头快进静默跑过前面的波次：升级按托管优先级自动拿、" +
+            "击杀直接铺成战场残骸。纯 C# 模拟不依赖渲染帧率，快进 20 波约一两秒——压测 / 演示的直达入口。")]
+        private int _startWave = 1;
 
         private IBattleSim _sim;
         private BattleModel _model;
@@ -181,13 +186,18 @@ namespace Game.Outpost.Battle
             var setup = BattleSetupFactory.Build(_cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
             _sim = CreateSim();
-            _sim.EnemySpawned += OnEnemySpawned;
-            _sim.EnemyHit += OnEnemyHit;
-            _sim.TurretFired += OnTurretFired;
-            _sim.EnemyDetonated += OnEnemyDetonated;
-            _sim.WaveCleared += OnWaveCleared;
-
-            _sim.Start(setup);
+            if (_startWave > 1)
+            {
+                // 快进期间不接表现翻译层（避免海量事件灌进特效/演出），跑完再挂——见 FastForwardTo。
+                _sim.Start(setup);
+                await FastForwardTo(_startWave);
+                SubscribeSimEvents();
+            }
+            else
+            {
+                SubscribeSimEvents();
+                _sim.Start(setup);
+            }
 
             _decor.Init(setup.ArenaRadius);
             _model.Backend.Value = _backend.ToString();
@@ -201,6 +211,72 @@ namespace Game.Outpost.Battle
         {
             _ => new ReferenceBattleSim(),
         };
+
+        // 模拟事件 → 表现翻译层的接线（正常开局在 Start 前挂；无头快进则跑完快进再挂）。
+        private void SubscribeSimEvents()
+        {
+            _sim.EnemySpawned += OnEnemySpawned;
+            _sim.EnemyHit += OnEnemyHit;
+            _sim.TurretFired += OnTurretFired;
+            _sim.EnemyDetonated += OnEnemyDetonated;
+            _sim.WaveCleared += OnWaveCleared;
+        }
+
+        // 无头快进到目标波：纯 C# 模拟不依赖渲染帧率，可在加载期把前面的波次静默跑完（IBattleSim 接缝的直接红利，
+        // 与平衡标定用的无头 harness 是同一姿势）。升级走与托管相同的贪心优先级，数值与正常托管打法一致；
+        // 表现事件全程不挂，只收击杀位置直接烘焙成残骸——进场时战场自带这段被跳过战斗的痕迹。
+        private async UniTask FastForwardTo(int targetWave)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            System.Action<EnemyHitEvent> onHit = e => { if (e.Killed) _swarm.BakeWreckInstant(e.ArchetypeId, e.Position); };
+            System.Action<EnemyDetonatedEvent> onDet = e => _swarm.BakeWreckInstant(e.ArchetypeId, e.Position);
+            _sim.EnemyHit += onHit;
+            _sim.EnemyDetonated += onDet;
+
+            const float dt = 1f / 30f;
+            int guard = 2_000_000; // 防呆：配置异常导致波次推不动时不至于死循环（约 18 小时模拟时间）
+            int slice = 0;
+            while (_sim.WaveIndex < targetWave && _sim.Phase != BattlePhase.Defeat && guard-- > 0)
+            {
+                if (_sim.Phase == BattlePhase.WaveCleared)
+                {
+                    ApplyBestUpgrade();
+                    _sim.BeginNextWave();
+                }
+                else
+                {
+                    _sim.Tick(dt);
+                }
+
+                if (++slice >= 3000) // 深波次快进耗时可达数秒：分片让出主线程，画面不冻结
+                {
+                    slice = 0;
+                    await UniTask.Yield(this.GetCancellationTokenOnDestroy());
+                }
+            }
+
+            _sim.EnemyHit -= onHit;
+            _sim.EnemyDetonated -= onDet;
+            Debug.Log($"[BattleDirectorSystem] 无头快进至第 {_sim.WaveIndex} 波（击杀 {_sim.Kills}、残骸 {_swarm.WreckCount}），耗时 {sw.ElapsedMilliseconds}ms。");
+        }
+
+        // 快进版选卡：没有面板与随机三选一，直接从全部未到顶的升级里按托管优先级拿最优——与长跑标定的贪心策略一致。
+        private void ApplyBestUpgrade()
+        {
+            Upgrade best = null;
+            int bestRank = int.MaxValue;
+            foreach (var u in _cfg.TbUpgrade.DataList)
+            {
+                if (IsUpgradeCapped(u.Kind)) continue;
+                int rank = AutoPriority(u.Kind);
+                if (rank < bestRank)
+                {
+                    bestRank = rank;
+                    best = u;
+                }
+            }
+            if (best != null) _sim.ApplyModifier(BattleSetupFactory.ToModifier(best));
+        }
 
         private void Update()
         {
@@ -317,6 +393,7 @@ namespace Game.Outpost.Battle
             if (e.Killed)
             {
                 _swarm.OnRemoved(e.EnemyId);
+                _swarm.SpawnWreck(e.ArchetypeId, e.Position); // 残骸不占预算：千级击杀率下的保底反馈 + 战场历史
                 if (_killFxBudget > 0)
                 {
                     _killFxBudget--;
@@ -333,6 +410,7 @@ namespace Game.Outpost.Battle
         private void OnEnemyDetonated(EnemyDetonatedEvent e)
         {
             _swarm.OnRemoved(e.EnemyId);
+            _swarm.SpawnWreck(e.ArchetypeId, e.Position); // 自爆也留残骸——基地周界的积尸环即是"漏怪都从哪来"的可视化
             AccumulatePlayerDamage(e.Damage);
 
             if (_killFxBudget <= 0) return;
@@ -416,22 +494,10 @@ namespace Game.Outpost.Battle
         // 全部到顶后不再弹面板，短拍后直接续下一波（成长期结束、进入纯守成稳态）。
         private void OfferUpgrades()
         {
-            bool rangeCapped = _maxRange > 0f && _sim.PlayerRange >= _maxRange - 0.001f;
-            bool attackCapped = _maxAttack > 0f && _sim.PlayerAttack >= _maxAttack - 0.001f;
-            bool rotCapped = _maxRotation > 0f && _sim.PlayerRotationSpeed >= _maxRotation - 0.001f;
-            bool aspdCapped = _minAttackInterval > 0f && _sim.PlayerAttackInterval <= _minAttackInterval + 0.0001f;
-            bool regenCapped = _maxRegen > 0f && _sim.PlayerRegen >= _maxRegen - 0.001f;
-            bool hpCapped = _maxHpCap > 0f && _sim.PlayerMaxHp >= _maxHpCap - 0.001f;
-
             _upgradePool.Clear();
             foreach (var u in _cfg.TbUpgrade.DataList)
             {
-                if (rangeCapped && u.Kind == UpgradeKind.Range) continue;
-                if (attackCapped && u.Kind == UpgradeKind.Attack) continue;
-                if (rotCapped && u.Kind == UpgradeKind.RotationSpeed) continue;
-                if (aspdCapped && u.Kind == UpgradeKind.AttackSpeed) continue;
-                if (regenCapped && u.Kind == UpgradeKind.Regen) continue;
-                if (hpCapped && u.Kind == UpgradeKind.MaxHp) continue;
+                if (IsUpgradeCapped(u.Kind)) continue;
                 _upgradePool.Add(u);
             }
 
@@ -531,6 +597,18 @@ namespace Game.Outpost.Battle
             if (bestId >= 0) ChooseUpgrade(bestId);
         }
 
+        // 六种升级的封顶判定（上限读自 TbBattleGlobal，开局缓存；0 = 不设顶）。三选一候选池与快进贪心共用。
+        private bool IsUpgradeCapped(UpgradeKind kind) => kind switch
+        {
+            UpgradeKind.Range => _maxRange > 0f && _sim.PlayerRange >= _maxRange - 0.001f,
+            UpgradeKind.Attack => _maxAttack > 0f && _sim.PlayerAttack >= _maxAttack - 0.001f,
+            UpgradeKind.RotationSpeed => _maxRotation > 0f && _sim.PlayerRotationSpeed >= _maxRotation - 0.001f,
+            UpgradeKind.AttackSpeed => _minAttackInterval > 0f && _sim.PlayerAttackInterval <= _minAttackInterval + 0.0001f,
+            UpgradeKind.Regen => _maxRegen > 0f && _sim.PlayerRegen >= _maxRegen - 0.001f,
+            UpgradeKind.MaxHp => _maxHpCap > 0f && _sim.PlayerMaxHp >= _maxHpCap - 0.001f,
+            _ => false,
+        };
+
         // 托管选卡优先级（数字越小越优先）：攻速是吞吐之本；攻击跨断点（2 炮变 1 炮）收益巨大；回转决定 360° 覆盖；
         // 探测范围拉长拦截窗口；血量 / 回血是纯保底。此顺序经无头 harness 长跑验证（托管 110 波不死、每波消耗约半血）。
         private static int AutoPriority(UpgradeKind kind) => kind switch
@@ -629,6 +707,7 @@ namespace Game.Outpost.Battle
             SetI(_model.Kills, _sim.Kills);
             SetI(_model.Score, _sim.Score);
             SetI(_model.EnemyCount, _sim.EnemyCount);
+            SetI(_model.WreckCount, _swarm.WreckCount);
             SetF(_model.SimTickMs, _simTickMs);
         }
 

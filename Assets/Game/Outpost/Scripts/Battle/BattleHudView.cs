@@ -29,7 +29,7 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("受击红屏闪（全屏 Image，blocksRaycasts 必须关）。")]
         private Image _damageFlash;
 
-        [SerializeField, Tooltip("性能行（后端 | 敌人数 | 模拟耗时 | fps）——两个 Sim 后端同题对比的实时度量。")]
+        [SerializeField, Tooltip("性能行（后端 | 敌人数 | 残骸数 | 模拟耗时 | fps）——两个 Sim 后端同题对比的实时度量。")]
         private TMP_Text _perfText;
 
         private static readonly Color HpGreen = new(0.35f, 0.92f, 0.45f);
@@ -44,6 +44,7 @@ namespace Game.Outpost.Battle
         // 性能行的订阅缓存（订阅只写字段，Update 按节流间隔拼串——避免每帧 3 个流各自触发字符串分配）。
         private string _backendName = "";
         private int _enemyCount;
+        private int _wreckCount;
         private float _simTickMs;
         private float _fpsSmoothed;
         private float _perfRefreshTimer;
@@ -95,6 +96,7 @@ namespace Game.Outpost.Battle
             // 性能行：订阅只缓存值，拼串在 Update 里节流——EnemyCount/SimTickMs 每帧都变，逐次拼串太浪费。
             Bag.Subscribe(rm.Backend, b => _backendName = b);
             Bag.Subscribe(rm.EnemyCount, c => _enemyCount = c);
+            Bag.Subscribe(rm.WreckCount, c => _wreckCount = c);
             Bag.Subscribe(rm.SimTickMs, ms => _simTickMs = ms);
         }
 
@@ -107,7 +109,7 @@ namespace Game.Outpost.Battle
             if (_perfRefreshTimer <= 0f)
             {
                 _perfRefreshTimer = PerfRefreshInterval;
-                _perfText.text = $"{_backendName} · 敌 {_enemyCount} · 模拟 {_simTickMs:F2}ms · {_fpsSmoothed:F0}fps";
+                _perfText.text = $"{_backendName} · 敌 {_enemyCount} · 残骸 {_wreckCount} · 模拟 {_simTickMs:F2}ms · {_fpsSmoothed:F0}fps";
             }
 
             // 受击红闪衰减。

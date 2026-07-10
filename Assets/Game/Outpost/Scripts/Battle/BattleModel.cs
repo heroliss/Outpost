@@ -19,6 +19,9 @@ namespace Game.Outpost.Battle
         /// <summary>当前存活敌人数（性能行展示 + 两个 Sim 后端同题对比的规模指标）。</summary>
         public readonly RP<int> EnemyCount = new(0);
 
+        /// <summary>战场留存残骸数（表现层统计：实例化渲染压力的主要持续来源，性能行展示）。</summary>
+        public readonly RP<int> WreckCount = new(0);
+
         /// <summary>模拟内核单帧 Tick 耗时（毫秒，指数平滑）——后端对比的核心度量。</summary>
         public readonly RP<float> SimTickMs = new(0);
 

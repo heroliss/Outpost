@@ -6,7 +6,7 @@ namespace Game.Outpost.Battle
     /// <summary>
     /// 战斗 HUD 的只读读模型：把 <see cref="BattleModel"/> 的响应式状态打成一束只读视图，供 View 一次拿齐、逐个订阅。
     /// 每个字段是 <c>ReadOnlyReactiveProperty</c>（<c>RP</c> 的只读面）——View 看得到、改不了，写只能走 Command。
-    /// <para>把 6 个值合成一个查询而非 6 个查询命令，是对"数据密集 HUD 逐值查询样板过多"的折中——
+    /// <para>把多个值合成一个查询而非逐值一个命令，是对"数据密集 HUD 逐值查询样板过多"的折中——
     /// 作为切片接缝观察记录：框架是否该提供官方"读模型束"模式，留待 ADR-0029。</para>
     /// </summary>
     public readonly struct BattleReadModel
@@ -19,6 +19,9 @@ namespace Game.Outpost.Battle
 
         /// <summary>当前存活敌人数（HUD 性能行）。</summary>
         public readonly ReadOnlyReactiveProperty<int> EnemyCount;
+
+        /// <summary>战场留存残骸数（HUD 性能行——实例化渲染压力的主要持续来源）。</summary>
+        public readonly ReadOnlyReactiveProperty<int> WreckCount;
 
         /// <summary>模拟单帧耗时（毫秒，HUD 性能行——两个 Sim 后端同题对比的度量）。</summary>
         public readonly ReadOnlyReactiveProperty<float> SimTickMs;
@@ -34,6 +37,7 @@ namespace Game.Outpost.Battle
             Kills = m.Kills;
             Score = m.Score;
             EnemyCount = m.EnemyCount;
+            WreckCount = m.WreckCount;
             SimTickMs = m.SimTickMs;
             Backend = m.Backend;
         }
