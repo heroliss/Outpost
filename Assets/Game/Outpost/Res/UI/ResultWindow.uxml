@@ -8,6 +8,8 @@
         <ui:Label name="verdict" text="" class="op-label op-verdict" enable-rich-text="false" />
         <ui:Label name="detail" text="" class="op-label" enable-rich-text="false" />
         <ui:Label name="record" text="" class="op-label" enable-rich-text="false" />
+        <ui:Label name="rank" text="" class="op-label op-rank" enable-rich-text="false" />
+        <ui:Button name="leaderboard" text="全服排行" class="op-btn" />
         <ui:Button name="back" text="回标题" class="op-btn" />
     </ui:VisualElement>
 </ui:UXML>

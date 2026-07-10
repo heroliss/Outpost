@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 全服排行榜弹窗布局。窗口类 LeaderboardWindow 经 [UIWindow(Asset = "LeaderboardWindow")] 加载本文件：
+     status 显示 加载中/失败/空榜，list 容器由 Bag.BindList 按数据增量填行（行视图代码构建）。
+     文案运行时绑 key，uxml 中文只是设计期占位。 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Outpost.uss" />
+    <ui:VisualElement class="op-overlay" picking-mode="Ignore">
+        <ui:VisualElement class="op-card op-card--leaderboard">
+            <ui:Label name="title" text="全服排行" class="op-card__title" enable-rich-text="false" />
+            <ui:Label name="status" text="" class="op-label op-label--dim" enable-rich-text="false" />
+            <ui:VisualElement name="list" class="op-lb-list" />
+            <ui:VisualElement class="op-lb-actions">
+                <ui:Button name="refresh" text="刷新" class="op-btn op-btn--half" />
+                <ui:Button name="close" text="关闭" class="op-btn op-btn--half" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

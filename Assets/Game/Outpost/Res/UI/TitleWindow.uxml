@@ -9,6 +9,7 @@
         <ui:Label name="subtitle" text="哨站生存 —— 框架垂直切片" class="op-label" enable-rich-text="false" />
         <ui:Label name="record" text="" class="op-label op-label--dim" enable-rich-text="false" />
         <ui:Button name="start" text="开始游戏" class="op-btn" />
+        <ui:Button name="leaderboard" text="全服排行" class="op-btn" />
         <ui:Button name="about" text="框架看点" class="op-btn" />
         <ui:Button name="settings" text="设置" class="op-btn" />
     </ui:VisualElement>

@@ -4,6 +4,7 @@ using Game.Framework.Localization;
 using Game.Framework.UI;
 using Game.Framework.UI.Toolkit;
 using Game.Outpost.Commands;
+using Game.Outpost.Net;
 using Game.Outpost.Save;
 using UnityEngine.UIElements;
 
@@ -30,6 +31,12 @@ namespace Game.Outpost.Windows
             Bag.BindLocalizedText(Root.Q<Button>("settings"), "title/settings");
 
             Bag.SubscribeClick(Root.Q<Button>("start"), () => this.ExecuteCommand(new StartBattleCommand()));
+
+            // 全服排行（M4）：仅 dev 环境有对端（进程内 dev server），正式包直接藏入口。
+            var leaderboard = Root.Q<Button>("leaderboard");
+            leaderboard.style.display = OutpostNet.Available ? DisplayStyle.Flex : DisplayStyle.None;
+            Bag.BindLocalizedText(leaderboard, "lb/title");
+            Bag.SubscribeClick(leaderboard, () => this.GetUtility<IUIUtility>().Open<LeaderboardWindow>().Forget());
             // 框架看点：开一个模态弹窗（同一 UI 入口的窗口栈），把玩法接到框架能力 + 指向对照文档。
             Bag.SubscribeClick(Root.Q<Button>("about"), () => this.GetUtility<IUIUtility>().Open<AboutWindow>().Forget());
             // 设置：音量 / 语言（同为 Popup 层模态，压在标题之上——切语言时能看到本页文案跟着变）。

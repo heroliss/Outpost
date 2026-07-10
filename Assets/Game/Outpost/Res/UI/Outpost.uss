@@ -121,3 +121,59 @@
 
 /* 当前语言的按钮描边高亮（代码按 Locale 切换该类） */
 .op-btn--lang-active { border-color: rgb(255, 158, 64); }
+
+/* ── 排行榜弹窗 ───────────────────────────────────────── */
+
+.op-card--leaderboard { width: 430px; }
+
+.op-lb-list { margin-top: 2px; margin-bottom: 8px; }
+
+/* 一行 = 名次 | 署名(撑满) | 波次 | 分数，行视图由 BindList 工厂代码构建 */
+.op-lb-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.op-lb-row__rank {
+    width: 30px;
+    -unity-font-style: bold;
+    font-size: 13px;
+    color: rgb(255, 158, 64);
+}
+
+.op-lb-row__name {
+    flex-grow: 1;
+    font-size: 13px;
+    color: rgb(217, 224, 242);
+}
+
+.op-lb-row__wave {
+    width: 70px;
+    font-size: 12px;
+    color: rgb(166, 184, 204);
+    -unity-text-align: middle-right;
+}
+
+.op-lb-row__score {
+    width: 84px;
+    font-size: 13px;
+    color: rgb(217, 224, 242);
+    -unity-text-align: middle-right;
+}
+
+/* 自己的署名行（存档 Callsign 匹配时代码加此类） */
+.op-lb-row--self { background-color: rgba(255, 158, 64, 0.14); }
+.op-lb-row--self .op-lb-row__name { color: rgb(255, 158, 64); }
+
+/* 底部操作行：刷新 / 关闭并排 */
+.op-lb-actions {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.op-btn--half { min-width: 0; width: 48%; }
+
+/* 结算页的全服名次行（有名次才显示，颜色随"上榜"语气走主题橙） */
+.op-rank { color: rgb(255, 158, 64); }

@@ -1,9 +1,11 @@
+using Cysharp.Threading.Tasks;
 using Game.Framework.Common;
 using Game.Framework.Localization;
 using Game.Framework.UI;
 using Game.Framework.UI.Toolkit;
 using Game.Outpost.Commands;
 using Game.Outpost.Flow;
+using Game.Outpost.Net;
 using Game.Outpost.Save;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -27,15 +29,23 @@ namespace Game.Outpost.Windows
         private Label _verdict;
         private Label _detail;
         private Label _record;
+        private Label _rank;
 
         protected override void OnCreated()
         {
             _verdict = Root.Q<Label>("verdict");
             _detail = Root.Q<Label>("detail");
             _record = Root.Q<Label>("record");
+            _rank = Root.Q<Label>("rank");
             Bag.BindLocalizedText(Root.Q<Label>("title"), "result/title");
             Bag.BindLocalizedText(Root.Q<Button>("back"), "result/back");
             Bag.SubscribeClick(Root.Q<Button>("back"), () => this.ExecuteCommand(new GoToTitleCommand()));
+
+            // 全服排行入口（M4）：仅 dev 环境有对端；本局名次行由 OnOpen 按上传结果显隐。
+            var leaderboard = Root.Q<Button>("leaderboard");
+            leaderboard.style.display = OutpostNet.Available ? DisplayStyle.Flex : DisplayStyle.None;
+            Bag.BindLocalizedText(leaderboard, "lb/title");
+            Bag.SubscribeClick(leaderboard, () => this.GetUtility<IUIUtility>().Open<LeaderboardWindow>().Forget());
         }
 
         protected override void OnOpen(object args)
@@ -55,6 +65,11 @@ namespace Game.Outpost.Windows
                 ? loc.Get("record/new-best", rec.BestScore.CurrentValue)
                 : loc.Get("record/summary", rec.BestScore.CurrentValue, rec.BestWave.CurrentValue, rec.Runs.CurrentValue);
             _record.style.color = a.NewBest ? NewBestColor : RecordColor;
+
+            // 全服名次行：ResultState 上传成功才有值（0 = 无网络 / 失败 / 正式包，整行藏掉不留空占位）。
+            _rank.style.display = a.ServerRank > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            if (a.ServerRank > 0)
+                _rank.text = loc.Get("result/rank", a.ServerRank);
         }
     }
 }

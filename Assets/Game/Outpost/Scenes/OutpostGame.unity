@@ -552,6 +552,7 @@ GameObject:
   - component: {fileID: 1935668870}
   - component: {fileID: 1935668871}
   - component: {fileID: 1935668872}
+  - component: {fileID: 1935668873}
   m_Layer: 0
   m_Name: Systems
   m_TagString: Untagged
@@ -610,6 +611,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27770e4fd8ae57b4580b2b20f6485231, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Systems.OutpostAudioSystem
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: _targetContext
+      Entry: 6
+      Data: 
+--- !u!114 &1935668873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1935668869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c470f2b341f7d9a4fb0b80b8e54f900c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Systems.OutpostNetSystem
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 

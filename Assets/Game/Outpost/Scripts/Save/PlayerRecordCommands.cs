@@ -17,10 +17,19 @@ namespace Game.Outpost.Save
     {
         public async UniTask ExecuteAsync(ICommandContext ctx, CancellationToken cancellationToken)
         {
+            var model = ctx.GetModel<PlayerRecordModel>();
             try
             {
                 var record = await ctx.GetUtility<IStorageUtility>().Load<OutpostRecord>(StorageKeys.Record, cancellationToken);
-                if (record != null) ctx.GetModel<PlayerRecordModel>().LoadFrom(record);
+                if (record != null) model.LoadFrom(record);
+
+                // 排行榜署名首次启动生成一次后随档持久（新档 / 旧档缺字段都在这里补齐）——
+                // 上传成绩要有稳定身份，dev server 按署名"每玩家一条最好成绩"合并。
+                if (string.IsNullOrEmpty(model.Callsign.Value))
+                {
+                    model.Callsign.Value = $"OP-{UnityEngine.Random.Range(0, 0x10000):X4}";
+                    await ctx.GetUtility<IStorageUtility>().Save(StorageKeys.Record, model.ToRecord(), cancellationToken);
+                }
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -71,12 +80,14 @@ namespace Game.Outpost.Save
         public readonly ReadOnlyReactiveProperty<int> BestScore;
         public readonly ReadOnlyReactiveProperty<int> BestWave;
         public readonly ReadOnlyReactiveProperty<int> Runs;
+        public readonly ReadOnlyReactiveProperty<string> Callsign;
 
         public PlayerRecordReadModel(PlayerRecordModel m)
         {
             BestScore = m.BestScore;
             BestWave = m.BestWave;
             Runs = m.Runs;
+            Callsign = m.Callsign;
         }
     }
 }

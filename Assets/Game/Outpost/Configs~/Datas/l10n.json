@@ -16,6 +16,15 @@
 
     { "key": "common/close", "zhCn": "关闭", "en": "Close" },
 
+    { "key": "result/rank", "zhCn": "全服排名 第 {0} 名", "en": "Global rank #{0}" },
+    { "key": "lb/title", "zhCn": "全服排行", "en": "Leaderboard" },
+    { "key": "lb/refresh", "zhCn": "刷新", "en": "Refresh" },
+    { "key": "lb/loading", "zhCn": "读取中…", "en": "Loading…" },
+    { "key": "lb/error", "zhCn": "读取失败 —— 点击刷新重试", "en": "Failed to load — hit Refresh to retry" },
+    { "key": "lb/empty", "zhCn": "榜上还没有人 —— 打一局试试", "en": "Nobody on the board yet — play a run" },
+    { "key": "lb/wave", "zhCn": "第 {0} 波", "en": "wave {0}" },
+    { "key": "net/new-record-toast", "zhCn": "全服新纪录！{0} 打出 {1} 分", "en": "New global record! {0} scored {1}" },
+
     { "key": "settings/title", "zhCn": "设置", "en": "Settings" },
     { "key": "settings/master", "zhCn": "主音量", "en": "Master Volume" },
     { "key": "settings/music", "zhCn": "音乐", "en": "Music" },

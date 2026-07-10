@@ -3,8 +3,10 @@ using Game.Framework.Audio;
 using Game.Framework.Context;
 using Game.Framework.Flow;
 using Game.Framework.Localization;
+using Game.Framework.Network;
 using Game.Framework.Storage;
 using Game.Framework.Systems;
+using Game.Outpost.Net;
 using Game.Outpost.Save;
 using OutpostCfg;
 
@@ -47,6 +49,20 @@ namespace Game.Outpost
                     initialLocale: OutpostLocales.FromSystem(),
                     fallbackLocale: OutpostLocales.ChineseSimplified),
                 typeof(ILocalizationUtility));
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // M4 网络排行（仅 dev 环境）：进程内 dev server 起在最前（构造即监听、随本 Context Dispose 停），
+            // HTTP / WS 客户端栈全程 Protobuf（同一契约两侧各建一份序列化器）。HTTP 无状态挂根全局共享；
+            // WS 单条长连接也挂根——新纪录广播要跨阶段可见（连接维持在 OutpostNetSystem）。§32 / ADR-0028。
+            var devServer = new OutpostDevServer();
+            builder.RegisterOwned(devServer, typeof(OutpostDevServer));
+            builder.RegisterOwned(
+                new HttpUtility(devServer.HttpBaseUrl, serializer: OutpostNet.CreateSerializer()),
+                typeof(IHttpUtility));
+            builder.RegisterOwned(
+                new WebSocketUtility(serializer: OutpostNet.CreateSerializer()),
+                typeof(IWebSocketUtility));
+#endif
         }
     }
 }

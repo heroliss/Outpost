@@ -24,7 +24,7 @@ namespace Game.Outpost.Flow
     }
 
     /// <summary>
-    /// 结算页的打开参数：本局结果 + 是否刷新了历史最高分。
+    /// 结算页的打开参数：本局结果 + 是否刷新了历史最高分 + 全服名次。
     /// <see cref="NewBest"/> 由 <c>SubmitRunResultCommand</c> 在把成绩并入存档时算出（结算页无从自行判断"这一局是否创纪录"，
     /// 故随结果一起传入），结算页据此显示"新纪录"。
     /// </summary>
@@ -33,10 +33,14 @@ namespace Game.Outpost.Flow
         public readonly BattleResult Result;
         public readonly bool NewBest;
 
-        public ResultArgs(BattleResult result, bool newBest)
+        /// <summary>上传排行榜后的全服名次（1 起）；0 = 没有名次可展示（无网络环境 / 上传失败），结算页藏名次行。</summary>
+        public readonly int ServerRank;
+
+        public ResultArgs(BattleResult result, bool newBest, int serverRank = 0)
         {
             Result = result;
             NewBest = newBest;
+            ServerRank = serverRank;
         }
     }
 }

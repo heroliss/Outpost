@@ -18,12 +18,16 @@ namespace Game.Outpost.Save
         public readonly RP<int> BestWave = new(0);
         public readonly RP<int> Runs = new(0);
 
+        /// <summary>排行榜署名（随存档持久；空 = 尚未生成，<c>LoadPlayerRecordCommand</c> 启动时补齐）。</summary>
+        public readonly RP<string> Callsign = new("");
+
         /// <summary>从存档整体灌入（启动载入用；无存档时不调，保持零值即新玩家）。</summary>
         public void LoadFrom(OutpostRecord r)
         {
             BestScore.Value = r.BestScore;
             BestWave.Value = r.BestWave;
             Runs.Value = r.Runs;
+            Callsign.Value = r.Callsign ?? "";
         }
 
         /// <summary>把当前状态导出成存档对象（回写落盘用）。</summary>
@@ -32,6 +36,7 @@ namespace Game.Outpost.Save
             BestScore = BestScore.Value,
             BestWave = BestWave.Value,
             Runs = Runs.Value,
+            Callsign = Callsign.Value,
         };
 
         /// <summary>

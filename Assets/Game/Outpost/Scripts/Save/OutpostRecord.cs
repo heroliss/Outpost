@@ -24,6 +24,9 @@ namespace Game.Outpost.Save
 
         /// <summary>累计对局数（无限模式每局都以失守收场，此值即"打过多少局"）。</summary>
         public int Runs;
+
+        /// <summary>排行榜署名（首次启动自动生成，如 <c>OP-3F7A</c>）。空 = 旧档 / 新档尚未生成，启动载入时补。</summary>
+        public string Callsign = "";
     }
 
     /// <summary>
