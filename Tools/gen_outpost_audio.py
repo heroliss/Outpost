@@ -227,6 +227,21 @@ def make_retreat():
     write_wav("sfx_retreat", out)
 
 
+def make_shot():
+    # 单发炮声（低射速段的主角层）：低频 thump 下扫 + 短噪声 crack，短促有"拳头感"。
+    # 高射速段由 sfx_fire_loop 接棒（人耳 >15Hz 重复事件听成连续音，逐发触发无意义）——
+    # 播放侧限流与两层交叉见 BattleDirectorSystem.TryPlayShotSfx / TurretView.SetFireLoopLevel。
+    buf = noise_burst(0.09, gain=0.35, lp=0.3, decay_pow=2.6)  # 高频 crack（炮口爆膛感）
+    thump = []
+    n = int(RATE * 0.11)
+    for i in range(n):
+        t = i / RATE
+        f = 180 * (1 - t / 0.11) + 70  # 中低频快速下扫（结实的"咚"）
+        thump.append(0.55 * (1 - i / n) ** 1.8 * math.sin(2 * math.pi * f * t))
+    mix_into(buf, thump, 0.0)
+    write_wav("sfx_shot", buf)
+
+
 def make_fire_loop():
     # 火墙循环底噪：55Hz 基频 buzz + 幅度抖动，1s 整周期构造保证无缝循环。
     # 运行时由 TurretView 挂 AudioSource 播放，volume/pitch 随火力热度逐帧调制。
@@ -257,4 +272,5 @@ make_detonate()
 make_repair()
 make_defeat()
 make_retreat()
+make_shot()
 make_fire_loop()

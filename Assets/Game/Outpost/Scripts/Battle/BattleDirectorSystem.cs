@@ -133,7 +133,15 @@ namespace Game.Outpost.Battle
         private AudioClip _sfxUpgrade;
         private AudioClip _sfxDefeat;
         private AudioClip _sfxRetreat;
+        private AudioClip _sfxShot;
         private bool _boomSfxThisFrame;
+
+        // 开火音分层（射速跨三个数量级 2→250 发/秒的表达方案）：
+        //   低射速 = 逐发单响 sfx_shot（听得清每一炮）；高射速 = 火墙循环轰鸣（TurretView 的 AudioSource 层）。
+        //   人耳对 >~15Hz 的重复事件听成连续音——单发层设最小重触发间隔（超过就丢发不丢听感），
+        //   并随热度让位（音量渐弱、热度近满时归零），循环层则随热度平方淡入，两层在中段交叉过渡。
+        private const float ShotSfxMinInterval = 0.08f;  // 单发层重触发下限（≈12 发/秒以上开始合并）
+        private float _lastShotSfxTime = -1f;
 
         // 表现色板（敌人本体色来自配置表的表现列，这里只留玩家侧 / 弹道的固定色）。
         private static readonly Color PlayerHitColor = new(1f, 0.30f, 0.24f);
@@ -205,6 +213,7 @@ namespace Game.Outpost.Battle
             _sfxUpgrade = await Bag.Load<AudioClip>("sfx_upgrade");
             _sfxDefeat = await Bag.Load<AudioClip>("sfx_defeat");
             _sfxRetreat = await Bag.Load<AudioClip>("sfx_retreat");
+            _sfxShot = await Bag.Load<AudioClip>("sfx_shot");
             _turret.InitFireLoop(await Bag.Load<AudioClip>("sfx_fire_loop"));
             var setup = BattleSetupFactory.Build(_cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
@@ -393,9 +402,22 @@ namespace Game.Outpost.Battle
             if (_lastFireTime >= 0f) _fireInterval = now - _lastFireTime;
             _lastFireTime = now;
 
+            TryPlayShotSfx(now); // 单发层不占视觉 FX 预算（有自己的重触发限流），空放同样响——弹药真打出去了
+
             if (_hitFxBudget <= 0) return;
             _hitFxBudget--;
             FireBurst(ToWorld(e.Aim), e.Hit);
+        }
+
+        // 开火音单发层：低射速逐发清脆单响，射速升高后（热度上来）音量渐让位给循环轰鸣、热度近满时归零。
+        // 最小重触发间隔丢掉超密击发——12 发/秒以上人耳已听成连串，丢发不丢听感、也不打爆 voice。
+        private void TryPlayShotSfx(float now)
+        {
+            if (_lastShotSfxTime >= 0f && now - _lastShotSfxTime < ShotSfxMinInterval) return;
+            float volume = 0.5f * Mathf.Clamp01(1f - _fireHeat * 1.15f); // 热度 ≈0.87 起完全交给循环层
+            if (volume <= 0.01f) return;
+            _lastShotSfxTime = now;
+            _audio.PlaySfx(_sfxShot, volume: volume, pitch: Random.Range(0.94f, 1.08f));
         }
 
         // 表现层自算「火力热度」(0..1)：从 TurretFired 击发节奏推断当前射速——密集(火墙)→热度趋 1、稀疏(点射)→趋 0、停火→归零。

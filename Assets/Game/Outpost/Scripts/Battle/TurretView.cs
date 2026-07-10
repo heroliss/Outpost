@@ -114,13 +114,16 @@ namespace Game.Outpost.Battle
 
         /// <summary>
         /// 逐帧调制火墙底噪：热度（0..1，导演按击发节奏自算）驱动音量与音高——点射几乎无声、火墙轰鸣。
+        /// 音量走热度<b>平方</b>：低射速段循环层收敛（此时逐发单响 sfx_shot 是主角），高射速段轰鸣全量——
+        /// 与单发层的"随热度让位"互补，两层在中段交叉过渡（分层设计见 BattleDirectorSystem 的开火音注释）。
         /// <paramref name="volumeScale"/> 是外部音量系数（主音量 × 音效组）：挂在对象上的组件音源不归框架
         /// 分组音量管，由业务一行乘法把它接回设置页滑条。
         /// </summary>
         public void SetFireLoopLevel(float heat, float volumeScale)
         {
             if (_fireLoop == null) return;
-            float v = Mathf.Clamp01(heat) * 0.55f * Mathf.Clamp01(volumeScale);
+            heat = Mathf.Clamp01(heat);
+            float v = heat * heat * 0.55f * Mathf.Clamp01(volumeScale);
             if (v <= 0.005f)
             {
                 if (_fireLoop.isPlaying) _fireLoop.Pause(); // Pause 而非 Stop：热度回升时从相位中段续播，无重启爆点
