@@ -179,28 +179,43 @@ def make_wave():
 
 
 def make_explosion():
-    # 拦截击毁：闷噪声爆发 + 低频 thump。
-    buf = noise_burst(0.3, gain=0.55, lp=0.12, decay_pow=2.2)
-    thump = []
-    n = int(RATE * 0.18)
+    # 拦截击毁：闷噪声爆发 + 低频 thump + 55Hz 低鸣余韵。
+    # 打击/爆炸类一律指数衰减长尾（见 make_shot 的"截断感"说明）；下扫用相位累积（变频直接乘 t 会出啁啾伪音）。
+    seconds = 0.6
+    n = int(RATE * seconds)
+    buf = [0.0] * n
+    acc = 0.0
+    ph = ph2 = 0.0
     for i in range(n):
         t = i / RATE
-        f = 150 * (1 - t / 0.18) + 45  # 低频快速下扫
-        thump.append(0.5 * (1 - i / n) ** 1.5 * math.sin(2 * math.pi * f * t))
-    mix_into(buf, thump, 0.0)
+        edge = (1.0 - i / n) ** 0.5  # 收尾归零（指数衰减本身不到零，避免残余台阶）
+        acc += 0.12 * (random.uniform(-1, 1) - acc)
+        buf[i] += 0.55 * acc * math.exp(-t * 9) * edge
+        f = 45 + 105 * math.exp(-t * 14)  # 150→45Hz 低频下扫
+        ph += 2 * math.pi * f / RATE
+        buf[i] += 0.5 * math.exp(-t * 9) * edge * math.sin(ph)
+        ph2 += 2 * math.pi * 55 / RATE    # 低鸣余韵：衰减最慢的分量殿后
+        buf[i] += 0.10 * math.exp(-t * 5) * edge * math.sin(ph2)
     write_wav("sfx_explosion", buf)
 
 
 def make_detonate():
-    # 漏怪自爆炸基地（受创聚合窗口到期播）：更重的 boom，低扫更深、噪声更闷更长。
-    buf = noise_burst(0.55, gain=0.6, lp=0.07, decay_pow=1.8)
-    thump = []
-    n = int(RATE * 0.4)
+    # 漏怪自爆炸基地（受创聚合窗口到期播）：更重的 boom——低扫更深、噪声更闷、余韵更长（同上指数长尾）。
+    seconds = 0.9
+    n = int(RATE * seconds)
+    buf = [0.0] * n
+    acc = 0.0
+    ph = ph2 = 0.0
     for i in range(n):
         t = i / RATE
-        f = 120 * (1 - t / 0.4) + 32
-        thump.append(0.62 * (1 - i / n) ** 1.3 * math.sin(2 * math.pi * f * t))
-    mix_into(buf, thump, 0.0)
+        edge = (1.0 - i / n) ** 0.5
+        acc += 0.07 * (random.uniform(-1, 1) - acc)
+        buf[i] += 0.6 * acc * math.exp(-t * 6) * edge
+        f = 32 + 88 * math.exp(-t * 10)   # 120→32Hz 深下扫
+        ph += 2 * math.pi * f / RATE
+        buf[i] += 0.6 * math.exp(-t * 6.5) * edge * math.sin(ph)
+        ph2 += 2 * math.pi * 40 / RATE    # 40Hz 震腔余韵
+        buf[i] += 0.14 * math.exp(-t * 3.5) * edge * math.sin(ph2)
     write_wav("sfx_detonate", buf)
 
 
@@ -228,18 +243,52 @@ def make_retreat():
 
 
 def make_shot():
-    # 单发炮声（低射速段的主角层）：低频 thump 下扫 + 短噪声 crack，短促有"拳头感"。
+    # 单发炮声（低射速段的主角层）：短噪声 crack + 低频 thump 下扫，短促有"拳头感"。
     # 高射速段由 sfx_fire_loop 接棒（人耳 >15Hz 重复事件听成连续音，逐发触发无意义）——
     # 播放侧限流与两层交叉见 BattleDirectorSystem.TryPlayShotSfx / TurretView.SetFireLoopLevel。
-    buf = noise_burst(0.09, gain=0.35, lp=0.3, decay_pow=2.6)  # 高频 crack（炮口爆膛感）
-    thump = []
-    n = int(RATE * 0.11)
+    # 包络用指数衰减 + 拉长余韵：多项式 (1-t)^p 带斜率撞零、总长又短，人耳读成"被掐断"
+    # （2026-07-10 用户反馈"像被截断"后重做）；指数衰减才是打击类声音的自然余韵。
+    seconds = 0.26
+    n = int(RATE * seconds)
+    buf = [0.0] * n
+    acc = 0.0
+    ph = 0.0
     for i in range(n):
         t = i / RATE
-        f = 180 * (1 - t / 0.11) + 70  # 中低频快速下扫（结实的"咚"）
-        thump.append(0.55 * (1 - i / n) ** 1.8 * math.sin(2 * math.pi * f * t))
-    mix_into(buf, thump, 0.0)
+        edge = (1.0 - i / n) ** 0.5
+        acc += 0.3 * (random.uniform(-1, 1) - acc)
+        buf[i] += 0.35 * acc * math.exp(-t * 55) * edge  # 高频 crack（炮口爆膛感，衰减最快）
+        f = 70 + 110 * math.exp(-t * 18)  # 180→70Hz 中低频下扫（结实的"咚"，主体余韵）
+        ph += 2 * math.pi * f / RATE
+        buf[i] += 0.55 * math.exp(-t * 16) * edge * math.sin(ph)
     write_wav("sfx_shot", buf)
+
+
+def make_impact():
+    # 击中未击毁（弹着"叮"）：非谐波双高频短鸣 + 一点高频 crack——金属质感，与击毁 boom（低频轰）明确分开。
+    # 播放侧延迟到曳光弹着帧、并有最小重触发限流——见 BattleDirectorSystem 的弹着音注释。
+    buf = noise_burst(0.05, gain=0.22, lp=0.55, decay_pow=3.0)
+    mix_into(buf, tone(1750, 0.07, gain=0.16, attack=0.001, release=0.055, shape="triangle"), 0.0)
+    mix_into(buf, tone(2640, 0.05, gain=0.09, attack=0.001, release=0.04), 0.0)
+    write_wav("sfx_impact", buf)
+
+
+def make_servo_loop():
+    # 炮塔回转伺服循环：中频电机 hum（基波+两阶谐波）+ 13Hz 齿轮纹波幅度调制，全部整周期 → 1s 无缝循环。
+    # 运行时由 TurretView 挂第二个 AudioSource，volume/pitch 随回转角速度逐帧调制（追踪微调无声、大摆头出声）。
+    seconds = 1.0
+    n = int(RATE * seconds)
+    out = []
+    acc = 0.0
+    for i in range(n):
+        t = i / RATE
+        v = (math.sin(2 * math.pi * 96 * t)
+             + 0.5 * math.sin(2 * math.pi * 192 * t)
+             + 0.22 * math.sin(2 * math.pi * 384 * t))
+        ripple = 0.7 + 0.3 * math.sin(2 * math.pi * 13 * t)
+        acc += 0.35 * (random.uniform(-1, 1) - acc)  # 截止偏高的低通噪声=电刷沙沙（音量压低、听不出循环接缝）
+        out.append(0.16 * ripple * v + 0.03 * acc)
+    write_wav("sfx_servo_loop", out)
 
 
 def make_fire_loop():
@@ -274,3 +323,5 @@ make_defeat()
 make_retreat()
 make_shot()
 make_fire_loop()
+make_impact()      # 新音色只往末尾追加——共享 RNG 顺序消耗，插在中间会改变其后所有既有产物
+make_servo_loop()

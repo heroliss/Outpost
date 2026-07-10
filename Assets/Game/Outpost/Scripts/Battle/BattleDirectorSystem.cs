@@ -124,7 +124,7 @@ namespace Game.Outpost.Battle
         private float _damageFlushTimer;
 
         // 战斗音效（clip 经资源系统在 SetupAsync 加载；播放走框架音效池 PlaySfx，随手丢弃返回值）。
-        // 爆炸类每帧限 1 发（千级击杀下逐发播只会糊成噪声墙、耗尽 voice）；受创重音天然由伤害聚合窗口节流。
+        // 爆炸类按时间限流（千级击杀下逐发播只会糊成噪声墙、耗尽 voice）；受创重音天然由伤害聚合窗口节流。
         [Inject] private IAudioUtility _audio;
         private AudioClip _sfxExplosion;
         private AudioClip _sfxDetonate;
@@ -134,7 +134,26 @@ namespace Game.Outpost.Battle
         private AudioClip _sfxDefeat;
         private AudioClip _sfxRetreat;
         private AudioClip _sfxShot;
-        private bool _boomSfxThisFrame;
+        private AudioClip _sfxImpact;
+
+        // 爆炸音限流按时间、不按帧："每帧 1 发"在编辑器高帧率（100~300fps）下就是每秒上百发，
+        // 0.6s 的爆炸尾巴叠出几十个并发 voice、冲破 Unity 32 实声道上限——超出的被引擎虚化（静音），
+        // 最安静的单发炮响 / 弹着叮播到一半被掐（2026-07-10 用户反馈"音效像被截断"的真凶）。
+        // ~12 发/秒 × 0.6s 尾巴 ≈ 峰值 8 个并发爆炸 voice，全场加总远离虚化线。
+        private const float BoomSfxMinInterval = 0.08f;
+        private float _lastBoomSfxTime = -1f;
+
+        // 弹着对拍：内核是 hitscan（伤害在击发帧已结算），但曳光按定速飞行、弹着晚于炮响可感知（0.07~0.15s）。
+        // 命中 / 击毁音效按「炮口到弹着点距离 ÷ 曳光速度」延迟到弹着帧再响——先炮响后弹着，因果链才成立。
+        // 视觉爆点仍同帧播放（消隐 / 残骸由 sim 状态直接驱动、无从延迟；音频先行会穿帮，滞后 0.1s 在容差内），
+        // 音频是对拍收益最大、代价最小的一侧。
+        private const float TracerFlightSpeed = 55f; // 与 Tracer.prefab 的 _speed 一致（改 prefab 记得同步）
+        private struct PendingSfx { public float Due; public AudioClip Clip; public float Volume; public float Pitch; }
+        private readonly List<PendingSfx> _pendingSfx = new();
+
+        // 弹着「叮」（击中未击毁）的重触发限流：高射速下弹着逐帧都有，限到 ~14 发/秒当质感纹理、不当逐发汇报。
+        private const float ImpactSfxMinInterval = 0.07f;
+        private float _lastImpactSfxTime = -1f;
 
         // 开火音分层（射速跨三个数量级 2→250 发/秒的表达方案）：
         //   低射速 = 逐发单响 sfx_shot（听得清每一炮）；高射速 = 火墙循环轰鸣（TurretView 的 AudioSource 层）。
@@ -214,7 +233,9 @@ namespace Game.Outpost.Battle
             _sfxDefeat = await Bag.Load<AudioClip>("sfx_defeat");
             _sfxRetreat = await Bag.Load<AudioClip>("sfx_retreat");
             _sfxShot = await Bag.Load<AudioClip>("sfx_shot");
+            _sfxImpact = await Bag.Load<AudioClip>("sfx_impact");
             _turret.InitFireLoop(await Bag.Load<AudioClip>("sfx_fire_loop"));
+            _turret.InitServoLoop(await Bag.Load<AudioClip>("sfx_servo_loop"));
             var setup = BattleSetupFactory.Build(_cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
             _sim = CreateSim();
@@ -316,7 +337,7 @@ namespace Game.Outpost.Battle
             _hitFxBudget = HitFxPerFrame;   // 每帧刷新演出预算（超出即降级，见各 On* 事件）
             _killFxBudget = KillFxPerFrame;
             _spawnFxBudget = SpawnFxPerFrame;
-            _boomSfxThisFrame = false;      // 爆炸音每帧限 1 发（数值仍逐发结算，只是不逐发出声）
+            FlushPendingSfx();              // 到点的弹着音出声（终局定格期间也要放完已在途的弹着）
             AdvanceEffects();
             UpdateFireHeat(dt); // 表现层火力热度：驱动炮塔辉光（与 sim 解耦、纯 cosmetic，停火即冷却）
             if (!_ready || _sim == null) return;
@@ -437,15 +458,55 @@ namespace Game.Outpost.Battle
             _turret.SetFireLoopLevel(_fireHeat, _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx));
         }
 
-        // 爆炸类音效（拦截击毁 / 抵达自爆共用）：每帧限 1 发 + 随机音高防"机关枪同音"；体量大的原型更低沉更响。
-        private void PlayBoomSfx(int archetypeId)
+        // 爆炸类音效（拦截击毁 / 抵达自爆共用）：按时间限流（见 BoomSfxMinInterval）+ 随机音高防"机关枪同音"；
+        // 体量大的原型更低沉更响。拦截击毁传弹着延迟（FlightDelay）对拍曳光；抵达自爆发生在敌人自己身上、
+        // 无弹道，delay=0 原地即响。
+        private void PlayBoomSfx(int archetypeId, float delay = 0f)
         {
-            if (_boomSfxThisFrame) return;
-            _boomSfxThisFrame = true;
+            float now = Time.time;
+            if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < BoomSfxMinInterval) return;
+            _lastBoomSfxTime = now;
             float scale = EnemyVisuals.Get(_visuals, archetypeId).ExplosionScale;
             float pitch = Random.Range(0.92f, 1.12f) * (scale >= 0.8f ? 0.85f : 1.05f);
-            _audio.PlaySfx(_sfxExplosion, volume: Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f), pitch: pitch);
+            ScheduleSfx(_sfxExplosion, Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f), pitch, delay);
         }
+
+        // 弹着「叮」（击中未击毁）：与击毁 boom 分开的轻量金属短鸣，同样延迟到曳光弹着帧。
+        // 音量恒定偏轻——它是"弹药落在装甲上"的质感层，不是逐发战果汇报；限流见 ImpactSfxMinInterval。
+        private void TryPlayImpactSfx(float delay)
+        {
+            float now = Time.time;
+            if (_lastImpactSfxTime >= 0f && now - _lastImpactSfxTime < ImpactSfxMinInterval) return;
+            _lastImpactSfxTime = now;
+            ScheduleSfx(_sfxImpact, 0.22f, Random.Range(0.9f, 1.15f), delay);
+        }
+
+        // 延迟极短（≤ 一帧上下）直接播，免得进队列白等一帧；其余进待播队列由 FlushPendingSfx 到点出声。
+        private void ScheduleSfx(AudioClip clip, float volume, float pitch, float delay)
+        {
+            if (delay <= 0.02f)
+            {
+                _audio.PlaySfx(clip, volume: volume, pitch: pitch);
+                return;
+            }
+            _pendingSfx.Add(new PendingSfx { Due = Time.time + delay, Clip = clip, Volume = volume, Pitch = pitch });
+        }
+
+        private void FlushPendingSfx()
+        {
+            float now = Time.time;
+            for (int i = _pendingSfx.Count - 1; i >= 0; i--)
+            {
+                if (now < _pendingSfx[i].Due) continue;
+                var p = _pendingSfx[i];
+                _pendingSfx.RemoveAt(i);
+                _audio.PlaySfx(p.Clip, volume: p.Volume, pitch: p.Pitch);
+            }
+        }
+
+        // 弹着延迟 = 炮口到弹着点的曳光飞行时间（与 ProjectileTracer 的定速直飞一致）。
+        private float FlightDelay(System.Numerics.Vector2 hitPos)
+            => Vector3.Distance(_turret.MuzzleWorldPos, ToWorld(hitPos)) / TracerFlightSpeed;
 
         private void OnEnemyHit(EnemyHitEvent e)
         {
@@ -461,11 +522,12 @@ namespace Game.Outpost.Battle
                     _killFxBudget--;
                     SpawnKillExplosion(ToWorld(e.Position), e.ArchetypeId);
                 }
-                PlayBoomSfx(e.ArchetypeId);
+                PlayBoomSfx(e.ArchetypeId, FlightDelay(e.Position));
             }
             else
             {
                 _swarm.OnFlash(e.EnemyId);
+                TryPlayImpactSfx(FlightDelay(e.Position));
             }
         }
 

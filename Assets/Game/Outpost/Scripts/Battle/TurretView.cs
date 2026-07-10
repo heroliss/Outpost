@@ -37,6 +37,10 @@ namespace Game.Outpost.Battle
         private Material _coreMat; // 运行时创建，OnDestroy 释放
         private Material _baseMat; // 六边形工事底座的专属 Unlit 材质（运行时创建，OnDestroy 释放）
         private AudioSource _fireLoop; // 火墙循环底噪（运行时挂的引擎组件，见 InitFireLoop）
+        private AudioSource _servoLoop; // 回转伺服电机循环（运行时挂的引擎组件，见 InitServoLoop）
+        private float _sfxVolumeScale;  // 外部音量系数（主 × 音效组），SetFireLoopLevel 每帧顺带缓存——伺服层共用
+        private float _lastPivotAngle;  // 上帧炮管角度（度）——伺服音从实际角度变化自测回转速度
+        private float _servoSpeed;      // 平滑后的回转角速度（度/秒）
 
         /// <summary>曳光发射起点（炮口当前世界坐标）。</summary>
         public Vector3 MuzzleWorldPos => _muzzle.position;
@@ -44,6 +48,7 @@ namespace Game.Outpost.Battle
         private void Awake()
         {
             _barrelBaseX = _barrelMesh.localPosition.x;
+            _lastPivotAngle = _pivot.localEulerAngles.z;
             BuildEmplacement();
         }
 
@@ -104,12 +109,29 @@ namespace Game.Outpost.Battle
         /// </summary>
         public void InitFireLoop(AudioClip clip)
         {
-            _fireLoop = gameObject.AddComponent<AudioSource>();
-            _fireLoop.clip = clip;
-            _fireLoop.loop = true;
-            _fireLoop.playOnAwake = false;
-            _fireLoop.spatialBlend = 0f; // 屏幕中央的主角音源，直接 2D
-            _fireLoop.volume = 0f;
+            _fireLoop = CreateLoopSource(clip);
+        }
+
+        /// <summary>
+        /// 初始化回转伺服电机循环（clip 由导演经资源系统加载后传入）。与火墙同为跟随炮塔的持续音源、
+        /// 同走引擎组件路径（见 <see cref="InitFireLoop"/>）；音量 / 音高由本组件在 Update 里按
+        /// 实测回转角速度自驱（<see cref="UpdateServoLoop"/>），导演无需逐帧喂值。
+        /// </summary>
+        public void InitServoLoop(AudioClip clip)
+        {
+            _servoLoop = CreateLoopSource(clip);
+        }
+
+        // 循环音源的公共装配：运行时挂组件、不改场景资产；屏幕中央的主角音源直接 2D。
+        private AudioSource CreateLoopSource(AudioClip clip)
+        {
+            var src = gameObject.AddComponent<AudioSource>();
+            src.clip = clip;
+            src.loop = true;
+            src.playOnAwake = false;
+            src.spatialBlend = 0f;
+            src.volume = 0f;
+            return src;
         }
 
         /// <summary>
@@ -121,9 +143,10 @@ namespace Game.Outpost.Battle
         /// </summary>
         public void SetFireLoopLevel(float heat, float volumeScale)
         {
+            _sfxVolumeScale = Mathf.Clamp01(volumeScale); // 顺带缓存给伺服层（同一系数，见 UpdateServoLoop）
             if (_fireLoop == null) return;
             heat = Mathf.Clamp01(heat);
-            float v = heat * heat * 0.55f * Mathf.Clamp01(volumeScale);
+            float v = heat * heat * 0.55f * _sfxVolumeScale;
             if (v <= 0.005f)
             {
                 if (_fireLoop.isPlaying) _fireLoop.Pause(); // Pause 而非 Stop：热度回升时从相位中段续播，无重启爆点
@@ -142,6 +165,8 @@ namespace Game.Outpost.Battle
             p.x = _barrelBaseX - _recoil;
             _barrelMesh.localPosition = p;
 
+            UpdateServoLoop(Time.deltaTime);
+
             // 核心呼吸脉动；开火后坐未回落时随之涨大一点，呼应"刚开了一炮"。
             if (_core != null)
             {
@@ -150,6 +175,31 @@ namespace Game.Outpost.Battle
                 float spin = 1f + 0.5f * _spin; // 预热拉满时核心涨大半圈
                 _core.localScale = Vector3.one * (CoreBaseScale * breath * kick * spin);
             }
+        }
+
+        // 回转伺服音：从 pivot 实际角度变化自测角速度并平滑，驱动电机循环的音量 / 音高。
+        // 追踪目标的小幅微调（几度/秒）落在静音阈值下，只有换目标的大摆头（内核回转 140~360 度/秒）
+        // 读成"电机甩转"——伺服音是「炮塔在调头」的听觉信号，不是常驻底噪。
+        private void UpdateServoLoop(float dt)
+        {
+            if (_servoLoop == null || dt <= 0f) return;
+
+            float ang = _pivot.localEulerAngles.z;
+            float inst = Mathf.Abs(Mathf.DeltaAngle(_lastPivotAngle, ang)) / dt;
+            _lastPivotAngle = ang;
+            _servoSpeed = Mathf.Lerp(_servoSpeed, inst, 1f - Mathf.Exp(-10f * dt)); // 指数平滑：起转快、停转留短余韵
+
+            float norm = Mathf.InverseLerp(30f, 320f, _servoSpeed); // 30 度/秒以下静音（追踪微调），320 度/秒拉满
+            float v = norm * 0.30f * _sfxVolumeScale;
+            if (v <= 0.005f)
+            {
+                if (_servoLoop.isPlaying) _servoLoop.Pause(); // 同火墙层：Pause 保相位，再动时从中段续播无重启爆点
+                return;
+            }
+            if (!_servoLoop.isPlaying) _servoLoop.UnPause();
+            if (!_servoLoop.isPlaying) _servoLoop.Play(); // 首次（无暂停快照）UnPause 无效，落到 Play
+            _servoLoop.volume = v;
+            _servoLoop.pitch = 0.8f + 0.6f * norm; // 甩得越快电机音越尖
         }
 
         private void OnDestroy()
