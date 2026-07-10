@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 标题页布局。窗口类 TitleWindow 经 [UIWindow(Asset = "TitleWindow")] 加载本文件，
-     OnCreated 里按 name 查询元素接线（record / start / about）。 -->
+     OnCreated 里按 name 查询元素接线。文案运行时经 BindLocalizedText 绑 key（§21），
+     uxml 里的中文 text 只是设计期预览 / 加载瞬间的占位。 -->
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="Outpost.uss" />
     <ui:VisualElement class="op-page op-page--title">
         <ui:Label text="OUTPOST" class="op-title" enable-rich-text="false" />
-        <ui:Label text="哨站生存 —— 框架垂直切片" class="op-label" enable-rich-text="false" />
+        <ui:Label name="subtitle" text="哨站生存 —— 框架垂直切片" class="op-label" enable-rich-text="false" />
         <ui:Label name="record" text="" class="op-label op-label--dim" enable-rich-text="false" />
         <ui:Button name="start" text="开始游戏" class="op-btn" />
         <ui:Button name="about" text="框架看点" class="op-btn" />
+        <ui:Button name="settings" text="设置" class="op-btn" />
     </ui:VisualElement>
 </ui:UXML>

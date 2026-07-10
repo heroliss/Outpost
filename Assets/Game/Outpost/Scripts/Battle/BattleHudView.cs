@@ -1,5 +1,6 @@
 using Game.Framework.Command;
 using Game.Framework.Common;
+using Game.Framework.Localization;
 using Game.Framework.View;
 using R3;
 using TMPro;
@@ -77,21 +78,24 @@ namespace Game.Outpost.Battle
                 _prevHp = t.hp;
             });
 
-            Bag.Subscribe(rm.Wave, w =>
+            // 文案 × 语言双源：UGUI/TMP 侧没有 BindLocalizedText 语法糖，按 §21 姿势 CombineLatest(数据, Locale)——
+            // 进战斗时语言已定（设置入口只在标题），但绑定姿势保持响应式，语言维度零额外心智。
+            var loc = this.GetUtility<ILocalizationUtility>();
+            Bag.Subscribe(rm.Wave.CombineLatest(loc.Locale, (w, _) => w), w =>
             {
-                _waveText.text = $"波次 {w}";
+                _waveText.text = loc.Get("hud/wave", w);
 
-                // 波次号首次变到某个 ≥1 的值 = 新一波开场，弹横幅（无限模式无"最终波"）。
+                // 波次号首次变到某个 ≥1 的值 = 新一波开场，弹横幅（无限模式无"最终波"；语言重推不满足 w != _bannerWave，不会重弹）。
                 if (w >= 1 && w != _bannerWave)
                 {
                     _bannerWave = w;
                     _bannerElapsed = 0f;
-                    _waveBanner.text = $"第 {w} 波";
+                    _waveBanner.text = loc.Get("hud/banner", w);
                 }
             });
 
-            Bag.Subscribe(rm.Kills, k => _killsText.text = $"击杀 {k}");
-            Bag.Subscribe(rm.Score, s => _scoreText.text = $"得分 {s}");
+            Bag.Subscribe(rm.Kills.CombineLatest(loc.Locale, (k, _) => k), k => _killsText.text = loc.Get("hud/kills", k));
+            Bag.Subscribe(rm.Score.CombineLatest(loc.Locale, (s, _) => s), s => _scoreText.text = loc.Get("hud/score", s));
 
             // 性能行：订阅只缓存值，拼串在 Update 里节流——EnemyCount/SimTickMs 每帧都变，逐次拼串太浪费。
             Bag.Subscribe(rm.Backend, b => _backendName = b);

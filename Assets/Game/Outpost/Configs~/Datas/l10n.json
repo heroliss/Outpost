@@ -1,0 +1,47 @@
+[
+    { "key": "title/subtitle", "zhCn": "哨站生存 —— 框架垂直切片", "en": "Outpost survival — a framework vertical slice" },
+    { "key": "title/start", "zhCn": "开始游戏", "en": "Start" },
+    { "key": "title/about", "zhCn": "框架看点", "en": "Framework Notes" },
+    { "key": "title/settings", "zhCn": "设置", "en": "Settings" },
+
+    { "key": "record/none", "zhCn": "尚无战绩 —— 开始你的第一场防守", "en": "No records yet — start your first defense" },
+    { "key": "record/summary", "zhCn": "历史最佳 {0} 分 · 最远 {1} 波 · 共 {2} 局", "en": "Best {0} pts · wave {1} · {2} runs" },
+    { "key": "record/new-best", "zhCn": "新纪录！历史最佳 {0} 分", "en": "New record! Best score {0}" },
+
+    { "key": "result/title", "zhCn": "结算", "en": "Debrief" },
+    { "key": "result/retreat", "zhCn": "主动撤离 · 第 {0} 波", "en": "Retreated · wave {0}" },
+    { "key": "result/defeat", "zhCn": "哨站失守 · 第 {0} 波", "en": "Outpost lost · wave {0}" },
+    { "key": "result/detail", "zhCn": "击杀 {0}　得分 {1}", "en": "Kills {0}   Score {1}" },
+    { "key": "result/back", "zhCn": "回标题", "en": "Back to Title" },
+
+    { "key": "common/close", "zhCn": "关闭", "en": "Close" },
+
+    { "key": "settings/title", "zhCn": "设置", "en": "Settings" },
+    { "key": "settings/master", "zhCn": "主音量", "en": "Master Volume" },
+    { "key": "settings/music", "zhCn": "音乐", "en": "Music" },
+    { "key": "settings/sfx", "zhCn": "音效", "en": "SFX" },
+    { "key": "settings/language", "zhCn": "语言", "en": "Language" },
+
+    { "key": "hud/wave", "zhCn": "波次 {0}", "en": "Wave {0}" },
+    { "key": "hud/kills", "zhCn": "击杀 {0}", "en": "Kills {0}" },
+    { "key": "hud/score", "zhCn": "得分 {0}", "en": "Score {0}" },
+    { "key": "hud/banner", "zhCn": "第 {0} 波", "en": "WAVE {0}" },
+    { "key": "hud/auto-on", "zhCn": "托管：开", "en": "Auto: ON" },
+    { "key": "hud/auto-off", "zhCn": "托管：关", "en": "Auto: OFF" },
+    { "key": "hud/retreat", "zhCn": "撤离", "en": "Retreat" },
+    { "key": "upgrade/pick", "zhCn": "选择强化", "en": "Choose an Upgrade" },
+    { "key": "upgrade/hint", "zhCn": "点击一项强化，继续下一波", "en": "Pick one upgrade to start the next wave" },
+
+    { "key": "up/attack/name", "zhCn": "强化弹头", "en": "Heavy Warheads" },
+    { "key": "up/attack/desc", "zhCn": "攻击力 +5", "en": "Attack +5" },
+    { "key": "up/attackspeed/name", "zhCn": "速射装置", "en": "Rapid Loader" },
+    { "key": "up/attackspeed/desc", "zhCn": "攻击间隔 ×0.65", "en": "Attack interval ×0.65" },
+    { "key": "up/range/name", "zhCn": "增程雷达", "en": "Long-range Radar" },
+    { "key": "up/range/desc", "zhCn": "索敌半径 +2", "en": "Targeting radius +2" },
+    { "key": "up/maxhp/name", "zhCn": "装甲镀层", "en": "Armor Plating" },
+    { "key": "up/maxhp/desc", "zhCn": "生命上限 +80（并回复 80）", "en": "Max HP +80 (heals 80)" },
+    { "key": "up/regen/name", "zhCn": "纳米修复", "en": "Nano Repair" },
+    { "key": "up/regen/desc", "zhCn": "每秒回血 +2", "en": "Regen +2/s" },
+    { "key": "up/rotation/name", "zhCn": "回转伺服", "en": "Turret Servo" },
+    { "key": "up/rotation/desc", "zhCn": "炮塔回转 +60°/秒", "en": "Rotation +60°/s" }
+]

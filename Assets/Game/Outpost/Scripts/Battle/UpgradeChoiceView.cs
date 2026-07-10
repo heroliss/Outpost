@@ -1,5 +1,6 @@
 using Game.Framework.Command;
 using Game.Framework.Common;
+using Game.Framework.Localization;
 using Game.Framework.UI.UGui;
 using Game.Framework.View;
 using R3;
@@ -25,11 +26,25 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("升级卡片 prefab（根含 Button，子节点 Title / Desc 为 TMP_Text）。")]
         private GameObject _cardPrefab;
 
+        [SerializeField, Tooltip("面板标题（绑本地化 key upgrade/pick）。")]
+        private TMP_Text _panelTitle;
+
+        [SerializeField, Tooltip("面板操作提示（绑本地化 key upgrade/hint）。")]
+        private TMP_Text _panelHint;
+
         protected override void Awake()
         {
             base.Awake(); // 注入 + 绑定 Context，之后即可经 Command 拿只读订阅源
 
             var rm = this.ExecuteCommand(new GetUpgradeChoiceCommand());
+            var loc = this.GetUtility<ILocalizationUtility>();
+
+            // 面板标题 / 操作提示绑 key（进战斗时取当前语言）。
+            Bag.Subscribe(loc.Locale, _ =>
+            {
+                _panelTitle.text = loc.Get("upgrade/pick");
+                _panelHint.text = loc.Get("upgrade/hint");
+            });
 
             // 抉择开关 → 面板显隐（订阅即得当前值；初始 false 时面板隐藏）。
             Bag.Subscribe(rm.IsChoosing, choosing =>
@@ -38,15 +53,19 @@ namespace Game.Outpost.Battle
             });
 
             // 候选集合 → 卡片（增量绑定：换一批候选只增删变化的卡片，不整表重建）。
-            // 工厂第二参是该卡片专属子 bag：卡片离开列表时行内订阅（按钮点击）自动退订。
+            // 工厂第二参是该卡片专属子 bag：行内订阅（按钮点击 / 文案的语言订阅）随卡片离开列表自动退订。
             Bag.BindList(_cardContainer, rm.Choices, (opt, rowBag) =>
             {
                 var go = Instantiate(_cardPrefab);
 
+                // opt.Title / opt.Desc 是本地化 key（配置表存 key）：行内订 Locale 解析成当前语言文案。
                 var title = go.transform.Find("Title");
-                if (title != null) title.GetComponent<TMP_Text>().text = opt.Title;
                 var desc = go.transform.Find("Desc");
-                if (desc != null) desc.GetComponent<TMP_Text>().text = opt.Desc;
+                rowBag.Subscribe(loc.Locale, _ =>
+                {
+                    if (title != null) title.GetComponent<TMP_Text>().text = loc.Get(opt.Title);
+                    if (desc != null) desc.GetComponent<TMP_Text>().text = loc.Get(opt.Desc);
+                });
 
                 var button = go.GetComponent<Button>();
                 if (button != null)

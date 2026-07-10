@@ -36,6 +36,7 @@ namespace Game.Outpost.Battle
         private Transform _core;
         private Material _coreMat; // 运行时创建，OnDestroy 释放
         private Material _baseMat; // 六边形工事底座的专属 Unlit 材质（运行时创建，OnDestroy 释放）
+        private AudioSource _fireLoop; // 火墙循环底噪（运行时挂的引擎组件，见 InitFireLoop）
 
         /// <summary>曳光发射起点（炮口当前世界坐标）。</summary>
         public Vector3 MuzzleWorldPos => _muzzle.position;
@@ -94,6 +95,42 @@ namespace Game.Outpost.Battle
 
         /// <summary>设置炮塔核心亮度（0..1「火力热度」）：越高核心越涨亮、读作"火力拉满"，低时收拢暗淡。由导演按击发节奏自算传入。</summary>
         public void SetSpin(float spin) => _spin = Mathf.Clamp01(spin);
+
+        /// <summary>
+        /// 初始化火墙循环底噪（clip 由导演经资源系统加载后传入）。跟随炮塔的<b>持续音源</b>用引擎
+        /// <see cref="AudioSource"/> 组件而非框架音效池——框架刻意不替代它（§27）：逐帧调制音量 / 音高
+        /// （<see cref="SetFireLoopLevel"/>）正是组件路径的地界，<c>AudioHandle</c> 不提供播放中调制。
+        /// 运行时挂组件、不改场景资产（与工事底座 <see cref="BuildEmplacement"/> 同姿势）。
+        /// </summary>
+        public void InitFireLoop(AudioClip clip)
+        {
+            _fireLoop = gameObject.AddComponent<AudioSource>();
+            _fireLoop.clip = clip;
+            _fireLoop.loop = true;
+            _fireLoop.playOnAwake = false;
+            _fireLoop.spatialBlend = 0f; // 屏幕中央的主角音源，直接 2D
+            _fireLoop.volume = 0f;
+        }
+
+        /// <summary>
+        /// 逐帧调制火墙底噪：热度（0..1，导演按击发节奏自算）驱动音量与音高——点射几乎无声、火墙轰鸣。
+        /// <paramref name="volumeScale"/> 是外部音量系数（主音量 × 音效组）：挂在对象上的组件音源不归框架
+        /// 分组音量管，由业务一行乘法把它接回设置页滑条。
+        /// </summary>
+        public void SetFireLoopLevel(float heat, float volumeScale)
+        {
+            if (_fireLoop == null) return;
+            float v = Mathf.Clamp01(heat) * 0.55f * Mathf.Clamp01(volumeScale);
+            if (v <= 0.005f)
+            {
+                if (_fireLoop.isPlaying) _fireLoop.Pause(); // Pause 而非 Stop：热度回升时从相位中段续播，无重启爆点
+                return;
+            }
+            if (!_fireLoop.isPlaying) _fireLoop.UnPause();
+            if (!_fireLoop.isPlaying) _fireLoop.Play(); // 首次（无暂停快照）UnPause 无效，落到 Play
+            _fireLoop.volume = v;
+            _fireLoop.pitch = 0.85f + 0.45f * heat; // 越热转速越高
+        }
 
         private void Update()
         {

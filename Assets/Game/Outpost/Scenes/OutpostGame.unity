@@ -292,6 +292,78 @@ MonoBehaviour:
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_WorldSpaceCollider: {fileID: 0}
+--- !u!1 &586618846
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 586618847}
+  - component: {fileID: 586618848}
+  m_Layer: 0
+  m_Name: Fonts
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &586618847
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 586618846}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2042817420}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &586618848
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 586618846}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46dff7ad211ab314e936e07232f79205, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Framework.Fonts::Game.Framework.Fonts.MonoLocaleFonts
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: _targetContext
+      Entry: 6
+      Data: 
+  _tmpMainFonts:
+  - {fileID: 11400000, guid: 69637c3a9fd3905468eb01d1bd02df11, type: 2}
+  _toolkitMainFonts: []
+  _locales:
+  - _locale: zh-CN
+    _tmpFonts: []
+    _toolkitFonts: []
+    _osFontNames:
+    - Microsoft YaHei UI
+    - Microsoft YaHei
+  - _locale: en
+    _tmpFonts: []
+    _toolkitFonts: []
+    _osFontNames:
+    - Segoe UI
+    - Arial
 --- !u!1 &717767607
 GameObject:
   m_ObjectHideFlags: 0
@@ -479,6 +551,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1935668870}
   - component: {fileID: 1935668871}
+  - component: {fileID: 1935668872}
   m_Layer: 0
   m_Name: Systems
   m_TagString: Untagged
@@ -513,6 +586,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5054b408949c39e4fbfced2a90c63f34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Systems.OutpostBootSystem
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: _targetContext
+      Entry: 6
+      Data: 
+--- !u!114 &1935668872
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1935668869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27770e4fd8ae57b4580b2b20f6485231, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Systems.OutpostAudioSystem
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -585,6 +682,7 @@ Transform:
   - {fileID: 1935668870}
   - {fileID: 717767608}
   - {fileID: 1207823147}
+  - {fileID: 586618847}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807

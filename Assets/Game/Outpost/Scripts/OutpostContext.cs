@@ -1,8 +1,12 @@
+using Game.Framework;
+using Game.Framework.Audio;
 using Game.Framework.Context;
 using Game.Framework.Flow;
+using Game.Framework.Localization;
 using Game.Framework.Storage;
 using Game.Framework.Systems;
 using Game.Outpost.Save;
+using OutpostCfg;
 
 namespace Game.Outpost
 {
@@ -29,6 +33,20 @@ namespace Game.Outpost
             // StorageUtility 默认走 persistentDataPath/storage + JSON；RegisterOwned 随根 Context 释放 provider（§26 推荐）。
             builder.RegisterOwned(new StorageUtility(), typeof(IStorageUtility));
             builder.RegisterValue(new PlayerRecordModel(), typeof(PlayerRecordModel));
+
+            // 音频：全局播放编排（BGM 单通道 + 池化音效 + 分组音量）。RegisterOwned：随根 Context 销毁全停（§27 推荐）。
+            // 音量初始全 1，启动时 LoadSettingsCommand 从设置存档回灌（持久化归业务，ADR-0022）。
+            builder.RegisterOwned(new AudioUtility(), typeof(IAudioUtility));
+
+            // 本地化：文本源 = 业务 adapter 包自己的 Luban 表（TbL10N）。文本源要吃配置表服务（场景组件 Awake 注册），
+            // 用 RegisterFactory 让容器解决依赖顺序——首次解析（进标题开窗绑定文本）时配置服务早已注册。
+            // 初始语言按系统推断，玩家选过语言则启动时 LoadSettingsCommand 回灌；中文是源语言，作 fallback。
+            builder.RegisterFactory(
+                c => new LocalizationUtility(
+                    new OutpostTextSource((IConfigUtility<Tables>)c.Resolve(typeof(IConfigUtility<Tables>))),
+                    initialLocale: OutpostLocales.FromSystem(),
+                    fallbackLocale: OutpostLocales.ChineseSimplified),
+                typeof(ILocalizationUtility));
         }
     }
 }

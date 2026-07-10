@@ -42,7 +42,7 @@ public sealed partial class Enemy : Luban.BeanBase
     /// </summary>
     public readonly int Id;
     /// <summary>
-    /// 名称（M3 起换本地化 key）
+    /// 标识名（日志 / 调试用；当前无 UI 消费方，暂不走本地化 key）
     /// </summary>
     public readonly string Name;
     /// <summary>

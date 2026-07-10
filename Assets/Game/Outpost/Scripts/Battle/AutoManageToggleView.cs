@@ -1,6 +1,8 @@
 using Game.Framework.Command;
 using Game.Framework.Common;
+using Game.Framework.Localization;
 using Game.Framework.View;
+using R3;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -34,11 +36,12 @@ namespace Game.Outpost.Battle
 
             var rm = this.ExecuteCommand(new GetUpgradeChoiceCommand());
 
-            // 回显：订阅即得当前值，托管状态任意时刻变化都刷新文案与配色。
-            Bag.Subscribe(rm.AutoManaged, on =>
+            // 回显：订阅即得当前值，托管状态任意时刻变化都刷新文案与配色；文案绑本地化 key（状态 × 语言双源，§21）。
+            var loc = this.GetUtility<ILocalizationUtility>();
+            Bag.Subscribe(rm.AutoManaged.CombineLatest(loc.Locale, (on, _) => on), on =>
             {
                 _current = on;
-                if (_label != null) _label.text = on ? "托管：开" : "托管：关";
+                if (_label != null) _label.text = loc.Get(on ? "hud/auto-on" : "hud/auto-off");
                 if (_background != null) _background.color = on ? OnColor : OffColor;
             });
 

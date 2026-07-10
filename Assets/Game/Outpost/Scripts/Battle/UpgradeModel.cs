@@ -7,6 +7,7 @@ namespace Game.Outpost.Battle
     /// <summary>
     /// 波间三选一升级的一个候选项——已从配置表（<c>OutpostCfg.Upgrade</c>）翻译成纯展示数据，是 <c>Bag.BindList</c> 的项类型。
     /// <see cref="Id"/> 回指配置主键，玩家选定后经它取回配置行、映射成 <c>PlayerModifier</c> 应用到模拟。
+    /// <see cref="Title"/> / <see cref="Desc"/> 是<b>本地化 key</b>（配置表存 key 不存死文案），卡片 View 按当前语言解析。
     /// </summary>
     public readonly struct UpgradeOption
     {

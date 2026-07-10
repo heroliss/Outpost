@@ -30,6 +30,10 @@ public partial class Tables
     /// </summary>
     public TbUpgrade TbUpgrade {get; }
     /// <summary>
+    /// 多语言表
+    /// </summary>
+    public TbL10N TbL10N {get; }
+    /// <summary>
     /// 战斗全局参数（one 模式：全表一条记录）
     /// </summary>
     public TbBattleGlobal TbBattleGlobal {get; }
@@ -40,6 +44,7 @@ public partial class Tables
         TbWaveRole = new TbWaveRole(loader("tbwaverole"));
         TbWaveScaling = new TbWaveScaling(loader("tbwavescaling"));
         TbUpgrade = new TbUpgrade(loader("tbupgrade"));
+        TbL10N = new TbL10N(loader("tbl10n"));
         TbBattleGlobal = new TbBattleGlobal(loader("tbbattleglobal"));
         ResolveRef();
     }
@@ -50,6 +55,7 @@ public partial class Tables
         TbWaveRole.ResolveRef(this);
         TbWaveScaling.ResolveRef(this);
         TbUpgrade.ResolveRef(this);
+        TbL10N.ResolveRef(this);
         TbBattleGlobal.ResolveRef(this);
     }
 }

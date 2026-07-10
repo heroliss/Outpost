@@ -1,4 +1,5 @@
 using Game.Framework.Common;
+using Game.Framework.Localization;
 using Game.Framework.UI;
 using Game.Framework.UI.Toolkit;
 using Game.Outpost.Commands;
@@ -13,6 +14,7 @@ namespace Game.Outpost.Windows
     /// 结算页：展示本局结局（主动撤离 / 哨站失守）与成绩，并对照历史存档
     /// （战绩已在 <c>ResultState</c> 并入存档后经 <see cref="ResultArgs"/> 传入）。
     /// 布局在 <c>Res/UI/ResultWindow.uxml</c>，本类只做查询接线与按结局填充文案 / 颜色。
+    /// 固定文案绑 key；成绩行在 OnOpen 一次性 <c>loc.Get</c> 填充——语言入口只在标题页，结算期间语言不变。
     /// </summary>
     [UIWindow(Layer = UILayer.Page, Asset = "ResultWindow")]
     public sealed class ResultWindow : UIToolkitWindowBase
@@ -31,6 +33,8 @@ namespace Game.Outpost.Windows
             _verdict = Root.Q<Label>("verdict");
             _detail = Root.Q<Label>("detail");
             _record = Root.Q<Label>("record");
+            Bag.BindLocalizedText(Root.Q<Label>("title"), "result/title");
+            Bag.BindLocalizedText(Root.Q<Button>("back"), "result/back");
             Bag.SubscribeClick(Root.Q<Button>("back"), () => this.ExecuteCommand(new GoToTitleCommand()));
         }
 
@@ -38,16 +42,18 @@ namespace Game.Outpost.Windows
         {
             var a = args is ResultArgs ra ? ra : default;
             var r = a.Result;
+            var loc = this.GetUtility<ILocalizationUtility>();
+
             // 无限模式无胜负：主动撤离（常规收束）或哨站失守，都比拼坚持到第几波。
-            _verdict.text = r.Retreated ? $"主动撤离 · 第 {r.Wave} 波" : $"哨站失守 · 第 {r.Wave} 波";
+            _verdict.text = loc.Get(r.Retreated ? "result/retreat" : "result/defeat", r.Wave);
             _verdict.style.color = r.Retreated ? RetreatColor : DefeatColor;
-            _detail.text = $"击杀 {r.Kills}　得分 {r.Score}";
+            _detail.text = loc.Get("result/detail", r.Kills, r.Score);
 
             // 存档已在进本状态前并入，这里只读展示历史面（新纪录高亮）。ReadOnlyReactiveProperty 直读当前值——结算页是快照、不需订阅。
             var rec = this.ExecuteCommand(new GetPlayerRecordCommand());
             _record.text = a.NewBest
-                ? $"新纪录！历史最佳 {rec.BestScore.CurrentValue} 分"
-                : $"历史最佳 {rec.BestScore.CurrentValue} 分 · 最远 {rec.BestWave.CurrentValue} 波 · 共 {rec.Runs.CurrentValue} 局";
+                ? loc.Get("record/new-best", rec.BestScore.CurrentValue)
+                : loc.Get("record/summary", rec.BestScore.CurrentValue, rec.BestWave.CurrentValue, rec.Runs.CurrentValue);
             _record.style.color = a.NewBest ? NewBestColor : RecordColor;
         }
     }

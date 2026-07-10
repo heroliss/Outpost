@@ -34,5 +34,8 @@ namespace Game.Outpost.Save
     {
         /// <summary>玩家跨局历史战绩（单槽位；本切片不做多存档槽，<c>/</c> 分段留给将来扩展如 <c>outpost/slot1</c>）。</summary>
         public const string Record = "outpost/record";
+
+        /// <summary>玩家设置（音量 / 语言，<see cref="OutpostSettings"/>）。</summary>
+        public const string Settings = "outpost/settings";
     }
 }

@@ -850,7 +850,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4291943423
   m_fontColor: {r: 1, g: 0.86, b: 0.82, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -863,7 +863,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -1838,7 +1838,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 3655387576
   m_fontColor: {r: 0.72, g: 0.79, b: 0.88, a: 0.85}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -1851,7 +1851,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -2115,6 +2115,7 @@ MonoBehaviour:
       Entry: 6
       Data: 
   _button: {fileID: 1189920706}
+  _label: {fileID: 793475163}
 --- !u!114 &1189920706
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2766,6 +2767,8 @@ MonoBehaviour:
   _content: {fileID: 359431698}
   _cardContainer: {fileID: 402412011}
   _cardPrefab: {fileID: 6989104054292238406, guid: 65ef9bf4ee9b89542845dff550025bce, type: 3}
+  _panelTitle: {fileID: 344723937}
+  _panelHint: {fileID: 1121356618}
 --- !u!1 &1928689970
 GameObject:
   m_ObjectHideFlags: 0

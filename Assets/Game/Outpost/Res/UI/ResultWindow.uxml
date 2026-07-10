@@ -4,7 +4,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="Outpost.uss" />
     <ui:VisualElement class="op-page op-page--result">
-        <ui:Label text="结算" class="op-title" enable-rich-text="false" />
+        <ui:Label name="title" text="结算" class="op-title" enable-rich-text="false" />
         <ui:Label name="verdict" text="" class="op-label op-verdict" enable-rich-text="false" />
         <ui:Label name="detail" text="" class="op-label" enable-rich-text="false" />
         <ui:Label name="record" text="" class="op-label" enable-rich-text="false" />

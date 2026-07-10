@@ -36,11 +36,11 @@ public sealed partial class Upgrade : Luban.BeanBase
     /// </summary>
     public readonly int Id;
     /// <summary>
-    /// 名称（M3 起换本地化 key）
+    /// 名称的本地化 key（TbL10N；卡片 UI 按当前语言解析）
     /// </summary>
     public readonly string Name;
     /// <summary>
-    /// 效果描述（M3 起换本地化 key）
+    /// 效果描述的本地化 key（TbL10N；描述含数值，改 value 需同步改各语言文案）
     /// </summary>
     public readonly string Desc;
     /// <summary>

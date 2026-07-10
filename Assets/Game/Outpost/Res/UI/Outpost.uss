@@ -92,3 +92,32 @@
     height: 30px;
     margin-top: 6px;
 }
+
+/* ── 设置弹窗 ─────────────────────────────────────────── */
+
+.op-card--settings { width: 380px; }
+
+.op-slider {
+    margin: 6px 0;
+    color: rgb(217, 224, 242);
+}
+
+/* 语言选择行：标签 + 两个语言按钮并排 */
+.op-lang-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.op-lang-row__label { margin-bottom: 0; margin-right: 12px; }
+
+.op-btn--lang {
+    min-width: 96px;
+    margin-top: 0;
+    margin-right: 8px;
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+}
+
+/* 当前语言的按钮描边高亮（代码按 Locale 切换该类） */
+.op-btn--lang-active { border-color: rgb(255, 158, 64); }

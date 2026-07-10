@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置弹窗布局：音量三滑条（直连 IAudioUtility，即时生效）+ 语言切换（直调 SetLocale，下层标题页文案实时跟变）。
+     语言按钮文案是语言自称（中文 / English），刻意不本地化。其余文案运行时绑 key，uxml 中文只是设计期占位。 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Outpost.uss" />
+    <ui:VisualElement class="op-overlay" picking-mode="Ignore">
+        <ui:VisualElement class="op-card op-card--settings">
+            <ui:Label name="title" text="设置" class="op-card__title" enable-rich-text="false" />
+            <ui:Slider name="master" label="主音量" low-value="0" high-value="1" class="op-slider" />
+            <ui:Slider name="music" label="音乐" low-value="0" high-value="1" class="op-slider" />
+            <ui:Slider name="sfx" label="音效" low-value="0" high-value="1" class="op-slider" />
+            <ui:VisualElement class="op-lang-row">
+                <ui:Label name="lang-label" text="语言" class="op-label op-lang-row__label" enable-rich-text="false" />
+                <ui:Button name="lang-zh" text="中文" class="op-btn op-btn--lang" />
+                <ui:Button name="lang-en" text="English" class="op-btn op-btn--lang" />
+            </ui:VisualElement>
+            <ui:Button name="close" text="关闭" class="op-btn" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

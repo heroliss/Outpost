@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Framework;
+using Game.Framework.Audio;
 using Game.Framework.Common;
 using Game.Framework.Flow;
 using Game.Framework.Model;
@@ -122,6 +123,18 @@ namespace Game.Outpost.Battle
         private float _pendingPlayerDamage;
         private float _damageFlushTimer;
 
+        // 战斗音效（clip 经资源系统在 SetupAsync 加载；播放走框架音效池 PlaySfx，随手丢弃返回值）。
+        // 爆炸类每帧限 1 发（千级击杀下逐发播只会糊成噪声墙、耗尽 voice）；受创重音天然由伤害聚合窗口节流。
+        [Inject] private IAudioUtility _audio;
+        private AudioClip _sfxExplosion;
+        private AudioClip _sfxDetonate;
+        private AudioClip _sfxRepair;
+        private AudioClip _sfxWave;
+        private AudioClip _sfxUpgrade;
+        private AudioClip _sfxDefeat;
+        private AudioClip _sfxRetreat;
+        private bool _boomSfxThisFrame;
+
         // 表现色板（敌人本体色来自配置表的表现列，这里只留玩家侧 / 弹道的固定色）。
         private static readonly Color PlayerHitColor = new(1f, 0.30f, 0.24f);
         private static readonly Color RepairColor = new(0.4f, 1.8f, 0.7f, 0.8f);       // 波间维修的回满提示（HDR 绿）
@@ -183,6 +196,16 @@ namespace Game.Outpost.Battle
             _upgradeModel = this.GetModel<UpgradeModel>();
             _visuals = EnemyVisuals.Build(_cfg);
             _swarm.Init(_visuals);
+
+            // 战斗音效 clip 经资源系统加载（句柄进 Bag 随战斗场景释放）；火墙循环底噪交给炮塔挂 AudioSource 逐帧调制。
+            _sfxExplosion = await Bag.Load<AudioClip>("sfx_explosion");
+            _sfxDetonate = await Bag.Load<AudioClip>("sfx_detonate");
+            _sfxRepair = await Bag.Load<AudioClip>("sfx_repair");
+            _sfxWave = await Bag.Load<AudioClip>("sfx_wave");
+            _sfxUpgrade = await Bag.Load<AudioClip>("sfx_upgrade");
+            _sfxDefeat = await Bag.Load<AudioClip>("sfx_defeat");
+            _sfxRetreat = await Bag.Load<AudioClip>("sfx_retreat");
+            _turret.InitFireLoop(await Bag.Load<AudioClip>("sfx_fire_loop"));
             var setup = BattleSetupFactory.Build(_cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
             _sim = CreateSim();
@@ -284,6 +307,7 @@ namespace Game.Outpost.Battle
             _hitFxBudget = HitFxPerFrame;   // 每帧刷新演出预算（超出即降级，见各 On* 事件）
             _killFxBudget = KillFxPerFrame;
             _spawnFxBudget = SpawnFxPerFrame;
+            _boomSfxThisFrame = false;      // 爆炸音每帧限 1 发（数值仍逐发结算，只是不逐发出声）
             AdvanceEffects();
             UpdateFireHeat(dt); // 表现层火力热度：驱动炮塔辉光（与 sim 解耦、纯 cosmetic，停火即冷却）
             if (!_ready || _sim == null) return;
@@ -317,6 +341,7 @@ namespace Game.Outpost.Battle
                 {
                     _betweenWaves = false;
                     _sim.BeginNextWave();
+                    _audio.PlaySfx(_sfxWave, volume: 0.55f); // 新一波开场警报（与 HUD 横幅同拍）
                 }
             }
             else
@@ -338,8 +363,9 @@ namespace Game.Outpost.Battle
             {
                 _ending = true;
                 _endTimer = _resultDelay;
-                // 终局强调：战败红色大脉冲，从哨站位置扩散。
+                // 终局强调：战败红色大脉冲，从哨站位置扩散 + 下行失守音。
                 SpawnPulse(WithZ(_turret.transform.position, PulseZ), new Color(2.4f, 0.5f, 0.4f, 0.9f), 1f, 16f, 0.9f);
+                _audio.PlaySfx(_sfxDefeat);
             }
         }
 
@@ -383,6 +409,20 @@ namespace Game.Outpost.Battle
             float speed = target > _fireHeat ? HeatLerpUp : HeatLerpDown;
             _fireHeat = Mathf.MoveTowards(_fireHeat, target, speed * dt);
             _turret.SetSpin(_fireHeat); // 核心亮度：读作"炮管火力拉满/收拢"
+
+            // 火墙循环底噪随热度调制。挂对象的 AudioSource 不归框架分组音量管——主 × 音效组在这里手动乘回，
+            // 设置页滑条照样管得住它（引擎组件跨层 + 框架分组音量的桥接就这一行）。
+            _turret.SetFireLoopLevel(_fireHeat, _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx));
+        }
+
+        // 爆炸类音效（拦截击毁 / 抵达自爆共用）：每帧限 1 发 + 随机音高防"机关枪同音"；体量大的原型更低沉更响。
+        private void PlayBoomSfx(int archetypeId)
+        {
+            if (_boomSfxThisFrame) return;
+            _boomSfxThisFrame = true;
+            float scale = EnemyVisuals.Get(_visuals, archetypeId).ExplosionScale;
+            float pitch = Random.Range(0.92f, 1.12f) * (scale >= 0.8f ? 0.85f : 1.05f);
+            _audio.PlaySfx(_sfxExplosion, volume: Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f), pitch: pitch);
         }
 
         private void OnEnemyHit(EnemyHitEvent e)
@@ -399,6 +439,7 @@ namespace Game.Outpost.Battle
                     _killFxBudget--;
                     SpawnKillExplosion(ToWorld(e.Position), e.ArchetypeId);
                 }
+                PlayBoomSfx(e.ArchetypeId);
             }
             else
             {
@@ -412,6 +453,7 @@ namespace Game.Outpost.Battle
             _swarm.OnRemoved(e.EnemyId);
             _swarm.SpawnWreck(e.ArchetypeId, e.Position); // 自爆也留残骸——基地周界的积尸环即是"漏怪都从哪来"的可视化
             AccumulatePlayerDamage(e.Damage);
+            PlayBoomSfx(e.ArchetypeId);
 
             if (_killFxBudget <= 0) return;
             _killFxBudget--;
@@ -452,6 +494,7 @@ namespace Game.Outpost.Battle
             float severity = Mathf.Clamp01(dmg / Mathf.Max(1f, _sim.PlayerMaxHp)); // 0..1：本窗口掉了多大比例的血
             var playerPos = _turret.transform.position;
             _shaker.Shake(0.1f + severity * 0.5f, 0.12f + severity * 0.5f);
+            _audio.PlaySfx(_sfxDetonate, volume: 0.5f + severity * 0.5f); // 受创重音：聚合窗口天然节流，响度随本窗掉血比例
 
             var warn = PlayerHitColor * (1.4f + severity * 1.2f);
             warn.a = 0.6f + severity * 0.35f;
@@ -480,8 +523,9 @@ namespace Game.Outpost.Battle
 
         private void OnWaveCleared(int wave)
         {
-            // 波间维修（内核规则：撑过一波血量回满）的可见化：哨站绿色修复脉冲，HUD 血条同帧回满。
+            // 波间维修（内核规则：撑过一波血量回满）的可见化：哨站绿色修复脉冲 + 上行修复音，HUD 血条同帧回满。
             SpawnPulse(WithZ(_turret.transform.position, PulseZ), RepairColor, 0.6f, 5f, 0.55f);
+            _audio.PlaySfx(_sfxRepair, volume: 0.65f);
 
             // 每波清空：停下推进、弹三选一升级面板，等玩家抉择（ChooseUpgrade 才继续）。
             OfferUpgrades();
@@ -544,8 +588,9 @@ namespace Game.Outpost.Battle
             _upgradeModel.Choices.Clear();
             _awaitingChoice = false;
 
-            // 强化反馈：玩家位置金色脉冲；射程等即时生效，SyncRangeRing 下帧会外扩射程圈。
+            // 强化反馈：玩家位置金色脉冲 + 上行确认音；射程等即时生效，SyncRangeRing 下帧会外扩射程圈。
             SpawnPulse(WithZ(_turret.transform.position, PulseZ), new Color(1.5f, 1.15f, 0.4f, 0.9f), 0.5f, 4f, 0.5f);
+            _audio.PlaySfx(_sfxUpgrade, volume: 0.7f);
 
             _betweenWaves = true;
             _waveTimer = Mathf.Min(_interWaveDelay, 0.6f); // 抉择已占足停顿，进下一波只留一个短拍
@@ -578,8 +623,9 @@ namespace Game.Outpost.Battle
             _upgradeModel.IsChoosing.Value = false;
             _upgradeModel.Choices.Clear();
 
-            // 撤离提示：青色收束脉冲（与战败红色区分）。
+            // 撤离提示：青色收束脉冲（与战败红色区分）+ 明亮下行收束音（不是失败）。
             SpawnPulse(WithZ(_turret.transform.position, PulseZ), new Color(0.4f, 2.2f, 2.4f, 0.85f), 6f, 0.5f, 0.5f);
+            _audio.PlaySfx(_sfxRetreat, volume: 0.8f);
         }
 
         // 托管自动选卡：从当前候选里挑优先级最高的一张，走与手动同一条 ChooseUpgrade 路径（应用 + 推进下一波）。

@@ -13,6 +13,7 @@ public static class LubanTableManifest
     {
         "tbbattleglobal",
         "tbenemy",
+        "tbl10n",
         "tbupgrade",
         "tbwaverole",
         "tbwavescaling",
