@@ -14,7 +14,7 @@
             <ui:Label class="op-bullet" text="&lt;size=12&gt;&lt;b&gt;&lt;color=#FF9E40&gt;▸ 窗口 = UXML 资产 + 代码接线&lt;/color&gt;&lt;/b&gt;&lt;/size&gt;&#10;三个窗口都经 [UIWindow(Asset)] 加载 uxml、共享 Outpost.uss 主题。看 Res/UI" />
             <ui:Label class="op-bullet" text="&lt;size=12&gt;&lt;b&gt;&lt;color=#FF9E40&gt;▸ 流程状态机 × 子上下文整棵撤&lt;/color&gt;&lt;/b&gt;&lt;/size&gt;&#10;Boot→Title→Battle→Result 走 IGameFlow；战斗私有的 Model / 对象池注册在 BattleContext，退场即销毁" />
 
-            <ui:Label text="完整「游戏现象 ↔ 框架能力 ↔ 源码位置」对照见 docs/outpost-guide.md" class="op-hint" enable-rich-text="false" />
+            <ui:Label text="完整「游戏现象 ↔ 框架能力 ↔ 源码位置」对照见 Outpost/Documentation~/outpost-guide.md" class="op-hint" enable-rich-text="false" />
             <ui:Button name="close" text="关闭" class="op-btn" />
         </ui:VisualElement>
     </ui:VisualElement>
