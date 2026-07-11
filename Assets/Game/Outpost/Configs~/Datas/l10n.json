@@ -30,6 +30,8 @@
     { "key": "settings/music", "zhCn": "音乐", "en": "Music" },
     { "key": "settings/sfx", "zhCn": "音效", "en": "SFX" },
     { "key": "settings/language", "zhCn": "语言", "en": "Language" },
+    { "key": "settings/backend", "zhCn": "战斗后端", "en": "Battle Backend" },
+    { "key": "settings/backend-hint", "zhCn": "同一套规则的两个模拟内核（对比看战斗界面左下角性能行），切换下一局生效", "en": "Two kernels of the same rules (compare via the HUD perf line). Takes effect next battle" },
     { "key": "settings/expansion-name", "zhCn": "增援电台", "en": "Reinforcement Radio" },
     { "key": "settings/expansion-desc", "zhCn": "扩展内容：战斗背景乐变体，下载后自动启用", "en": "Expansion: battle BGM variant, enabled once downloaded" },
     { "key": "settings/expansion-download", "zhCn": "下载", "en": "Download" },

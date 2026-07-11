@@ -40,7 +40,7 @@ namespace Game.Outpost.Battle
     /// </summary>
     public sealed class BattleDirectorSystem : MonoSystemBase
     {
-        [SerializeField, Tooltip("战斗模拟后端。Reference = 纯 C# 面向对象参考实现；M6 在此加 ECS 选项做同题性能对比。")]
+        [SerializeField, Tooltip("战斗模拟后端的场景默认值。运行时以 BattlePrefsModel（设置窗可改，下一局生效）为准，开局采样一次覆盖本值。")]
         private BattleSimBackend _backend = BattleSimBackend.Reference;
 
         [SerializeField, Tooltip("敌人 / 特效的挂载根（世界空间，XY 平面）。")]
@@ -239,6 +239,8 @@ namespace Game.Outpost.Battle
             _turret.InitServoLoop(await Bag.Load<AudioClip>("sfx_servo_loop"));
             var setup = BattleSetupFactory.Build(_cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
+            // 后端偏好开局采样一次（设置窗改动下一局生效）：模拟是一次性实例，不做局中热切（状态迁移不值得，ADR-0030）。
+            _backend = this.GetModel<BattlePrefsModel>().Backend.CurrentValue;
             _sim = CreateSim();
             if (_startWave > 1)
             {
@@ -741,14 +743,16 @@ namespace Game.Outpost.Battle
             _ => false,
         };
 
-        // 托管选卡优先级（数字越小越优先）：攻速是吞吐之本；攻击跨断点（2 炮变 1 炮）收益巨大；回转决定 360° 覆盖；
-        // 探测范围拉长拦截窗口；血量 / 回血是纯保底。此顺序经无头 harness 长跑验证（托管 110 波不死、每波消耗约半血）。
+        // 托管选卡优先级（数字越小越优先）：增程雷达最优先——射程只有两级（7→9→11 封顶）却决定拦截窗口的物理上限，
+        // 越早拿每一波的受益越多；攻速是吞吐之本；攻击跨断点（2 炮变 1 炮）收益巨大；回转决定 360° 覆盖；
+        // 血量 / 回血是纯保底。此顺序经无头 harness 长跑验证（雷达前置后托管 60 波不死、平台期每波消耗约五成，
+        // 与旧顺序稳态相同——平台期升级全封顶后顺序无差，前置只改变成长期的体验节奏）。
         private static int AutoPriority(UpgradeKind kind) => kind switch
         {
-            UpgradeKind.AttackSpeed => 0,
-            UpgradeKind.Attack => 1,
-            UpgradeKind.RotationSpeed => 2,
-            UpgradeKind.Range => 3,
+            UpgradeKind.Range => 0,
+            UpgradeKind.AttackSpeed => 1,
+            UpgradeKind.Attack => 2,
+            UpgradeKind.RotationSpeed => 3,
             UpgradeKind.MaxHp => 4,
             UpgradeKind.Regen => 5,
             _ => 6,

@@ -119,8 +119,16 @@
     border-color: rgba(0, 0, 0, 0);
 }
 
-/* 当前语言的按钮描边高亮（代码按 Locale 切换该类） */
+/* 当前语言的按钮描边高亮（代码按 Locale 切换该类；后端选择行复用同一套类） */
 .op-btn--lang-active { border-color: rgb(255, 158, 64); }
+
+/* 设置项下的小字提示（如后端切换「下一局生效」） */
+.op-settings__hint {
+    font-size: 11px;
+    color: rgb(140, 150, 178);
+    margin-top: 2px;
+    white-space: normal;
+}
 
 /* 扩展内容区（增援电台）：浅色顶边与滑条区分隔 */
 .op-expansion {

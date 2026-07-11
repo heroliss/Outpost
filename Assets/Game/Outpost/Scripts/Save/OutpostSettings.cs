@@ -35,5 +35,11 @@ namespace Game.Outpost.Save
         /// 真源仍是资源系统的包状态（Ready + 无缺失下载），这里只是它的落盘快照。
         /// </summary>
         public bool ExpansionInstalled;
+
+        /// <summary>
+        /// 战斗模拟后端偏好（<c>BattleSimBackend</c> 枚举值）。-1 = 未选过（含老存档缺字段），
+        /// 保持 <c>BattlePrefsModel</c> 的默认；运行时真源在该 Model，这里只是落盘快照。
+        /// </summary>
+        public int BattleBackend = -1;
     }
 }

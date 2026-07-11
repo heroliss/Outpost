@@ -36,6 +36,9 @@ namespace Game.Outpost
             builder.RegisterOwned(new StorageUtility(), typeof(IStorageUtility));
             builder.RegisterValue(new PlayerRecordModel(), typeof(PlayerRecordModel));
 
+            // 战斗偏好（模拟后端选择，ADR-0030 的双后端切换入口）：跨局常驻挂根，设置窗写、导演每局开局采样。
+            builder.RegisterValue(new Battle.BattlePrefsModel(), typeof(Battle.BattlePrefsModel));
+
             // 音频：全局播放编排（BGM 单通道 + 池化音效 + 分组音量）。RegisterOwned：随根 Context 销毁全停（§27 推荐）。
             // 音量初始全 1，启动时 LoadSettingsCommand 从设置存档回灌（持久化归业务，ADR-0022）。
             builder.RegisterOwned(new AudioUtility(), typeof(IAudioUtility));

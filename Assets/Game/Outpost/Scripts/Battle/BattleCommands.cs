@@ -1,5 +1,7 @@
 using Game.Framework.Command;
+using Game.Framework.Model;
 using Game.Framework.Systems;
+using R3;
 
 namespace Game.Outpost.Battle
 {
@@ -11,5 +13,25 @@ namespace Game.Outpost.Battle
     public readonly struct RetreatCommand : ICommand
     {
         public void Execute(ICommandContext ctx) => ctx.GetSystem<BattleDirectorSystem>().Retreat();
+    }
+
+    /// <summary>
+    /// 选择战斗模拟后端（写入 <see cref="BattlePrefsModel"/>，<b>下一局开局生效</b>——模拟是一次性实例、不做局中热切）。
+    /// 设置窗经此命令写偏好（View 不写 Model），落盘随关窗的设置快照。
+    /// </summary>
+    public readonly struct SetBattleBackendCommand : ICommand
+    {
+        public readonly BattleSimBackend Backend;
+
+        public SetBattleBackendCommand(BattleSimBackend backend) => Backend = backend;
+
+        public void Execute(ICommandContext ctx) => ctx.GetModel<BattlePrefsModel>().Backend.Value = Backend;
+    }
+
+    /// <summary>当前战斗后端偏好的只读订阅源（设置窗高亮回显用；View 读状态走查询命令，§1.1）。</summary>
+    public readonly struct GetBattleBackendCommand : ICommand<ReadOnlyReactiveProperty<BattleSimBackend>>
+    {
+        public ReadOnlyReactiveProperty<BattleSimBackend> Execute(ICommandContext ctx)
+            => ctx.GetModel<BattlePrefsModel>().Backend;
     }
 }

@@ -14,6 +14,13 @@
                 <ui:Button name="lang-zh" text="中文" class="op-btn op-btn--lang" />
                 <ui:Button name="lang-en" text="English" class="op-btn op-btn--lang" />
             </ui:VisualElement>
+            <!-- 战斗模拟后端（ADR-0030 双后端）：按钮文案是技术名词不本地化；改动写 BattlePrefsModel、下一局生效。 -->
+            <ui:VisualElement class="op-lang-row">
+                <ui:Label name="backend-label" text="战斗后端" class="op-label op-lang-row__label" enable-rich-text="false" />
+                <ui:Button name="backend-ecs" text="DOTS·ECS" class="op-btn op-btn--lang" />
+                <ui:Button name="backend-ref" text="OOP" class="op-btn op-btn--lang" />
+            </ui:VisualElement>
+            <ui:Label name="backend-hint" text="下一局生效" class="op-settings__hint" enable-rich-text="false" />
             <!-- 扩展内容区（OutpostExpansionPackage）：不自动初始化的第二资源包，显式下载器带进度（DLC 姿势）。 -->
             <ui:VisualElement class="op-expansion">
                 <ui:VisualElement class="op-expansion__head">

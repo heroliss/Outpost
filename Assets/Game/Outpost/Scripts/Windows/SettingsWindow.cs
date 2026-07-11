@@ -8,6 +8,7 @@ using Game.Framework.Localization;
 using Game.Framework.UI;
 using Game.Framework.UI.Toolkit;
 using Game.Main;
+using Game.Outpost.Battle;
 using Game.Outpost.Save;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -15,10 +16,10 @@ using UnityEngine.UIElements;
 namespace Game.Outpost.Windows
 {
     /// <summary>
-    /// 设置弹窗（Popup + Modal，压在标题页上）：音量三滑条 + 语言切换 + 扩展内容下载。
+    /// 设置弹窗（Popup + Modal，压在标题页上）：音量三滑条 + 语言切换 + 战斗后端选择 + 扩展内容下载。
     /// <b>本窗只是遥控器</b>——音量真源在 <c>IAudioUtility</c>、语言真源在 <c>ILocalizationUtility.Locale</c>、
-    /// 扩展包安装态真源在 <c>IAssetUtility</c> 的包状态；滑条 / 按钮直改 Utility 即时生效，
-    /// 关窗时一次 <see cref="SaveSettingsCommand"/> 收口落盘（不随滑条拖动高频写盘）。
+    /// 后端偏好真源在 <c>BattlePrefsModel</c>（经命令读写，下一局生效）、扩展包安装态真源在 <c>IAssetUtility</c>
+    /// 的包状态；改动即时生效在各真源上，关窗时一次 <see cref="SaveSettingsCommand"/> 收口落盘（不随滑条拖动高频写盘）。
     /// View 直连 Utility 是合法权限（<c>ICanGetUtility</c>，与开窗 / <c>Bag.Load</c> 同心智，§27/§29 demo 同款姿势）。
     /// <para>扩展区演示「不自动初始化的第二资源包」消费全流程（§13 多包 / 按需下载）：
     /// Initialize（拉清单）→ <c>CreateAllDownloader</c>（显式下载器带进度）→ 完成即落盘安装标记；
@@ -83,6 +84,20 @@ namespace Game.Outpost.Windows
             {
                 zh.EnableInClassList("op-btn--lang-active", l == OutpostLocales.ChineseSimplified);
                 en.EnableInClassList("op-btn--lang-active", l == OutpostLocales.English);
+            });
+
+            // 战斗模拟后端（ADR-0030 双后端）：写走命令、读走查询命令的只读订阅源（View 不碰 Model，§1.1）。
+            // 改动即写进 BattlePrefsModel（导演每局开局采样，下一局生效），落盘随关窗的设置快照。
+            Bag.BindLocalizedText(Root.Q<Label>("backend-label"), "settings/backend");
+            Bag.BindLocalizedText(Root.Q<Label>("backend-hint"), "settings/backend-hint");
+            var ecsBtn = Root.Q<Button>("backend-ecs");
+            var refBtn = Root.Q<Button>("backend-ref");
+            Bag.SubscribeClick(ecsBtn, () => this.ExecuteCommand(new SetBattleBackendCommand(BattleSimBackend.Ecs)));
+            Bag.SubscribeClick(refBtn, () => this.ExecuteCommand(new SetBattleBackendCommand(BattleSimBackend.Reference)));
+            Bag.Subscribe(this.ExecuteCommand(new GetBattleBackendCommand()), b =>
+            {
+                ecsBtn.EnableInClassList("op-btn--lang-active", b == BattleSimBackend.Ecs);
+                refBtn.EnableInClassList("op-btn--lang-active", b == BattleSimBackend.Reference);
             });
 
             Bag.SubscribeClick(Root.Q<Button>("close"), () => this.GetUtility<IUIUtility>().Close(this));

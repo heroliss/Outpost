@@ -32,6 +32,10 @@ namespace Game.Outpost.Save
                 if (!string.IsNullOrEmpty(settings.Locale))
                     ctx.GetUtility<ILocalizationUtility>().SetLocale(settings.Locale);
 
+                // 战斗后端偏好：-1 = 没选过（含老存档缺字段），保持 Model 默认（Ecs）。
+                if (settings.BattleBackend >= 0)
+                    ctx.GetModel<Battle.BattlePrefsModel>().Backend.Value = (Battle.BattleSimBackend)settings.BattleBackend;
+
                 // 扩展包已安装：后台补一次初始化（拉版本/清单，内容已在缓存不重下）——不 await，
                 // 启动不等它；音频侧按包状态懒加载，init 未完成前的战斗用默认曲、下一场自然接上。
                 if (settings.ExpansionInstalled)
@@ -63,6 +67,7 @@ namespace Game.Outpost.Save
                 SfxVolume = audio.GetGroupVolume(AudioGroups.Sfx),
                 Locale = ctx.GetUtility<ILocalizationUtility>().Locale.CurrentValue,
                 ExpansionInstalled = IsExpansionInstalled(ctx.GetUtility<IAssetUtility>()),
+                BattleBackend = (int)ctx.GetModel<Battle.BattlePrefsModel>().Backend.CurrentValue,
             };
             try
             {
