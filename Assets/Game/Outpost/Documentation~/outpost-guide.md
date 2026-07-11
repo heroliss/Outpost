@@ -39,7 +39,7 @@
 
 - **可单测 / AI 可验证**：规则是确定性纯函数，`new ReferenceBattleSim()` 喂一段 Tick 序列毫秒级跑完，不用进 Play。本轮全部难度标定就是无头跑数做的（托管策略跑 110 波、逐波打印消耗/峰值/耗时曲线）。同一红利还做成了游玩入口：director 的 `_startWave` > 1 时开局**无头快进**——加载期静默跑完前面的波次（升级按托管贪心自动拿、击杀直接铺成残骸），快进 19 波实测 85ms。
 - **可 AOT**：热更/裁剪环境永不炸。
-- **可置换后端**：`BattleDirectorSystem` 顶部有一个 `BattleSimBackend` 枚举 + `CreateSim()` 工厂——M6 的 ECS/DOTS 后端只需加一个分支，事件→表现翻译层、Model、HUD 全部零改动。HUD 左下角的**性能行**（后端名 · 敌人数 · 残骸数 · 模拟耗时 · fps）就是为"同题对比"准备的度量面板。
+- **可置换后端（M6 已兑现，ADR-0030）**：`BattleSimBackend` 枚举 + `CreateSim()` 工厂后并存两个后端——`Reference`（OOP 参考实现 = 规则的可执行规格）与 `Ecs`（[`Sim.Ecs/`](../Sim.Ecs/)，Entities chunk 存储 + Burst job 热路径，自建 World 完全藏在接缝后），事件→表现翻译层、Model、HUD 全部零改动，场景默认已切 `Ecs`。两后端**可对拍**：关 Burst 同种子逐 tick 逐位全等；开 Burst 后浮点 ulp 差异被混沌放大成 <1% 的击杀归属漂移（"同一个游戏、不是逐位同一局"）。4.2 万敌人时 Ecs 1.2~1.7ms/tick vs Reference 5.8ms。HUD 左下角的**性能行**（后端名 · 敌人数 · 残骸数 · 模拟耗时 · fps）就是这场"同题对比"的度量面板。
 
 ### 2. 事件 → 表现翻译层，与"实例化渲染 × 对象池"的分工
 
@@ -74,6 +74,7 @@
 7. [`Systems/OutpostAudioSystem.cs`](../Scripts/Systems/OutpostAudioSystem.cs) + [`Config/OutpostTextSource.cs`](../Scripts/Config/OutpostTextSource.cs) + [`Windows/SettingsWindow.cs`](../Scripts/Windows/SettingsWindow.cs) —— 音频 / 本地化 / 设置三个横切服务的消费侧：BGM 订流程事件、文本源 adapter、设置窗直连 Utility + 关窗落盘。
 8. [`Scripts/Net/`](../Scripts/Net/) + [`Windows/LeaderboardWindow.cs`](../Scripts/Windows/LeaderboardWindow.cs) —— 网络全家桶（§32 消费落点）：消息契约 + Protobuf 编解码注册（`OutpostNetMessages`）、进程内 dev server（`OutpostDevServer`，仅 Editor/DevBuild）、长连接维持 + 断线退避重连样板（[`Systems/OutpostNetSystem.cs`](../Scripts/Systems/OutpostNetSystem.cs)）、命令直达 HTTP（`NetCommands`）；排行榜窗是 `BindList` 的又一落点，结算页上传分数拿全服名次，服务器新纪录广播经 WS 推送转事件 → 全局 Toast。
 9. `Assets/Game/Main/GameEntry.cs` + 设置窗扩展区（`SettingsWindow` 下半） —— 构建收口两条线（M5）：热更入口怎么用代码搭引导资源栈拉起首场景（guide §15 样板真身）；第二资源包 `OutpostExpansionPackage`（增援电台）怎么走「不自动初始化 → 显式下载器带进度 → 安装标记落盘 → 启动复原 → 战斗 BGM 变体懒加载」的 DLC 全流程（§13 多包消费落点）。
+10. [`Sim.Ecs/EcsBattleSim.cs`](../Sim.Ecs/EcsBattleSim.cs) —— DOTS 后端全貌（M6，ADR-0030）：与 `ReferenceBattleSim` 对照着读——同一份规则规格的两种写法（列表逐帧扫描 vs chunk 并行 + Burst 顺序开火循环 + 事件缓冲重放），怎么把一个自建 `World` 完全藏在纯 C# 接缝后。
 
 ---
 
@@ -90,7 +91,7 @@
 
 ## 里程碑与已知偏离
 
-里程碑：M0 骨架闭环 → M1 战斗核心 + 视觉 → M2 波间三选一 → M3 存档 + 音频 + 本地化 + 设置 → M4 网络排行 → **M5 构建收口（已完成）** →（M6 DOTS 置换）。当前形态：**无限模式 + 托管永续 + 数千同屏 + 双语 + 全服排行 + Windows 玩家包端到端可发**（热更 9 程序集 + 双资源包 + 扩展内容 CDN 下载，见 [ADR-0029](../../../../docs/adr/0029-outpost-vertical-slice.md)）——这正是为 M6 准备的真实压力场景：`Reference` 后端的 O(n) 线性扫描是刻意保留的对比基线，HUD 性能行随时读数。
+里程碑：M0 骨架闭环 → M1 战斗核心 + 视觉 → M2 波间三选一 → M3 存档 + 音频 + 本地化 + 设置 → M4 网络排行 → M5 构建收口 → **M6 DOTS 后端置换（已完成，切片收官）**。当前形态：**无限模式 + 托管永续 + 数千同屏 + 双语 + 全服排行 + Windows 玩家包端到端可发 + 双模拟后端**（热更 9 程序集 + 双资源包 + 扩展内容 CDN 下载见 [ADR-0029](../../../../docs/adr/0029-outpost-vertical-slice.md)；ECS 置换与对拍见 [ADR-0030](../../../../docs/adr/0030-outpost-ecs-battle-backend.md)）。战斗场景默认跑 `Ecs` 后端，`Reference` 保留为规格基线与对拍锚点，Inspector 一键切换、HUD 性能行随时读数。
 
 已知偏离与接缝观察（诚实记录）：
 

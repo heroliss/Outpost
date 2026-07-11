@@ -22,7 +22,8 @@ namespace Game.Outpost.Battle
         /// <summary>面向对象参考实现（列表 + 逐帧线性扫描，规则的可执行规格）。</summary>
         Reference,
 
-        // Ecs — M6 的 DOTS/ECS 后端加在这里（ADR-0030）：new EcsBattleSim()，其余零改动。
+        /// <summary>DOTS 后端（Entities chunk 存储 + Burst job 热路径；ADR-0030）。与 Reference 同一规格、可对拍。</summary>
+        Ecs,
     }
 
     /// <summary>
@@ -259,9 +260,10 @@ namespace Game.Outpost.Battle
             _ready = true;
         }
 
-        // 接缝的后端工厂：M6 加 `BattleSimBackend.Ecs => new EcsBattleSim()` 分支即可整体置换，本类其余零改动。
+        // 接缝的后端工厂：ECS 后端就是多出来的这一个分支（ADR-0030），事件→表现翻译层、Model、HUD 全部零改动。
         private IBattleSim CreateSim() => _backend switch
         {
+            BattleSimBackend.Ecs => new Game.Outpost.Sim.Ecs.EcsBattleSim(),
             _ => new ReferenceBattleSim(),
         };
 

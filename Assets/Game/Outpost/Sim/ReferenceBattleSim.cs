@@ -36,10 +36,7 @@ namespace Game.Outpost.Sim
             public float Timer;
         }
 
-        private const float AimToleranceDeg = 6f;   // 炮口角度差在此内即视为对准、可开火
-        private static readonly float AimToleranceCosSq = (float)Math.Pow(Math.Cos(AimToleranceDeg * Math.PI / 180.0), 2); // 锥判定用 cos²(容差)，见 FindNearestInCone
-        private const int MaxShotsPerTick = 64;      // 无上限射速下单帧最多发数（防病态循环；远超玩法所需）
-        private const float FirehoseFireInterval = 0.06f; // 有效射速间隔低于此即进"火墙"：炮口未对准也持续击发（边转边扫、空放不结算伤害）
+        // 判定阈值（对准容差 / 单帧发数 / 火墙门槛）是两后端共享的规格常量，见 BattleSimTuning。
         private const double Rad2Deg = 180.0 / Math.PI;
 
         private BattleSetup _setup;
@@ -308,7 +305,7 @@ namespace Game.Outpost.Sim
             // 锁定目标：逐帧把炮口转向目标（越慢，切换分散目标的空当越大）。
             var tpos = _enemies[target].Pos;
             float desired = (float)(Math.Atan2(tpos.Y, tpos.X) * Rad2Deg);
-            _turretAngleDeg = MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
+            _turretAngleDeg = SimMath.MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
 
             // 炮口方向单位向量（本 tick 内朝向不变，shots 循环共用）——锥内判定用点积，免逐敌 Atan2。
             double muzzleRad = _turretAngleDeg / Rad2Deg;
@@ -322,13 +319,13 @@ namespace Game.Outpost.Sim
             // 单帧可多发。
             _playerAttackCooldown -= dt;
             float effInterval = _player.AttackInterval;
-            bool firehose = effInterval < FirehoseFireInterval;
+            bool firehose = effInterval < BattleSimTuning.FirehoseFireInterval;
             int shots = 0;
             // 循环内敌人不移动、空放不改战场——锥一旦扫空整个 tick 都空，"射程内尚有敌"也只需查一次。
             // 缓存两者，避免高射速下每发空放重复 O(n) 扫描。
             bool coneEmpty = false;
             bool anyInRange = true, anyInRangeChecked = false;
-            while (_playerAttackCooldown <= 0f && shots < MaxShotsPerTick)
+            while (_playerAttackCooldown <= 0f && shots < BattleSimTuning.MaxShotsPerTick)
             {
                 int t = coneEmpty ? -1 : FindNearestInCone(muzzleDir); // 炮口锥内最近敌人（指哪打哪，扫过即中）
                 if (t >= 0)
@@ -363,7 +360,7 @@ namespace Game.Outpost.Sim
                 float dsq = pos.LengthSquared();
                 if (dsq > bestSq) continue;
                 float dot = muzzleDir.X * pos.X + muzzleDir.Y * pos.Y;
-                if (dot <= 0f || dot * dot < AimToleranceCosSq * dsq) continue;
+                if (dot <= 0f || dot * dot < BattleSimTuning.AimToleranceCosSq * dsq) continue;
                 bestSq = dsq;
                 best = i;
             }
@@ -438,29 +435,5 @@ namespace Game.Outpost.Sim
             WaveCleared?.Invoke(WaveIndex);
         }
 
-        // ── 角度工具（度制，标准数学角）──────────────────────────────────────
-        private static float NormalizeDeg(float a)
-        {
-            a %= 360f;
-            if (a < 0f) a += 360f;
-            return a;
-        }
-
-        // from→to 的最短带符号角差，落在 [-180, 180]。
-        private static float DeltaAngleDeg(float from, float to)
-        {
-            float d = (to - from) % 360f;
-            if (d < -180f) d += 360f;
-            else if (d > 180f) d -= 360f;
-            return d;
-        }
-
-        // 以 maxDelta 为步长把 cur 朝 target 转（不过冲），返回归一化角。
-        private static float MoveTowardsAngleDeg(float cur, float target, float maxDelta)
-        {
-            float d = DeltaAngleDeg(cur, target);
-            if (maxDelta >= Math.Abs(d)) return NormalizeDeg(target);
-            return NormalizeDeg(cur + Math.Sign(d) * maxDelta);
-        }
     }
 }

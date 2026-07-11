@@ -9,6 +9,7 @@
         "Game.Framework.UI.Toolkit",
         "Game.Framework.UI.UGui",
         "Game.Outpost.Sim",
+        "Game.Outpost.Sim.Ecs",
         "Luban.Runtime",
         "UniTask",
         "R3",

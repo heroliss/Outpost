@@ -1,0 +1,20 @@
+{
+    "name": "Game.Outpost.Sim.Ecs",
+    "rootNamespace": "Game.Outpost.Sim.Ecs",
+    "references": [
+        "Game.Outpost.Sim",
+        "Unity.Entities",
+        "Unity.Collections",
+        "Unity.Burst",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
