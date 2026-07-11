@@ -4,11 +4,12 @@ using R3;
 namespace Game.Outpost.Battle
 {
     /// <summary>
-    /// 跨局的战斗偏好（模拟后端选择 + 泥地热力图开关），注册在根 OutpostContext。
-    /// <b>运行时真源</b>：设置窗经命令写入（<see cref="SetBattleBackendCommand"/> / <see cref="SetWreckHeatmapCommand"/>）；
-    /// 后端由 <see cref="BattleDirectorSystem"/> 每局开局采样一次（局中改动下一局生效——模拟是一次性实例，不做热切），
-    /// 热力图是纯表现、订阅即时生效。持久化走 <c>OutpostSettings</c> 快照（音量/语言同一心智：
-    /// 真源在运行时对象、存档只是落盘快照），由 Load/SaveSettingsCommand 回灌与收集。
+    /// 跨局的战斗偏好（模拟后端选择 + 泥地热力图开关 + 游戏速度），注册在根 OutpostContext。
+    /// <b>运行时真源</b>：后端在设置窗改（<see cref="SetBattleBackendCommand"/>）、热力图与速度在战斗 HUD 改
+    /// （<see cref="SetWreckHeatmapCommand"/> / <see cref="SetSimSpeedCommand"/>）。后端由 <see cref="BattleDirectorSystem"/>
+    /// 每局开局采样一次（局中改动下一局生效——模拟是一次性实例，不做热切）；热力图与速度是纯表现、订阅即时生效。
+    /// 后端 / 热力图持久化走 <c>OutpostSettings</c> 快照（真源在运行时对象、存档只是落盘快照），由 Load/SaveSettingsCommand 回灌与收集；
+    /// 速度是临时演示旋钮、<b>不落盘</b>（会话内跨局保持、重启回 1×）。
     /// </summary>
     public sealed class BattlePrefsModel : IModel
     {
@@ -17,5 +18,11 @@ namespace Game.Outpost.Battle
 
         /// <summary>泥地热力图开关（显示模拟侧残骸密度格；纯表现，切换即时生效）。默认关——教学/调试视图不打扰常规游玩。</summary>
         public readonly RP<bool> ShowWreckHeatmap = new(false);
+
+        /// <summary>
+        /// 游戏速度倍率（<see cref="BattleDirectorSystem"/> 订阅它写 <c>Time.timeScale</c> 实时缩放整场——
+        /// 弹丸/敌人/特效一起变速：慢放看清扫掠碰撞、快进看规模。默认 1×；离开战斗导演还原 <c>Time.timeScale = 1</c>。
+        /// </summary>
+        public readonly RP<float> SimSpeed = new(1f);
     }
 }

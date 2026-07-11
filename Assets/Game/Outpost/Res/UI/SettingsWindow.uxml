@@ -21,13 +21,6 @@
                 <ui:Button name="backend-ref" text="OOP" class="op-btn op-btn--lang" />
             </ui:VisualElement>
             <ui:Label name="backend-hint" text="下一局生效" class="op-settings__hint" enable-rich-text="false" />
-            <!-- 泥地热力图（ADR-0031 残骸减速泥地的可视化）：纯表现开关，切换即时生效。 -->
-            <ui:VisualElement class="op-lang-row">
-                <ui:Label name="heatmap-label" text="泥地热力图" class="op-label op-lang-row__label" enable-rich-text="false" />
-                <ui:Button name="heatmap-on" text="开" class="op-btn op-btn--lang" />
-                <ui:Button name="heatmap-off" text="关" class="op-btn op-btn--lang" />
-            </ui:VisualElement>
-            <ui:Label name="heatmap-hint" text="显示残骸密度格" class="op-settings__hint" enable-rich-text="false" />
             <!-- 扩展内容区（OutpostExpansionPackage）：不自动初始化的第二资源包，显式下载器带进度（DLC 姿势）。 -->
             <ui:VisualElement class="op-expansion">
                 <ui:VisualElement class="op-expansion__head">

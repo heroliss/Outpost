@@ -216,9 +216,13 @@ namespace Game.Outpost.Battle
             _swarm.Init(_visuals, g.ArenaRadius,
                 (1f - g.WreckSlowFloor) / Mathf.Max(0.0001f, g.WreckSlowPerCount));
 
-            // 泥地热力图开关（纯表现）：订阅即时生效，Play 中随设置窗切换。
+            // 泥地热力图开关（纯表现）：订阅即时生效，HUD 按钮随时切换。
             var prefs = this.GetModel<BattlePrefsModel>();
             Bag.Subscribe(prefs.ShowWreckHeatmap, on => _swarm.WreckHeatmapVisible = on);
+
+            // 游戏速度（纯表现）：订阅写全局 Time.timeScale——弹丸/敌人/特效随之整场变速（HUD 速度按钮实时改）。
+            // 订阅即得当前值先设一次；OnDestroy 还原 1×，避免慢/快放污染标题 / 结算。
+            Bag.Subscribe(prefs.SimSpeed, s => Time.timeScale = s);
 
             // 战斗音效 clip 经资源系统加载（句柄进 Bag 随战斗场景释放）；火墙循环底噪交给炮塔挂 AudioSource 逐帧调制。
             _sfxExplosion = await Bag.Load<AudioClip>("sfx_explosion");
@@ -814,6 +818,7 @@ namespace Game.Outpost.Battle
 
         protected override void OnDestroy()
         {
+            Time.timeScale = 1f; // 离开战斗还原全局速度（游戏速度是战斗内的临时旋钮，不外溢到标题 / 结算）
             _sim?.Dispose();
             _sim = null;
             base.OnDestroy();

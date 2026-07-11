@@ -48,10 +48,30 @@ namespace Game.Outpost.Battle
         public void Execute(ICommandContext ctx) => ctx.GetModel<BattlePrefsModel>().ShowWreckHeatmap.Value = Show;
     }
 
-    /// <summary>泥地热力图开关状态的只读订阅源（设置窗高亮回显用）。</summary>
+    /// <summary>泥地热力图开关状态的只读订阅源（HUD 按钮回显用）。</summary>
     public readonly struct GetWreckHeatmapCommand : ICommand<ReadOnlyReactiveProperty<bool>>
     {
         public ReadOnlyReactiveProperty<bool> Execute(ICommandContext ctx)
             => ctx.GetModel<BattlePrefsModel>().ShowWreckHeatmap;
+    }
+
+    /// <summary>
+    /// 设置游戏速度倍率（写 <see cref="BattlePrefsModel"/>；导演订阅它写 <c>Time.timeScale</c>，<b>即时生效</b>）。
+    /// HUD 速度按钮经此命令写；不落盘（会话内跨局保持、重启回 1×）。
+    /// </summary>
+    public readonly struct SetSimSpeedCommand : ICommand
+    {
+        public readonly float Speed;
+
+        public SetSimSpeedCommand(float speed) => Speed = speed;
+
+        public void Execute(ICommandContext ctx) => ctx.GetModel<BattlePrefsModel>().SimSpeed.Value = Speed;
+    }
+
+    /// <summary>游戏速度倍率的只读订阅源（HUD 速度按钮回显当前倍率用）。</summary>
+    public readonly struct GetSimSpeedCommand : ICommand<ReadOnlyReactiveProperty<float>>
+    {
+        public ReadOnlyReactiveProperty<float> Execute(ICommandContext ctx)
+            => ctx.GetModel<BattlePrefsModel>().SimSpeed;
     }
 }

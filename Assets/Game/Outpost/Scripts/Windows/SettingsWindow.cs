@@ -16,7 +16,7 @@ using UnityEngine.UIElements;
 namespace Game.Outpost.Windows
 {
     /// <summary>
-    /// 设置弹窗（Popup + Modal，压在标题页上）：音量三滑条 + 语言切换 + 战斗后端选择 + 泥地热力图开关 + 扩展内容下载。
+    /// 设置弹窗（Popup + Modal，压在标题页上）：音量三滑条 + 语言切换 + 战斗后端选择 + 扩展内容下载。
     /// <b>本窗只是遥控器</b>——音量真源在 <c>IAudioUtility</c>、语言真源在 <c>ILocalizationUtility.Locale</c>、
     /// 后端偏好真源在 <c>BattlePrefsModel</c>（经命令读写，下一局生效）、扩展包安装态真源在 <c>IAssetUtility</c>
     /// 的包状态；改动即时生效在各真源上，关窗时一次 <see cref="SaveSettingsCommand"/> 收口落盘（不随滑条拖动高频写盘）。
@@ -98,21 +98,6 @@ namespace Game.Outpost.Windows
             {
                 ecsBtn.EnableInClassList("op-btn--lang-active", b == BattleSimBackend.Ecs);
                 refBtn.EnableInClassList("op-btn--lang-active", b == BattleSimBackend.Reference);
-            });
-
-            // 泥地热力图（残骸减速泥地的可视化）：纯表现开关，切换即时生效（战斗导演订阅偏好直通渲染层）。
-            Bag.BindLocalizedText(Root.Q<Label>("heatmap-label"), "settings/heatmap");
-            Bag.BindLocalizedText(Root.Q<Label>("heatmap-hint"), "settings/heatmap-hint");
-            var hmOn = Root.Q<Button>("heatmap-on");
-            var hmOff = Root.Q<Button>("heatmap-off");
-            Bag.BindLocalizedText(hmOn, "common/on");
-            Bag.BindLocalizedText(hmOff, "common/off");
-            Bag.SubscribeClick(hmOn, () => this.ExecuteCommand(new SetWreckHeatmapCommand(true)));
-            Bag.SubscribeClick(hmOff, () => this.ExecuteCommand(new SetWreckHeatmapCommand(false)));
-            Bag.Subscribe(this.ExecuteCommand(new GetWreckHeatmapCommand()), on =>
-            {
-                hmOn.EnableInClassList("op-btn--lang-active", on);
-                hmOff.EnableInClassList("op-btn--lang-active", !on);
             });
 
             Bag.SubscribeClick(Root.Q<Button>("close"), () => this.GetUtility<IUIUtility>().Close(this));
