@@ -72,7 +72,9 @@ if (-not (Test-Path $resultsPath)) {
     exit 2
 }
 
-[xml]$xml = Get-Content $resultsPath
+# 用 File.ReadAllText 整读（自动按 BOM/UTF-8 解码）再 [xml] 转换。不要 [xml](Get-Content ...)：
+# PS 5.1 的 Get-Content 对无 BOM 的 UTF-8 按 ANSI 读，中文 CDATA（跳过原因/日志输出）会被读花、解析报错。
+[xml]$xml = [System.IO.File]::ReadAllText($resultsPath)
 $run = $xml."test-run"
 $total = [int]$run.total; $passed = [int]$run.passed; $failed = [int]$run.failed; $skipped = [int]$run.skipped
 
