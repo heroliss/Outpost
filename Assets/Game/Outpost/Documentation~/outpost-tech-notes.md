@@ -59,6 +59,8 @@
 
 内核只发领域事件，[`BattleDirectorSystem`](../Scripts/Battle/BattleDirectorSystem.cs) 翻成 Unity 表现。**开火与命中刻意拆成两条事件**：
 
+> ⚠ **M7（ADR-0031）修订**：改真弹道后 `TurretFired` 只带 `Direction`（删 `aim`/`hit` 字段——命中由物理决定），`EnemyHit` 改在**弹着帧**触发。下表是 M7 前的 hitscan 语义，读作历史；现状见 [§7 M7 档案节](#2026-07--m7-真弹道碰撞--残骸减速泥地--推挤adr-0031)。
+
 | 事件 | 语义 | 驱动的表现 |
 |---|---|---|
 | `TurretFired(aim, hit)` | 炮管吐了一发（命中或空放都发） | 炮口闪光、后坐、曳光（含火墙里转向途中的空放火舌） |
@@ -76,9 +78,11 @@
 
 ## 5. 为什么不做子弹碰撞检测（关键取舍）
 
+> ⚠ **本节结论已被 M7 修订（2026-07-12，见 [§7 的「M7 真弹道」档案节](#2026-07--m7-真弹道碰撞--残骸减速泥地--推挤adr-0031) 与 ADR-0031）**：hitscan 已改为**飞行弹 + 扫掠碰撞**。保留本节是因为它诚实记录了当时的取舍——而且它结尾"什么时候才该重新考虑真子弹"精准预言了 M7 的动机（把规模压力推向另一个数量级、让后端差异肉眼可见）。当时的判断在**当时的目标（真实规模两后端都够快）下成立**；M7 改变的是目标（刻意把真实玩法推进 Reference 会掉帧的量级），不是当时推理有错。下面读作历史。
+
 > 这一节回答一个自然会冒出来的问题：既然曳光在"飞"，飞行途中新出现 / 移入弹道的敌人要不要算命中？是不是得上碰撞检测？
 
-**结论：不做碰撞检测，也不做会飞的子弹实体。当前的"逐 tick 炮口锥内 hitscan"就是更好的办法。** 理由：
+**（M7 前的结论）不做碰撞检测，也不做会飞的子弹实体。当前的"逐 tick 炮口锥内 hitscan"就是更好的办法。** 理由：
 
 1. **敌人不会凭空出现在弹道中间**。敌人只在竞技场边缘（半径 13）出生、径直向内走；炮塔只打进了射程（≤11）的敌人。所谓"飞行途中新出现的敌人"，其实是从射程外慢慢走进来的——等它进了炮口锥，炮塔的**连续逐 tick 开火**下一发（高射速时几毫秒后）就打中它了。曳光那 0.2s 的视觉飞行与伤害无关。
 2. **连续重算 = 天然覆盖新来者**。伤害每 tick 对"当前锥内最近敌人"重新结算。高射速下炮口锥每帧重新求解，等于对锥内做"连续光束"——任何进入锥内的敌人都在 ~1 帧内被打中，无需追踪某一发飞行中的子弹。
@@ -177,3 +181,13 @@ sim.Start(setup);
 - **为什么**：接缝从 M1 起就为这一天准备——「先 OOP 后 DOTS」被数字反向印证：真实平台期（~1900 同屏）两后端都远离帧预算（0.38 vs 0.52ms），第一天上 DOTS 属过度设计；规模推到万级后 Reference 线性逼近帧预算、Ecs 曲线平缓出一个数量级余量。开火循环不并行化是规则保真优先（并行会改「逐发择目标」语义）；「尸堆减速场」压测候选放弃（为压测加规则不值当）。框架侧零改动——既有原语（System 驱动/Model 推送/事件翻译层）原样接住 ECS 后端，DOTS 专用模块留待可复用样板成形再立项。
 - **落点**：[`Sim.Ecs/EcsBattleSim.cs`](../Sim.Ecs/EcsBattleSim.cs)（组件/三 job/后端本体单文件）+ [`Game.Outpost.Sim.Ecs.asmdef`](../Sim.Ecs/Game.Outpost.Sim.Ecs.asmdef)、[`Sim/BattleSimTuning.cs`](../Sim/BattleSimTuning.cs) / [`SimMath.cs`](../Sim/SimMath.cs)（规格共享抽取，`ReferenceBattleSim` 同步改引）、[`BattleDirectorSystem.cs`](../Scripts/Battle/BattleDirectorSystem.cs)（枚举 `Ecs` 分支）、场景 `OutpostBattle`（`_backend` = Ecs）、`Packages/manifest.json`（com.unity.entities 1.4.7）；全景见 [ADR-0030](../../../../docs/adr/0030-outpost-ecs-battle-backend.md)。
 - **后端切换入口（随后补）**：设置窗「战斗后端」二选一——真源 [`BattlePrefsModel`](../Scripts/Battle/BattlePrefsModel.cs)（根 Context 跨局常驻），窗口经 `SetBattleBackendCommand` 写 / `GetBattleBackendCommand` 只读订阅高亮（View 不碰 Model 的标准姿势）；导演每局开局采样一次＝**下一局生效**（模拟是一次性实例、不做局中热切——状态迁移含 RNG 内部态，不值得为演示开关加接缝）；持久化进 `OutpostSettings.BattleBackend`（-1=未选过，兼容老存档缺字段）。同批把托管优先级改为**增程雷达最优先**（射程仅两级却决定拦截窗口物理上限；无头 60 波重验证：稳态与旧顺序相同，仅改变成长期节奏）。
+
+### 2026-07 · M7 真弹道碰撞 + 残骸减速泥地 + 推挤（ADR-0031）
+
+- **现象**：hitscan 改为**飞行弹**——炮口吐出的青色弹丸真的在飞（HUD 性能行多了「弹」计数），未命中的飞出场外才消散、途中仍可命中射程外敌人；密集平台期弹一出膛就撞上目标（在飞数≈0），稀疏时同屏上百。残骸首次有了模拟意义：**尸堆越厚敌人走得越慢**（减速泥地），设置窗可开「泥地热力图」直读密度格（越亮减速越狠）；敌人还会把身旁残骸**拱到一边**（纯表现）。**核心收益**：设置窗切 OOP，真实平台期后期肉眼掉帧（p95 14ms 破帧预算）；切回 Ecs 满帧——后端置换的收益从"数字"变成"手感"。
+- **方案**：① 真弹道——击发逻辑不变，每发生成弹丸沿炮口方向直飞（火墙 ±2° 确定性散布，消耗 RNG 双后端同序）；命中 = **扫掠线段 vs 圆**（`SimMath.SegmentCircleHitT`，弹速 0.8u/tick 远大于炮灰半径、逐点判定会隧穿），取位移段上最早交点。`FindNearestInCone` 退役、`FindNearestInRange`（回转目标 + 停火判定）保留。② 泥地——**均匀密度网格**（不是四叉树/AABB：查询模式固定是"点采样密度"，均匀格最便宜且无浮点比较分支、两后端可逐位一致），击杀/自爆令所在 cell +1、环形上限复写，敌移速 ×= `max(SlowFloor,1−SlowPer×cell计数)`。规则本身，不是优化——两后端 O(1) 同实现。③ 事件时序——`TurretFired` 删 `Aim`/`Hit` 只留 `Direction`，`EnemyHit` 改在**弹着帧**触发、位置=弹着点；M6 那套「音频弹着对拍」人工延迟（`ScheduleSfx`/`FlushPendingSfx`/`FlightDelay`/`TracerFlightSpeed`）**整套删除**——真弹道让音画天然同帧，为对拍加的延迟随规则演进变多余。④ 表现——`SwarmRenderer` 加弹丸绘制（拖尾菱形按方向定向、1023 分批）+ 推挤通道（表现残骸网格邻格查询、原位重写已烘焙矩阵、单具漂移上限 0.8u < 格边长保证不动摇模拟记账格位）+ 泥地热力图（读 `IBattleSim.WreckGrid`/`GetWreckCellCount`）。
+- **对拍两级（含新维度）**：关 Burst 12 波 5437 tick **逐 tick 逐位全等**，且**逐格比对泥地密度网格全等**——两条新规则移植零偏差。开 Burst 前 5 波完全相等、w6 起一次溅射击杀归属在 ulp 分叉处易主（击杀数仍逐波相等、得分固定差 5~10、清波 tick 漂移 ≤1），比 M6 的 w22 提前（弹道对浮点更敏感），但归属漂移量级不变——仍是「同一个游戏、不是逐位同一局」，复用并加了「密度网格逐格比对」维度。
+- **性能对照（编辑器，Ecs 开 Burst vs Reference 纯托管）**：真实平台期（w23-24，~2920 敌 + 290 弹）Reference **p95 14.2ms** vs Ecs **5.27ms**（~2.6×，Reference 叠加渲染即破 60fps）；合成压力（慢弹拉到千级在飞：~1500 敌 + **1623 弹**）Reference **avg 39ms**（崩到 15-25fps）vs Ecs **12ms**（~3.3×）。两后端 O(P×N) 同算法，差距纯来自 Burst + 连续内存 + 并行移动。**验收目标"切 OOP 后期肉眼掉帧、切回 Ecs 满帧"用真实玩法达成，而非合成基准。**
+- **平衡**：真弹道引入 DPS 交付延迟（弹飞 ~0.3s）与穿排收益（弹打穿先死目标继续命中同线后敌）；无头托管 60 波长跑仍不死、平台期单波最低血 63~77%（消耗约 3~4 成），只动 `waverole.json`（炮灰 `maxCount` 3800→4500、突袭机 120→150）补漏怪。
+- **踩坑（Play 冒烟发现）**：推挤通道原按「实际拱动数」扣预算——成熟战场残骸多已到漂移上限（只被判定不被推、`continue` 不扣预算）→ 最坏扫遍全部敌人×邻格残骸（~80 万次/帧）无界。改按「**检视残骸数**」扣预算（`PushScanBudgetPerFrame=8000` 次距离判定/帧封顶）：成本单位在逐具距离判定、不在实际拱动，这样才真正封顶最坏扫描。教训与 M3「每帧预算 vs 按时间限流」同源——**预算要扣在真正的成本单位上，不是扣在"成功事件"上**。
+- **落点**：[`Sim/IBattleSim.cs`](../Sim/IBattleSim.cs)（`ProjectileSnapshot`/`WreckGridInfo` + `TurretFiredEvent` 删字段 + 弹着帧 `EnemyHit`）、[`Sim/BattleSetup.cs`](../Sim/BattleSetup.cs)（`PlayerSetup` +3 弹丸参数 + `WreckFieldSetup`）、[`Sim/SimMath.cs`](../Sim/SimMath.cs)（`SegmentCircleHitT`/`WreckCellIndex`）、[`Sim/ReferenceBattleSim.cs`](../Sim/ReferenceBattleSim.cs) / [`Sim.Ecs/EcsBattleSim.cs`](../Sim.Ecs/EcsBattleSim.cs)（弹丸 `List`/`NativeList` + `ProjectileJob` + `MoveJob` 泥地采样 + 密度环形记账）、[`Scripts/Battle/SwarmRenderer.cs`](../Scripts/Battle/SwarmRenderer.cs)（`DrawProjectiles`/推挤通道/热力图）、[`OutpostMeshes.cs`](../Scripts/Battle/OutpostMeshes.cs)（弹丸/quad mesh）、[`BattleDirectorSystem.cs`](../Scripts/Battle/BattleDirectorSystem.cs)（删曳光/弹着延迟、热力图订阅、弹着帧音效）、[`BattlePrefsModel`](../Scripts/Battle/BattlePrefsModel.cs)/[`BattleCommands.cs`](../Scripts/Battle/BattleCommands.cs)（热力图开关）、`BattleModel`/`BattleQueries`/`BattleHudView`（弹丸数）、`SettingsWindow`/`OutpostSettings`/`SettingsCommands`（热力图设置项）、`Configs~`（BattleGlobal +7 字段 + waverole 重标定）；全景见 [ADR-0031](../../../../docs/adr/0031-outpost-real-projectiles-wreck-interaction.md)。

@@ -16,6 +16,12 @@ namespace Game.Outpost.Battle
     /// <para><b>残骸层</b>：死亡不是消失——每具尸体短促落定后烘焙进<b>静态实例批次</b>永久留存（环形上限复写），
     /// 战场地面逐渐积出击杀分布的"历史地图"。这既是千级击杀率下的可读反馈（爆炸特效有每帧预算、残骸没有），
     /// 也是实例化渲染的持续压力源：数万静态实例的矩阵/颜色只在落定时写一次，每帧直接提交缓存数组、零 CPU 重建。</para>
+    /// <para><b>弹丸层</b>：在飞弹丸每帧直接从模拟快照实例化绘制（真弹道下同屏数百上千，逐弹 GameObject 不可行），
+    /// 拖尾菱形按飞行方向定向、HDR 亮色触发 Bloom 读成光痕。</para>
+    /// <para><b>残骸互动（纯表现）</b>：推挤通道让存活敌人把身旁已烘焙残骸拱开——邻格查询走表现层残骸网格、
+    /// 每帧推挤预算限流（超出轮转到下帧）、单具累计漂移有上限（小于模拟密度格边长，表现位移不动摇模拟侧记账所在格）；
+    /// 泥地热力图按开关叠加绘制<b>模拟侧</b>密度格（读 <see cref="IBattleSim.WreckGrid"/>，残骸越密该格越亮），
+    /// 是"残骸是防御地形"这条规则的直读可视化。</para>
     /// </summary>
     public sealed class SwarmRenderer : MonoBehaviour
     {
@@ -33,6 +39,22 @@ namespace Game.Outpost.Battle
 
         private const int BatchSize = 1023; // DrawMeshInstanced 单批上限
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+        // ── 弹丸层 ──────────────────────────────────────────────────────────
+
+        private const float ProjectileZ = -0.3f;       // 单位(0)之前、脉冲(-0.2)之后——弹流叠在敌人海上但不压特效
+        private const float ProjectileLength = 0.55f;  // 拖尾总长（世界单位）：约为单帧位移的 1.4 倍，读成运动光痕
+        private static readonly Color ProjectileColor = new(0.9f, 3.2f, 3.0f, 1f); // HDR 青白（Bloom 辉光）
+
+        // ── 泥地热力图 ──────────────────────────────────────────────────────
+
+        /// <summary>泥地热力图开关（设置窗即时生效；纯表现，读模拟侧密度格绘制）。</summary>
+        public bool WreckHeatmapVisible { get; set; }
+
+        private const float HeatmapZ = 0.42f;                                   // 地板(0.5)与地面环(0.3)之间：垫底不遮内容
+        private static readonly Color HeatCold = new(0.10f, 0.045f, 0.02f, 1f); // 低密度：暗琥珀（略亮于地板）
+        private static readonly Color HeatHot = new(1.8f, 0.55f, 0.12f, 1f);    // 高密度：HDR 橙红（Bloom 发热感）
+        private float _heatmapFullCount = 50f; // 亮度饱和密度（director 按配置传入 = 减速到下限所需残骸数）
 
         // 每敌人的动画状态（出生 / 白闪时刻 + 呼吸相位）——director 按模拟事件增删，键为敌人实例 id。
         private struct UnitAnim
@@ -68,12 +90,18 @@ namespace Game.Outpost.Battle
             public float Z;
         }
 
-        // 已落定残骸的静态烘焙批次：矩阵/颜色只在入队时写一次，逐帧把缓存数组原样交给 DrawMeshInstanced。
+        // 已落定残骸的静态烘焙批次：矩阵/颜色只在入队时写一次，逐帧把缓存数组原样交给 DrawMeshInstanced
+        //（推挤通道是唯一的事后改写方：原位重写被拱动残骸的矩阵，数组对象不变、提交路径零改动）。
         // 环形复写：写满 _wreckCap 后从最老的槽位覆盖——个体被替换在数万残骸的战场上几乎不可察觉。
+        // Pos/Angle/Z/Drift 是按槽位对齐的推挤工作数据（slot = 批次序 × BatchSize + 批内序）。
         private sealed class WreckBuffer
         {
             public readonly List<Matrix4x4[]> Matrices = new();
             public readonly List<Vector4[]> Colors = new();
+            public readonly List<Vector2> Pos = new();
+            public readonly List<float> Angle = new();
+            public readonly List<float> Z = new();
+            public readonly List<float> Drift = new(); // 累计漂移（≥ PushMaxDrift 后不再被推）
             public int Count; // 当前留存数（≤ 上限）
             public int Next;  // 环形写入游标
         }
@@ -82,14 +110,44 @@ namespace Game.Outpost.Battle
         private readonly Dictionary<int, WreckBuffer> _wrecks = new();
         private int _bakedWreckCount; // 已落定总数（性能行展示；环形复写后停在上限）
 
+        // ── 推挤通道（纯表现）───────────────────────────────────────────────
+
+        // 漂移上限刻意小于模拟密度格边长（1.0）：残骸怎么被拱都不会离开模拟记账所在格的邻域，
+        // 泥地减速的"看见尸堆=看见减速区"直觉不被表现位移破坏；也保证拱动只是让路、不会清出通道。
+        private const float PushMaxDrift = 0.8f;
+        private const float PushCellSize = 1.0f;   // 表现残骸网格边长（与模拟格无关，只服务邻格查询）
+        // 每帧「检视预算」：残骸怎么处置的成本在逐具距离判定上（不在实际拱动上）——成熟战场里大量残骸已到漂移上限、
+        // 只被判定不被推。预算按<b>检视一具残骸</b>扣（无论是否真推），才能真正封顶最坏开销；超出从轮转游标续到下帧，
+        // 海量敌人下所有个体轮流获得推挤机会。8000 次距离判定/帧 ≪ 1ms，与「敌×邻格残骸」无界扫描相比恒定可控。
+        private const int PushScanBudgetPerFrame = 8000;
+        private const float PushStep = 0.45f;      // 每次拱动吃掉的重叠比例（<1：多帧渐推，读成挤开而非弹飞）
+
+        // 表现残骸网格：cell → 该格内已烘焙残骸的 (原型 id, 槽位)。烘焙登记、环形复写换血、推挤跨格时迁移。
+        private List<(int arch, int slot)>[] _pushGrid;
+        private int _pushGridDim;
+        private float _pushGridHalf;
+        private int _pushCursor; // 敌人轮转起点：本帧预算耗尽时，下帧从这里继续（所有敌人轮流获得推挤机会）
+
         // 分批绘制缓冲（跨帧复用，零逐帧分配）。
         private readonly Matrix4x4[] _matrices = new Matrix4x4[BatchSize];
         private readonly Vector4[] _colors = new Vector4[BatchSize];
 
-        /// <summary>战斗开始时由 director 调用：注入表现参数表并准备实例化材质。</summary>
-        public void Init(Dictionary<int, EnemyVisual> visuals)
+        /// <summary>
+        /// 战斗开始时由 director 调用：注入表现参数表并准备实例化材质与推挤网格。
+        /// <paramref name="arenaRadius"/> 定表现残骸网格的覆盖范围；<paramref name="heatmapFullCount"/> 是
+        /// 热力图亮度饱和的每格残骸数（按配置传"减速到下限所需的密度"，热力图亮度与减速规则同刻度）。
+        /// </summary>
+        public void Init(Dictionary<int, EnemyVisual> visuals, float arenaRadius, float heatmapFullCount)
         {
             _visuals = visuals;
+            _heatmapFullCount = Mathf.Max(1f, heatmapFullCount);
+
+            // 表现残骸网格覆盖 ±(场地+3)：残骸出生点在场内，滑出与推挤都不会越过这个边距。
+            _pushGridHalf = arenaRadius + 3f;
+            _pushGridDim = Mathf.Max(1, Mathf.CeilToInt(_pushGridHalf * 2f / PushCellSize));
+            _pushGrid = new List<(int, int)>[_pushGridDim * _pushGridDim];
+            _pushCursor = 0;
+
             var shader = _shader != null ? _shader : Shader.Find("Outpost/SwarmUnlit");
             if (shader == null)
             {
@@ -157,16 +215,20 @@ namespace Game.Outpost.Battle
         public int WreckCount => _bakedWreckCount + _settling.Count;
 
         /// <summary>
-        /// 绘制当前帧的全部存活敌人（director 每帧调用）。按原型分组遍历模拟快照、
-        /// 逐实例算矩阵与颜色、满批即提交——绘制次数 ≈ 敌人数 / 1023 × 原型种数。
+        /// 绘制当前帧的战场（director 每帧调用）：泥地热力图（按开关）→ 残骸 → 存活敌人 → 在飞弹丸，
+        /// 随后跑一轮推挤（存活敌人拱开身旁残骸，预算限流）。敌人按原型分组遍历模拟快照、
+        /// 逐实例算矩阵与颜色、满批即提交——绘制次数 ≈ 实例数 / 1023 × 网格种数。
         /// </summary>
         public void Render(IBattleSim sim)
         {
             if (_material == null || _visuals == null || sim == null) return;
 
             float now = Time.time;
+            if (WreckHeatmapVisible) DrawWreckHeatmap(sim);
             PromoteSettledWrecks(now);
             DrawWrecks(now);
+            DrawProjectiles(sim);
+            PushWrecksByEnemies(sim);
             int total = sim.EnemyCount;
 
             // 按原型分批：外层枚举原型（种类少），内层扫全量快照挑出该原型——O(种类×n) 纯数值遍历，
@@ -277,7 +339,7 @@ namespace Game.Outpost.Battle
             }
         }
 
-        // 把一具残骸写进该原型的环形批次（矩阵/颜色从此不再变化）。
+        // 把一具残骸写进该原型的环形批次（矩阵/颜色此后只被推挤通道原位改写），并登记进推挤网格。
         private void BakeWreck(int archetypeId, in EnemyVisual v, Vector2 pos, float z, float angleDeg)
         {
             if (!_wrecks.TryGetValue(archetypeId, out var buf))
@@ -295,12 +357,198 @@ namespace Game.Outpost.Battle
                 Quaternion.Euler(0f, 0f, angleDeg), Vector3.one * (v.Diameter * WreckScale));
             buf.Colors[b][k] = AshColor(v.Color);
 
+            // 推挤工作数据按槽位对齐；环形复写 = 旧残骸换血，先把旧登记摘出网格。
+            if (slot < buf.Pos.Count)
+            {
+                PushGridRemove(PushCellOf(buf.Pos[slot]), archetypeId, slot);
+                buf.Pos[slot] = pos;
+                buf.Angle[slot] = angleDeg;
+                buf.Z[slot] = z;
+                buf.Drift[slot] = 0f;
+            }
+            else
+            {
+                buf.Pos.Add(pos);
+                buf.Angle.Add(angleDeg);
+                buf.Z.Add(z);
+                buf.Drift.Add(0f);
+            }
+            PushGridAdd(PushCellOf(pos), archetypeId, slot);
+
             buf.Next = (buf.Next + 1) % _wreckCap;
             if (buf.Count < _wreckCap)
             {
                 buf.Count++;
                 _bakedWreckCount++;
             }
+        }
+
+        // ── 推挤通道内部 ────────────────────────────────────────────────────
+
+        // 表现残骸网格的格索引（越界钳边；与模拟侧密度格同式但互不相关——这张网格只服务邻格查询）。
+        private int PushCellOf(Vector2 p)
+        {
+            int ix = Mathf.Clamp(Mathf.FloorToInt((p.x + _pushGridHalf) / PushCellSize), 0, _pushGridDim - 1);
+            int iy = Mathf.Clamp(Mathf.FloorToInt((p.y + _pushGridHalf) / PushCellSize), 0, _pushGridDim - 1);
+            return iy * _pushGridDim + ix;
+        }
+
+        private void PushGridAdd(int cell, int arch, int slot)
+        {
+            var list = _pushGrid[cell];
+            if (list == null) _pushGrid[cell] = list = new List<(int, int)>(8);
+            list.Add((arch, slot));
+        }
+
+        private void PushGridRemove(int cell, int arch, int slot)
+        {
+            var list = _pushGrid[cell];
+            if (list == null) return;
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                if (list[i].arch != arch || list[i].slot != slot) continue;
+                list[i] = list[^1];
+                list.RemoveAt(list.Count - 1);
+                return;
+            }
+        }
+
+        // 存活敌人拱开身旁残骸：从轮转游标起逐敌查所在格 ±1 的已烘焙残骸，体积重叠即沿"敌→残骸"方向
+        // 推掉部分重叠并原位重写矩阵（带槽位交替的滚转扰动，读成被碾开）。每帧「检视残骸」次数有预算（见常量），
+        // 耗尽停在当前敌人、下帧从游标续——海量敌人时所有个体轮流获得推挤机会，不会某一片永远推不动。
+        private void PushWrecksByEnemies(IBattleSim sim)
+        {
+            if (_pushGrid == null || _bakedWreckCount == 0) return;
+            int total = sim.EnemyCount;
+            if (total == 0) return;
+
+            int budget = PushScanBudgetPerFrame;
+            if (_pushCursor >= total) _pushCursor = 0;
+            int start = _pushCursor;
+            for (int n = 0; n < total && budget > 0; n++)
+            {
+                int idx = start + n;
+                if (idx >= total) idx -= total;
+                var snap = sim.GetEnemy(idx);
+                if (!_visuals.TryGetValue(snap.ArchetypeId, out var ev)) continue;
+                float er = ev.Diameter * 0.5f;
+                var epos = new Vector2(snap.Position.X, snap.Position.Y);
+
+                int cx = Mathf.Clamp(Mathf.FloorToInt((epos.x + _pushGridHalf) / PushCellSize), 0, _pushGridDim - 1);
+                int cy = Mathf.Clamp(Mathf.FloorToInt((epos.y + _pushGridHalf) / PushCellSize), 0, _pushGridDim - 1);
+                for (int oy = -1; oy <= 1; oy++)
+                {
+                    int gy = cy + oy;
+                    if (gy < 0 || gy >= _pushGridDim) continue;
+                    for (int ox = -1; ox <= 1; ox++)
+                    {
+                        int gx = cx + ox;
+                        if (gx < 0 || gx >= _pushGridDim) continue;
+                        var list = _pushGrid[gy * _pushGridDim + gx];
+                        if (list == null) continue;
+                        for (int i = list.Count - 1; i >= 0 && budget > 0; i--)
+                        {
+                            budget--; // 检视一具残骸即一次距离判定＝成本单位，无论是否真推（封顶最坏扫描开销）
+                            var (arch, slot) = list[i];
+                            var buf = _wrecks[arch];
+                            float drift = buf.Drift[slot];
+                            if (drift >= PushMaxDrift) continue; // 漂移到顶：拱不动了（保持格位可信，见常量注释）
+                            if (!_visuals.TryGetValue(arch, out var wv)) continue;
+
+                            var wpos = buf.Pos[slot];
+                            var d = wpos - epos;
+                            float contact = er + wv.Diameter * WreckScale * 0.5f;
+                            float distSq = d.sqrMagnitude;
+                            if (distSq >= contact * contact) continue;
+
+                            float dist = Mathf.Sqrt(distSq);
+                            // 完全重合（弹着点就是死亡点的常见情形）：沿敌人来袭的径向让开。
+                            var dir = dist > 1e-4f ? d / dist
+                                : (epos.sqrMagnitude > 1e-4f ? epos.normalized : Vector2.right);
+                            float move = Mathf.Min((contact - dist) * PushStep, PushMaxDrift - drift);
+                            if (move <= 0.005f) continue;
+
+                            wpos += dir * move;
+                            buf.Pos[slot] = wpos;
+                            buf.Drift[slot] = drift + move;
+                            float ang = buf.Angle[slot] + ((slot & 1) == 0 ? 1f : -1f) * move * 90f;
+                            buf.Angle[slot] = ang;
+                            buf.Matrices[slot / BatchSize][slot % BatchSize] = Matrix4x4.TRS(
+                                new Vector3(wpos.x, wpos.y, buf.Z[slot]),
+                                Quaternion.Euler(0f, 0f, ang),
+                                Vector3.one * (wv.Diameter * WreckScale));
+
+                            // 跨格迁移登记（漂移上限 < 格边长，至多挪进邻格）。
+                            int newCell = PushCellOf(wpos);
+                            if (newCell != gy * _pushGridDim + gx)
+                            {
+                                list[i] = list[^1];
+                                list.RemoveAt(list.Count - 1);
+                                PushGridAdd(newCell, arch, slot);
+                            }
+                        }
+                    }
+                }
+                _pushCursor = idx + 1;
+            }
+        }
+
+        // ── 弹丸层内部 ──────────────────────────────────────────────────────
+
+        // 在飞弹丸的实例化绘制：拖尾菱形按飞行方向定向，全弹同色同网格（分批只按 1023 上限切）。
+        private void DrawProjectiles(IBattleSim sim)
+        {
+            int count = sim.ProjectileCount;
+            if (count == 0) return;
+            var mesh = OutpostMeshes.Projectile;
+            var scale = Vector3.one * ProjectileLength;
+            int batch = 0;
+            for (int i = 0; i < count; i++)
+            {
+                var p = sim.GetProjectile(i);
+                float ang = Mathf.Atan2(p.Direction.Y, p.Direction.X) * Mathf.Rad2Deg;
+                _matrices[batch] = Matrix4x4.TRS(new Vector3(p.Position.X, p.Position.Y, ProjectileZ),
+                    Quaternion.Euler(0f, 0f, ang), scale);
+                _colors[batch] = ProjectileColor;
+                batch++;
+                if (batch == BatchSize)
+                {
+                    Flush(mesh, batch);
+                    batch = 0;
+                }
+            }
+            if (batch > 0) Flush(mesh, batch);
+        }
+
+        // ── 泥地热力图内部 ──────────────────────────────────────────────────
+
+        // 模拟侧密度格直读绘制：非零格画一块贴地色块，密度越高越亮（√ 曲线抬低密度可见性），
+        // 亮度在 _heatmapFullCount（按配置 = 减速到下限所需密度）处饱和——热力图刻度即减速刻度。
+        private void DrawWreckHeatmap(IBattleSim sim)
+        {
+            var grid = sim.WreckGrid;
+            if (grid.Dim <= 0) return;
+            var mesh = OutpostMeshes.UnitQuad;
+            var scale = new Vector3(grid.CellSize * 0.92f, grid.CellSize * 0.92f, 1f); // 留缝，读成网格而非色斑
+            int cells = grid.Dim * grid.Dim;
+            int batch = 0;
+            for (int i = 0; i < cells; i++)
+            {
+                int c = sim.GetWreckCellCount(i);
+                if (c <= 0) continue;
+                float x = (i % grid.Dim + 0.5f) * grid.CellSize - grid.Half;
+                float y = (i / grid.Dim + 0.5f) * grid.CellSize - grid.Half;
+                float t = Mathf.Sqrt(Mathf.Clamp01(c / _heatmapFullCount));
+                _matrices[batch] = Matrix4x4.TRS(new Vector3(x, y, HeatmapZ), Quaternion.identity, scale);
+                _colors[batch] = Color.Lerp(HeatCold, HeatHot, t);
+                batch++;
+                if (batch == BatchSize)
+                {
+                    Flush(mesh, batch);
+                    batch = 0;
+                }
+            }
+            if (batch > 0) Flush(mesh, batch);
         }
 
         // 余烬色：原型色压向灰再整体压暗——保留一点色相供辨认"这片死的是什么"，亮度垫在地板与活体之间。

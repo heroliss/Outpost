@@ -34,4 +34,24 @@ namespace Game.Outpost.Battle
         public ReadOnlyReactiveProperty<BattleSimBackend> Execute(ICommandContext ctx)
             => ctx.GetModel<BattlePrefsModel>().Backend;
     }
+
+    /// <summary>
+    /// 开关泥地热力图（写入 <see cref="BattlePrefsModel"/>；纯表现开关，<b>即时生效</b>——
+    /// 战斗导演订阅该偏好直通渲染层）。落盘随关窗的设置快照。
+    /// </summary>
+    public readonly struct SetWreckHeatmapCommand : ICommand
+    {
+        public readonly bool Show;
+
+        public SetWreckHeatmapCommand(bool show) => Show = show;
+
+        public void Execute(ICommandContext ctx) => ctx.GetModel<BattlePrefsModel>().ShowWreckHeatmap.Value = Show;
+    }
+
+    /// <summary>泥地热力图开关状态的只读订阅源（设置窗高亮回显用）。</summary>
+    public readonly struct GetWreckHeatmapCommand : ICommand<ReadOnlyReactiveProperty<bool>>
+    {
+        public ReadOnlyReactiveProperty<bool> Execute(ICommandContext ctx)
+            => ctx.GetModel<BattlePrefsModel>().ShowWreckHeatmap;
+    }
 }

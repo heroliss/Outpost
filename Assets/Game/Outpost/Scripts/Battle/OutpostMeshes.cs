@@ -16,6 +16,8 @@ namespace Game.Outpost.Battle
         private static Mesh _dart;
         private static Mesh _needle;
         private static Mesh _octagon;
+        private static Mesh _projectile;
+        private static Mesh _unitQuad;
 
         /// <summary>快速种：指向行进方向的箭头（本地 +X 为箭尖，<see cref="EnemyView"/> 逐帧转向来袭方向 = 冲向哨站）。</summary>
         public static Mesh Arrowhead
@@ -65,6 +67,46 @@ namespace Game.Outpost.Battle
         public static Mesh UnitDisc
         {
             get { if (_unitDisc == null) _unitDisc = BuildPolygon("OutpostUnitDisc", 48, 0f, 1f); return _unitDisc; }
+        }
+
+        /// <summary>在飞弹丸：细长拖尾菱形（尖头朝本地 +X、总长 1），按飞行方向旋转、整体缩放到弹长——高速直飞读成一道光痕。</summary>
+        public static Mesh Projectile
+        {
+            get { if (_projectile == null) _projectile = BuildProjectile(); return _projectile; }
+        }
+
+        /// <summary>1×1 轴对齐正方形（中心原点）：泥地热力图的密度格色块，按格边长缩放平铺。</summary>
+        public static Mesh UnitQuad
+        {
+            get
+            {
+                if (_unitQuad == null)
+                {
+                    var v = new[]
+                    {
+                        new Vector3(-0.5f, -0.5f, 0f),
+                        new Vector3(-0.5f, 0.5f, 0f),
+                        new Vector3(0.5f, 0.5f, 0f),
+                        new Vector3(0.5f, -0.5f, 0f),
+                    };
+                    _unitQuad = Build("OutpostUnitQuad", v, new[] { 0, 1, 2, 0, 2, 3 });
+                }
+                return _unitQuad;
+            }
+        }
+
+        // 拖尾菱形：前 30% 是尖头、后 70% 收成细尾，宽仅 0.14——缩放后不糊成圆点、方向可读。
+        private static Mesh BuildProjectile()
+        {
+            var v = new[]
+            {
+                new Vector3(0.5f, 0f, 0f),     // 0 弹头（+X）
+                new Vector3(0.2f, 0.07f, 0f),  // 1 上肩
+                new Vector3(-0.5f, 0f, 0f),    // 2 尾尖
+                new Vector3(0.2f, -0.07f, 0f)  // 3 下肩
+            };
+            var t = new[] { 0, 1, 2, 0, 2, 3 };
+            return Build("OutpostProjectile", v, t);
         }
 
         // 凹尾飞镖：箭尖朝本地 +X，整体落在半径约 0.6 内，缩放后与其他原型体型可比。

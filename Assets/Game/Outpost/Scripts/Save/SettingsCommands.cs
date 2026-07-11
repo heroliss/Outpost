@@ -33,8 +33,10 @@ namespace Game.Outpost.Save
                     ctx.GetUtility<ILocalizationUtility>().SetLocale(settings.Locale);
 
                 // 战斗后端偏好：-1 = 没选过（含老存档缺字段），保持 Model 默认（Ecs）。
+                var prefs = ctx.GetModel<Battle.BattlePrefsModel>();
                 if (settings.BattleBackend >= 0)
-                    ctx.GetModel<Battle.BattlePrefsModel>().Backend.Value = (Battle.BattleSimBackend)settings.BattleBackend;
+                    prefs.Backend.Value = (Battle.BattleSimBackend)settings.BattleBackend;
+                prefs.ShowWreckHeatmap.Value = settings.WreckHeatmap;
 
                 // 扩展包已安装：后台补一次初始化（拉版本/清单，内容已在缓存不重下）——不 await，
                 // 启动不等它；音频侧按包状态懒加载，init 未完成前的战斗用默认曲、下一场自然接上。
@@ -68,6 +70,7 @@ namespace Game.Outpost.Save
                 Locale = ctx.GetUtility<ILocalizationUtility>().Locale.CurrentValue,
                 ExpansionInstalled = IsExpansionInstalled(ctx.GetUtility<IAssetUtility>()),
                 BattleBackend = (int)ctx.GetModel<Battle.BattlePrefsModel>().Backend.CurrentValue,
+                WreckHeatmap = ctx.GetModel<Battle.BattlePrefsModel>().ShowWreckHeatmap.CurrentValue,
             };
             try
             {

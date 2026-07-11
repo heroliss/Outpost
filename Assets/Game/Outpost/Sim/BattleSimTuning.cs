@@ -22,7 +22,10 @@ namespace Game.Outpost.Sim
         /// <summary>无上限射速下单帧最多发数（防病态循环；远超玩法所需）。</summary>
         public const int MaxShotsPerTick = 64;
 
-        /// <summary>有效射速间隔低于此即进「火墙」：炮口未对准也持续击发（边转边扫、空放不结算伤害）。</summary>
+        /// <summary>有效射速间隔低于此即进「火墙」：炮口未对准也持续击发（边转边扫），并带 <see cref="FirehoseSpreadDeg"/> 散布。</summary>
         public const float FirehoseFireInterval = 0.06f;
+
+        /// <summary>火墙击发的散布半角（度，均匀分布 ±此值；点射无散布）。散布消耗种子 RNG——两后端消耗顺序一致是对拍契约的一部分。</summary>
+        public const float FirehoseSpreadDeg = 2f;
     }
 }

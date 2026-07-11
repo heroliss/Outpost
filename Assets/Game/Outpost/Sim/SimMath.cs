@@ -33,5 +33,37 @@ namespace Game.Outpost.Sim
             if (maxDelta >= Math.Abs(d)) return NormalizeDeg(target);
             return NormalizeDeg(cur + Math.Sign(d) * maxDelta);
         }
+
+        // ── 弹道 / 泥地几何（标量入参：托管与 Burst 两侧逐式一致，无向量类型实现差异）────
+
+        /// <summary>
+        /// 扫掠线段 vs 圆求交：起点 (px,py)、位移 (dx,dy)、圆心 (cx,cy)、半径 r。
+        /// 返回首个交点参数 t ∈ [0,1]（弹着点 = 起点 + t×位移）；无交返回 -1。起点已在圆内视为 t=0 命中。
+        /// 弹丸单 tick 位移可大于小型敌人半径（隧穿），逐点判定不可用——这是弹着判定的规格公式。
+        /// </summary>
+        public static float SegmentCircleHitT(float px, float py, float dx, float dy, float cx, float cy, float r)
+        {
+            float mx = px - cx, my = py - cy;
+            float c = mx * mx + my * my - r * r;
+            if (c <= 0f) return 0f;                 // 起点已在圆内
+            float a = dx * dx + dy * dy;
+            if (a <= 0f) return -1f;                // 零位移
+            float b = mx * dx + my * dy;            // 半 b（m·d）
+            if (b >= 0f) return -1f;                // 在圆外且正在远离
+            float disc = b * b - a * c;
+            if (disc < 0f) return -1f;
+            float t = (-b - (float)Math.Sqrt(disc)) / a;
+            return t <= 1f ? t : -1f;
+        }
+
+        /// <summary>残骸密度格索引：坐标 (x,y) 落进覆盖 ±half、边长 cellSize、维度 dim×dim 的网格（越界钳到边缘格）。</summary>
+        public static int WreckCellIndex(float x, float y, float half, float cellSize, int dim)
+        {
+            int ix = (int)Math.Floor((x + half) / cellSize);
+            int iy = (int)Math.Floor((y + half) / cellSize);
+            if (ix < 0) ix = 0; else if (ix >= dim) ix = dim - 1;
+            if (iy < 0) iy = 0; else if (iy >= dim) iy = dim - 1;
+            return iy * dim + ix;
+        }
     }
 }

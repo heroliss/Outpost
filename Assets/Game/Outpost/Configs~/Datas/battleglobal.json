@@ -14,6 +14,13 @@
     "playerMaxRange": 11,
     "splashRadius": 2.2,
     "splashDamageScale": 0.6,
+    "projectileSpeed": 24,
+    "projectileRadius": 0.06,
+    "projectileDespawnRadius": 30,
+    "wreckCellSize": 1.0,
+    "wreckSlowPerCount": 0.012,
+    "wreckSlowFloor": 0.4,
+    "wreckSimCap": 20000,
     "arenaRadius": 13,
     "interWaveDelay": 1.5,
     "resultDelay": 1.2

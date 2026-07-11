@@ -34,6 +34,13 @@ public sealed partial class BattleGlobal : Luban.BeanBase
         PlayerMaxRange = _buf.ReadFloat();
         SplashRadius = _buf.ReadFloat();
         SplashDamageScale = _buf.ReadFloat();
+        ProjectileSpeed = _buf.ReadFloat();
+        ProjectileRadius = _buf.ReadFloat();
+        ProjectileDespawnRadius = _buf.ReadFloat();
+        WreckCellSize = _buf.ReadFloat();
+        WreckSlowPerCount = _buf.ReadFloat();
+        WreckSlowFloor = _buf.ReadFloat();
+        WreckSimCap = _buf.ReadInt();
         ArenaRadius = _buf.ReadFloat();
         InterWaveDelay = _buf.ReadFloat();
         ResultDelay = _buf.ReadFloat();
@@ -105,6 +112,34 @@ public sealed partial class BattleGlobal : Luban.BeanBase
     /// </summary>
     public readonly float SplashDamageScale;
     /// <summary>
+    /// 弹丸飞行速度（单位/秒）。命中非 hitscan：击发产生真实弹丸沿炮口方向直飞、扫掠碰撞在弹着帧结算
+    /// </summary>
+    public readonly float ProjectileSpeed;
+    /// <summary>
+    /// 弹丸碰撞半径（与敌人半径相加做扫掠求交）
+    /// </summary>
+    public readonly float ProjectileRadius;
+    /// <summary>
+    /// 弹丸消散半径：飞离原点超过此距离才消失（远大于射程——未命中弹继续飞、途中仍可命中射程外敌人）。在飞弹数量主旋钮：越大并发越多、模拟碰撞负载越高
+    /// </summary>
+    public readonly float ProjectileDespawnRadius;
+    /// <summary>
+    /// 残骸减速泥地：密度格边长（世界单位）。网格覆盖 &#177;(arenaRadius+1)
+    /// </summary>
+    public readonly float WreckCellSize;
+    /// <summary>
+    /// 残骸减速：每具残骸贡献的减速量（如 0.012 = 每具 -1.2% 移速）
+    /// </summary>
+    public readonly float WreckSlowPerCount;
+    /// <summary>
+    /// 残骸减速下限乘数（如 0.4 = 最慢降到 40% 移速）
+    /// </summary>
+    public readonly float WreckSlowFloor;
+    /// <summary>
+    /// 模拟侧残骸留存上限（环形复写）。≤0=整个泥地机制关闭。与表现层残骸各自独立记账
+    /// </summary>
+    public readonly int WreckSimCap;
+    /// <summary>
     /// 敌人出生环半径
     /// </summary>
     public readonly float ArenaRadius;
@@ -142,6 +177,13 @@ public sealed partial class BattleGlobal : Luban.BeanBase
         + "playerMaxRange:" + PlayerMaxRange + ","
         + "splashRadius:" + SplashRadius + ","
         + "splashDamageScale:" + SplashDamageScale + ","
+        + "projectileSpeed:" + ProjectileSpeed + ","
+        + "projectileRadius:" + ProjectileRadius + ","
+        + "projectileDespawnRadius:" + ProjectileDespawnRadius + ","
+        + "wreckCellSize:" + WreckCellSize + ","
+        + "wreckSlowPerCount:" + WreckSlowPerCount + ","
+        + "wreckSlowFloor:" + WreckSlowFloor + ","
+        + "wreckSimCap:" + WreckSimCap + ","
         + "arenaRadius:" + ArenaRadius + ","
         + "interWaveDelay:" + InterWaveDelay + ","
         + "resultDelay:" + ResultDelay + ","

@@ -41,5 +41,8 @@ namespace Game.Outpost.Save
         /// 保持 <c>BattlePrefsModel</c> 的默认；运行时真源在该 Model，这里只是落盘快照。
         /// </summary>
         public int BattleBackend = -1;
+
+        /// <summary>泥地热力图开关（默认关；运行时真源在 <c>BattlePrefsModel</c>，这里只是落盘快照）。</summary>
+        public bool WreckHeatmap;
     }
 }

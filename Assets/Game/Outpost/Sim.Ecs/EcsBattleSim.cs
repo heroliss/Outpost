@@ -34,7 +34,7 @@ namespace Game.Outpost.Sim.Ecs
 
     // ── job 与主线程之间的记录结构（托管委托不能进 Burst，事件以缓冲带回按序重放）──
 
-    /// <summary>移动 job 里抵达接触距离的敌人（主线程按 id 升序重放自爆事件并销毁实体）。</summary>
+    /// <summary>移动 job 里抵达接触距离的敌人（主线程按 id 升序结算：伤害 + 泥地记账 + 事件 + 销毁实体）。</summary>
     internal struct Detonation
     {
         public Entity Entity;
@@ -44,25 +44,23 @@ namespace Game.Outpost.Sim.Ecs
         public float StatScale;
     }
 
-    /// <summary>开火 job 的一发记录（命中或空放），主线程据此重放 EnemyHit / TurretFired 并写回幸存者血量。</summary>
-    internal struct ShotRecord
+    /// <summary>弹丸 job 的一次弹着记录，主线程据此重放 EnemyHit 并写回幸存者血量。</summary>
+    internal struct HitRecord
     {
         public Entity Entity;
-        public byte Kind;    // 0 = 命中；1 = 空放（转向途中未对准）
         public byte Killed;
         public int EnemyId;
         public int ArchIndex;
-        public float2 Pos;   // 命中：敌人位置；空放：炮口方向在射程边缘的落点
+        public float2 Impact;   // 弹着点（事件位置 = 弹着点，非敌人中心）
         public float Damage;
         public float Splash;
         public float HpAfter;
     }
 
-    /// <summary>开火 job 读写的玩家侧聚合状态（打包成一个 NativeReference 进出 job）。</summary>
-    internal struct PlayerCombatState
+    /// <summary>弹丸 job 读写的玩家侧聚合状态（打包成一个 NativeReference 进出 job；拦截溅射在 job 内扣血）。</summary>
+    internal struct PlayerHitState
     {
         public float Hp;
-        public float Cooldown;
         public int Kills;
         public int Score;
     }
@@ -70,7 +68,7 @@ namespace Game.Outpost.Sim.Ecs
     // ── Burst jobs ─────────────────────────────────────────────────────────
 
     /// <summary>
-    /// 移动 + 抵达判定：并行遍历 chunk、原地写位置；抵达接触距离的入队待爆
+    /// 移动（含泥地减速）+ 抵达判定：并行遍历 chunk、原地写位置；抵达接触距离的入队待爆
     /// （伤害结算 / 事件 / 实体销毁回主线程做——结构变更与托管回调都不属于 job）。
     /// FloatMode.Strict：数学须与参考实现的托管 IEEE 运算逐位一致，禁 FMA / 重结合（对拍前提）。
     /// CompileSynchronously：编辑器里 Burst 默认异步编译、首次调度静默回退托管执行——性能度量会被污染，
@@ -87,6 +85,15 @@ namespace Game.Outpost.Sim.Ecs
         [ReadOnly] public EntityTypeHandle EntityHandle;
         public NativeQueue<Detonation>.ParallelWriter Detonations;
 
+        // 泥地减速（规则见 WreckFieldSetup）：按所在密度格打折移速。只读采样——记账在主线程与弹丸 job。
+        public byte WreckEnabled;
+        public float WreckHalf;
+        public float WreckCellSize;
+        public int WreckDim;
+        public float WreckSlowPer;
+        public float WreckSlowFloor;
+        [ReadOnly] public NativeArray<int> WreckCells;
+
         public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
         {
             var pos = chunk.GetNativeArray(ref PosHandle);
@@ -101,8 +108,16 @@ namespace Game.Outpost.Sim.Ecs
                 float dist = math.length(p);
                 if (dist > contact)
                 {
+                    float speed = arch.MoveSpeed;
+                    if (WreckEnabled != 0)
+                    {
+                        int cell = SimMath.WreckCellIndex(p.x, p.y, WreckHalf, WreckCellSize, WreckDim);
+                        float mult = 1f - WreckSlowPer * WreckCells[cell];
+                        if (mult < WreckSlowFloor) mult = WreckSlowFloor;
+                        speed *= mult;
+                    }
                     // 径直冲向原点，不越过接触距离（dist > contact > 0 保证不除零）——与参考实现逐式一致。
-                    float newDist = math.max(contact, dist - arch.MoveSpeed * Dt);
+                    float newDist = math.max(contact, dist - speed * Dt);
                     pos[i] = new EnemyPos { Value = p * (newDist / dist) };
                 }
                 else
@@ -147,170 +162,179 @@ namespace Game.Outpost.Sim.Ecs
     }
 
     /// <summary>
-    /// 开火循环（单线程 Burst）：整段 shots 循环在 job 内跑完——每发选炮口锥内最近目标、结算伤害与拦截溅射、
-    /// 击杀 swap-remove。循环本质是顺序语义（后一发的目标取决于前一发的击杀），并行化只会改变规则，
-    /// 提速全靠 Burst 编译 + 快照数组的连续内存。事件记录进 <see cref="Shots"/> 由主线程按序重放。
+    /// 弹丸推进 + 扫掠弹着结算（单线程 Burst）：逐弹把本 tick 位移段与快照数组里的全体存活敌人求交、
+    /// 取最早交点——O(P×N) 与参考实现同一算法（刻意不加空间分区，保持「同算法、不同执行模型」的干净对比），
+    /// 提速全靠 Burst 编译 + 连续内存。循环是顺序语义（前一发的击杀改变后一发的战场），事件以
+    /// <see cref="Hits"/> 缓冲带回主线程按序重放；击杀的泥地记账在 job 内完成（与弹着同序）。
     /// </summary>
     [BurstCompile(FloatMode = FloatMode.Strict, CompileSynchronously = true)]
-    internal struct CombatJob : IJob
+    internal struct ProjectileJob : IJob
     {
-        public float Dt;
-        public float2 MuzzleDir;
-        public float2 BarrelPoint;
-        public float Attack;
-        public float Range;
-        public float AttackInterval;
+        public float Step;              // 本 tick 弹丸位移长度（速度 × dt）
+        public float ProjRadius;
+        public float DespawnSq;
         public float SplashRadius;
         public float SplashDamageScale;
-        public float AimToleranceCosSq;
-        public float FirehoseInterval;
-        public int MaxShots;
         [ReadOnly] public NativeArray<EnemyArchetype> Archetypes;
-        public NativeArray<float2> Pos;
-        public NativeArray<float> Hp;
-        public NativeArray<EnemyMeta> Meta;
-        public NativeArray<Entity> Entities;
-        public NativeReference<int> Count;
-        public NativeReference<PlayerCombatState> Player;
-        public NativeList<ShotRecord> Shots;
+
+        // 敌人快照数组（gather 后；击杀在此 swap-remove，即当帧终态）
+        public NativeArray<float2> EnemyPos;
+        public NativeArray<float> EnemyHp;
+        public NativeArray<EnemyMeta> EnemyMeta;
+        public NativeArray<Entity> EnemyEntities;
+        public NativeReference<int> EnemyCount;
+
+        // 在飞弹丸（SoA 三列表；命中 / 出界在此 swap-remove）
+        public NativeList<float2> ProjPos;
+        public NativeList<float2> ProjDir;
+        public NativeList<float> ProjDamage;
+
+        public NativeReference<PlayerHitState> Player;
+        public NativeList<HitRecord> Hits;
         public NativeList<Entity> KilledEntities;
+
+        // 泥地记账（击杀侧）：与主线程自爆侧共用同一批容器，逻辑与参考实现 AddWreck 逐行同式。
+        public byte WreckEnabled;
+        public float WreckHalf;
+        public float WreckCellSize;
+        public int WreckDim;
+        public NativeArray<int> WreckCells;
+        public NativeArray<int> WreckRing;
+        public NativeReference<int2> WreckRingState; // x = Next（环形游标）, y = Count（当前留存数）
 
         public void Execute()
         {
-            int count = Count.Value;
+            int count = EnemyCount.Value;
             var player = Player.Value;
-            float rangeSq = Range * Range;
 
-            player.Cooldown -= Dt;
-            bool firehose = AttackInterval < FirehoseInterval;
-            int shots = 0;
-            // 循环内敌人不移动、空放不改战场——锥一旦扫空整个 tick 都空，"射程内尚有敌"也只需查一次（与参考实现同款缓存）。
-            bool coneEmpty = false;
-            bool anyInRange = true, anyInRangeChecked = false;
-            while (player.Cooldown <= 0f && shots < MaxShots)
+            for (int i = 0; i < ProjPos.Length; )
             {
-                int t = coneEmpty ? -1 : FindNearestInCone(count, rangeSq);
-                if (t >= 0)
+                float2 pos = ProjPos[i];
+                float2 dir = ProjDir[i];
+                float dx = dir.x * Step, dy = dir.y * Step;
+
+                int best = -1;
+                float bestT = float.MaxValue;
+                for (int j = 0; j < count; j++)
                 {
-                    float2 p = Pos[t];
-                    var m = Meta[t];
+                    float2 ep = EnemyPos[j];
+                    float t = SimMath.SegmentCircleHitT(pos.x, pos.y, dx, dy, ep.x, ep.y,
+                        Archetypes[EnemyMeta[j].ArchIndex].Radius + ProjRadius);
+                    if (t >= 0f && t < bestT)
+                    {
+                        bestT = t;
+                        best = j;
+                    }
+                }
+
+                if (best >= 0)
+                {
+                    var impact = new float2(pos.x + dx * bestT, pos.y + dy * bestT);
+                    var m = EnemyMeta[best];
                     var arch = Archetypes[m.ArchIndex];
-                    Entity ent = Entities[t];
-                    float hp = Hp[t] - Attack;
+                    Entity ent = EnemyEntities[best];
+                    float damage = ProjDamage[i];
+                    float hp = EnemyHp[best] - damage;
                     bool killed = hp <= 0f;
                     float splash = 0f;
                     if (killed)
                     {
-                        // 拦截溅射：离基地过近处击毁，弹头冲击波连带削基地（越近越疼）——与参考实现逐式一致。
-                        float dist = math.length(p);
+                        // 拦截溅射：按弹着点距离（与参考实现逐式一致）。
+                        float dist = math.length(impact);
                         if (SplashRadius > 0f && dist < SplashRadius)
                         {
                             float proximity = 1f - dist / SplashRadius;
                             splash = arch.Attack * m.StatScale * SplashDamageScale * proximity;
                             player.Hp = math.max(0f, player.Hp - splash);
                         }
-                        player.Kills++;
-                        player.Score += arch.Score;
+                        AddWreck(impact);
                         KilledEntities.Add(ent);
                         // swap-remove：末位补位，保持工作数组紧凑（索引顺序变化已在接口契约声明）。
                         count--;
-                        Pos[t] = Pos[count];
-                        Hp[t] = Hp[count];
-                        Meta[t] = Meta[count];
-                        Entities[t] = Entities[count];
+                        EnemyPos[best] = EnemyPos[count];
+                        EnemyHp[best] = EnemyHp[count];
+                        EnemyMeta[best] = EnemyMeta[count];
+                        EnemyEntities[best] = EnemyEntities[count];
+                        player.Kills++;
+                        player.Score += arch.Score;
                     }
                     else
                     {
-                        Hp[t] = hp;
+                        EnemyHp[best] = hp;
                     }
-                    Shots.Add(new ShotRecord
+                    Hits.Add(new HitRecord
                     {
                         Entity = ent,
-                        Kind = 0,
                         Killed = (byte)(killed ? 1 : 0),
                         EnemyId = m.Id,
                         ArchIndex = m.ArchIndex,
-                        Pos = p,
-                        Damage = Attack,
+                        Impact = impact,
+                        Damage = damage,
                         Splash = splash,
                         HpAfter = hp,
                     });
+                    RemoveProjectileAt(i);
+                    continue; // swap-remove：原位换入末位弹，不前进
                 }
-                else
-                {
-                    coneEmpty = true;
-                    if (!anyInRangeChecked)
-                    {
-                        anyInRange = FindNearestInRange(count, rangeSq) >= 0;
-                        anyInRangeChecked = true;
-                    }
-                    if (!firehose || !anyInRange) break; // 低射速静默 / 射程内已空：停火
-                    Shots.Add(new ShotRecord { Kind = 1, Pos = BarrelPoint });
-                }
-                player.Cooldown += AttackInterval;
-                shots++;
-            }
-            if (player.Cooldown < 0f) player.Cooldown = 0f;
 
-            Count.Value = count;
+                pos = new float2(pos.x + dx, pos.y + dy);
+                if (math.lengthsq(pos) >= DespawnSq)
+                {
+                    RemoveProjectileAt(i);
+                    continue;
+                }
+                ProjPos[i] = pos;
+                i++;
+            }
+
+            EnemyCount.Value = count;
             Player.Value = player;
         }
 
-        // 炮口锥内、射程内的最近敌人索引；无则 -1。点积判定与参考实现逐式一致（BattleSimTuning.AimToleranceCosSq 同源）。
-        private int FindNearestInCone(int count, float rangeSq)
+        private void RemoveProjectileAt(int i)
         {
-            int best = -1;
-            float bestSq = rangeSq;
-            for (int i = 0; i < count; i++)
-            {
-                float2 p = Pos[i];
-                float dsq = math.lengthsq(p);
-                if (dsq > bestSq) continue;
-                float dot = MuzzleDir.x * p.x + MuzzleDir.y * p.y;
-                if (dot <= 0f || dot * dot < AimToleranceCosSq * dsq) continue;
-                bestSq = dsq;
-                best = i;
-            }
-            return best;
+            ProjPos.RemoveAtSwapBack(i);
+            ProjDir.RemoveAtSwapBack(i);
+            ProjDamage.RemoveAtSwapBack(i);
         }
 
-        private int FindNearestInRange(int count, float rangeSq)
+        // 泥地记账：与参考实现 AddWreck / 主线程自爆侧逐行同式（残骸所在格 +1，环形上限挤掉最老的）。
+        private void AddWreck(float2 pos)
         {
-            int best = -1;
-            float bestSq = rangeSq;
-            for (int i = 0; i < count; i++)
-            {
-                float dsq = math.lengthsq(Pos[i]);
-                if (dsq <= bestSq)
-                {
-                    bestSq = dsq;
-                    best = i;
-                }
-            }
-            return best;
+            if (WreckEnabled == 0) return;
+            int cell = SimMath.WreckCellIndex(pos.x, pos.y, WreckHalf, WreckCellSize, WreckDim);
+            var rs = WreckRingState.Value;
+            if (rs.y == WreckRing.Length) WreckCells[WreckRing[rs.x]]--;
+            else rs.y++;
+            WreckRing[rs.x] = cell;
+            rs.x = (rs.x + 1) % WreckRing.Length;
+            WreckCells[cell]++;
+            WreckRingState.Value = rs;
         }
     }
 
     // ── 后端本体 ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// <see cref="IBattleSim"/> 的 DOTS 后端：与 <see cref="ReferenceBattleSim"/> 同一套规则规格，
-    /// 存储换 Entities chunk（SoA 连续内存）、热路径换 Burst 编译的 job——移动并行（<see cref="MoveJob"/>），
-    /// 开火循环单线程保顺序语义（<see cref="CombatJob"/>）。规则数学与参考实现逐式对齐、判定阈值同源
-    /// （<see cref="BattleSimTuning"/>），同 Setup + 同 Tick 序列可与参考实现对拍。
+    /// <see cref="IBattleSim"/> 的 DOTS 后端：与 <see cref="ReferenceBattleSim"/> 同一套规则规格（真弹道扫掠碰撞 +
+    /// 残骸减速泥地，ADR-0031），存储换 Entities chunk（SoA 连续内存）、热路径换 Burst job——移动并行
+    /// （<see cref="MoveJob"/>），弹丸碰撞单线程保顺序语义（<see cref="ProjectileJob"/>，O(P×N) 与参考实现同算法）。
+    /// 规则数学与参考实现逐式对齐、判定阈值与几何公式同源（<see cref="BattleSimTuning"/> / <see cref="SimMath"/>），
+    /// 同 Setup + 同 Tick 序列可与参考实现对拍。
     /// </summary>
     /// <remarks>
     /// <b>驱动形态</b>：自建独立 <see cref="World"/>、不进 player loop、不用 SystemGroup——接缝契约是外部逐帧
     /// <see cref="Tick"/>、事件在调用栈内同步返回，因此所有 job 当帧 Complete，事件以记录缓冲带回主线程按序重放
-    /// （托管委托不能进 Burst）。实体只有敌人；玩家是单例状态，留在托管字段、进出 job 打包成 <see cref="PlayerCombatState"/>。<br/>
-    /// <b>快照</b>：每 Tick 从 chunk 收集一次工作数组（位置/血量/元数据/实体句柄），开火 job 在其上 swap-remove 后
+    /// （托管委托不能进 Burst）。实体只有敌人；弹丸生命周期短、无异构原型，直存 NativeList（SoA 三列表）不进 chunk；
+    /// 玩家是单例状态，留在托管字段、进出 job 打包成 <see cref="PlayerHitState"/>。回转 / 炮口 / 击发循环留在托管侧
+    /// （与参考实现同一 System.Math 路径，规避 Burst libm 与 .NET 在超越函数上的 ulp 级差异进对拍；击发本身 O(发数) 极轻）。<br/>
+    /// <b>快照</b>：每 Tick 从 chunk 收集一次工作数组（位置/血量/元数据/实体句柄），弹丸 job 在其上 swap-remove 后
     /// 即为当帧终态——<see cref="GetEnemy"/> 直接读它（O(1)，表现层逐帧全量遍历友好），
-    /// 不 Tick 的阶段（WaveCleared / Defeat / 波间）快照保持有效。chunk 仍是权威存储：血量稀疏写回、击杀批量销毁。<br/>
-    /// <b>与参考实现的可观察差异</b>（对拍以聚合值为准，ADR-0030）：同帧多个自爆的事件顺序为实例 id 升序
-    /// （参考实现是存活列表倒序索引）——每次扣血独立 <c>max(0,·)</c> 收敛、聚合结果与次序无关，只影响事件流里
-    /// HpAfter 的中间值序列；<see cref="GetEnemy"/> 的索引顺序是 chunk 序而非列表序（接口本就声明索引顺序不稳定）。<br/>
-    /// <b>三角函数留在托管侧</b>：回转 / 炮口方向用 <see cref="Math"/>（与参考实现同一路径），
-    /// 规避 Burst libm 与 .NET 在超越函数上的 ulp 级差异放大成对拍分歧；job 内只有 IEEE 定义严格的加乘除/开方。
+    /// 不 Tick 的阶段（WaveCleared / Defeat / 波间）快照与在飞弹丸保持有效（全场冻结语义）。
+    /// chunk 仍是权威存储：血量稀疏写回、击杀批量销毁。<br/>
+    /// <b>与参考实现的可观察差异</b>（对拍以聚合值为准）：<see cref="GetEnemy"/> 的索引顺序是 chunk 序而非列表序
+    /// （接口本就声明索引顺序不稳定，仅影响极端浮点全等时的选靶平票）；开 Burst 后原生码与 Mono JIT 存在 ulp 级
+    /// 浮点差异（ADR-0030 结论）。同帧自爆结算顺序（id 升序）、泥地记账顺序、RNG 消耗顺序均已是两后端共同契约。
     /// </remarks>
     public sealed class EcsBattleSim : IBattleSim
     {
@@ -352,13 +376,27 @@ namespace Game.Outpost.Sim.Ecs
         private NativeList<Entity> _snapEntities;
         private int _aliveCount;
 
+        // 在飞弹丸（SoA 三列表，Persistent）：击发在托管侧 Add、弹丸 job 内 swap-remove；GetProjectile 直读。
+        private NativeList<float2> _projPos;
+        private NativeList<float2> _projDir;
+        private NativeList<float> _projDamage;
+
         private NativeQueue<Detonation> _detonations;
         private readonly List<Detonation> _detScratch = new();
-        private NativeList<ShotRecord> _shots;
+        private NativeList<HitRecord> _hits;
         private NativeList<Entity> _killedEntities;
         private NativeReference<int> _countRef;
-        private NativeReference<PlayerCombatState> _playerRef;
+        private NativeReference<PlayerHitState> _playerRef;
         private NativeReference<int> _bestRef;
+
+        // 泥地（密度格 + 创建序环形缓冲）：主线程（自爆）与弹丸 job（击杀）共写，job 全部当帧 Complete 无竞争。
+        private NativeArray<int> _wreckCells;
+        private NativeArray<int> _wreckRing;
+        private NativeReference<int2> _wreckRingState;
+        private byte _wreckEnabled;
+        private float _wreckGridHalf;
+        private int _wreckGridDim;
+
         private bool _disposed;
 
         public BattlePhase Phase { get; private set; } = BattlePhase.Idle;
@@ -374,6 +412,7 @@ namespace Game.Outpost.Sim.Ecs
         public int Kills { get; private set; }
         public int Score { get; private set; }
         public int EnemyCount => _aliveCount;
+        public int ProjectileCount => _projPos.IsCreated ? _projPos.Length : 0;
 
         public event Action<EnemySpawnedEvent> EnemySpawned;
         public event Action<EnemyHitEvent> EnemyHit;
@@ -389,6 +428,18 @@ namespace Game.Outpost.Sim.Ecs
             var arch = _archetypes[m.ArchIndex];
             return new EnemySnapshot(m.Id, arch.Id, new Vector2(p.x, p.y), _snapHp[index], arch.MaxHp * m.StatScale);
         }
+
+        public ProjectileSnapshot GetProjectile(int index)
+        {
+            var p = _projPos[index];
+            var d = _projDir[index];
+            return new ProjectileSnapshot(new Vector2(p.x, p.y), new Vector2(d.x, d.y));
+        }
+
+        public WreckGridInfo WreckGrid
+            => _wreckEnabled == 0 ? default : new WreckGridInfo(_wreckGridDim, _setup.WreckField.CellSize, _wreckGridHalf);
+
+        public int GetWreckCellCount(int index) => _wreckCells[index];
 
         public void Start(BattleSetup setup)
         {
@@ -419,12 +470,34 @@ namespace Game.Outpost.Sim.Ecs
             _snapHp = new NativeList<float>(1024, Allocator.Persistent);
             _snapMeta = new NativeList<EnemyMeta>(1024, Allocator.Persistent);
             _snapEntities = new NativeList<Entity>(1024, Allocator.Persistent);
+            _projPos = new NativeList<float2>(512, Allocator.Persistent);
+            _projDir = new NativeList<float2>(512, Allocator.Persistent);
+            _projDamage = new NativeList<float>(512, Allocator.Persistent);
             _detonations = new NativeQueue<Detonation>(Allocator.Persistent);
-            _shots = new NativeList<ShotRecord>(256, Allocator.Persistent);
+            _hits = new NativeList<HitRecord>(256, Allocator.Persistent);
             _killedEntities = new NativeList<Entity>(256, Allocator.Persistent);
             _countRef = new NativeReference<int>(Allocator.Persistent);
-            _playerRef = new NativeReference<PlayerCombatState>(Allocator.Persistent);
+            _playerRef = new NativeReference<PlayerHitState>(Allocator.Persistent);
             _bestRef = new NativeReference<int>(Allocator.Persistent);
+
+            var wf = setup.WreckField;
+            _wreckEnabled = (byte)(wf.SimCap > 0 ? 1 : 0);
+            if (_wreckEnabled != 0)
+            {
+                _wreckGridHalf = setup.ArenaRadius + 1f;
+                _wreckGridDim = Math.Max(1, (int)Math.Ceiling(_wreckGridHalf * 2f / wf.CellSize));
+                _wreckCells = new NativeArray<int>(_wreckGridDim * _wreckGridDim, Allocator.Persistent);
+                _wreckRing = new NativeArray<int>(wf.SimCap, Allocator.Persistent);
+            }
+            else
+            {
+                // 机制关闭：给 job 挂 1 长度的占位容器（job 字段必须有效）。
+                _wreckGridHalf = 1f;
+                _wreckGridDim = 1;
+                _wreckCells = new NativeArray<int>(1, Allocator.Persistent);
+                _wreckRing = new NativeArray<int>(1, Allocator.Persistent);
+            }
+            _wreckRingState = new NativeReference<int2>(Allocator.Persistent);
 
             BeginWave(1);
         }
@@ -469,14 +542,15 @@ namespace Game.Outpost.Sim.Ecs
             if (deltaTime <= 0f || Phase != BattlePhase.WaveActive) return;
 
             TickSpawns(deltaTime);
-            MoveAndDetonate(deltaTime);
+            MoveAndDetonate(deltaTime);   // 移动（含泥地减速）+ 抵达自爆（id 序结算）
             if (CheckDefeat())
             {
                 GatherSnapshot(); // 终局帧也要刷新快照：表现层还要画残余敌人海
                 return;
             }
-            TickPlayer(deltaTime);
-            if (CheckDefeat()) return; // 溅射致死：快照已在 TickPlayer 内更新为当帧终态
+            TickPlayer(deltaTime);        // 回血 + gather + 回转 + 击发（生成弹丸，托管）
+            TickProjectiles(deltaTime);   // 弹丸 job（推进 + 扫掠弹着 + 泥地记账）+ 事件回放
+            if (CheckDefeat()) return;    // 溅射致死：快照已是当帧终态
             CheckWaveEnd();
         }
 
@@ -499,12 +573,18 @@ namespace Game.Outpost.Sim.Ecs
             if (_snapHp.IsCreated) _snapHp.Dispose();
             if (_snapMeta.IsCreated) _snapMeta.Dispose();
             if (_snapEntities.IsCreated) _snapEntities.Dispose();
+            if (_projPos.IsCreated) _projPos.Dispose();
+            if (_projDir.IsCreated) _projDir.Dispose();
+            if (_projDamage.IsCreated) _projDamage.Dispose();
             if (_detonations.IsCreated) _detonations.Dispose();
-            if (_shots.IsCreated) _shots.Dispose();
+            if (_hits.IsCreated) _hits.Dispose();
             if (_killedEntities.IsCreated) _killedEntities.Dispose();
             if (_countRef.IsCreated) _countRef.Dispose();
             if (_playerRef.IsCreated) _playerRef.Dispose();
             if (_bestRef.IsCreated) _bestRef.Dispose();
+            if (_wreckCells.IsCreated) _wreckCells.Dispose();
+            if (_wreckRing.IsCreated) _wreckRing.Dispose();
+            if (_wreckRingState.IsCreated) _wreckRingState.Dispose();
             if (_world != null && _world.IsCreated) _world.Dispose();
             _world = null;
         }
@@ -574,7 +654,8 @@ namespace Game.Outpost.Sim.Ecs
 
         private void SpawnEnemy(int archIndex)
         {
-            // 出生角是唯一随机源，走托管 System.Random + System.Math——与参考实现共享同一 RNG 语义与三角实现（对拍前提）。
+            // 出生角走托管 System.Random + System.Math——与参考实现共享同一 RNG 语义与三角实现
+            // （消耗顺序：刷怪 → 击发散布，两后端一致，对拍前提）。
             double angle = _rng.NextDouble() * Math.PI * 2.0;
             var pos = new float2(
                 (float)Math.Cos(angle) * _setup.ArenaRadius,
@@ -592,6 +673,7 @@ namespace Game.Outpost.Sim.Ecs
 
         private void MoveAndDetonate(float dt)
         {
+            var wf = _setup.WreckField;
             var job = new MoveJob
             {
                 Dt = dt,
@@ -601,13 +683,21 @@ namespace Game.Outpost.Sim.Ecs
                 MetaHandle = _em.GetComponentTypeHandle<EnemyMeta>(true),
                 EntityHandle = _em.GetEntityTypeHandle(),
                 Detonations = _detonations.AsParallelWriter(),
+                WreckEnabled = _wreckEnabled,
+                WreckHalf = _wreckGridHalf,
+                WreckCellSize = wf.CellSize,
+                WreckDim = _wreckGridDim,
+                WreckSlowPer = wf.SlowPerCount,
+                WreckSlowFloor = wf.SlowFloor,
+                WreckCells = _wreckCells,
             };
             job.ScheduleParallel(_query, default).Complete();
 
             if (_detonations.IsEmpty()) return;
             _detScratch.Clear();
             while (_detonations.TryDequeue(out var d)) _detScratch.Add(d);
-            // 并行入队次序不稳定，按实例 id 升序重放保证事件流可复现；每次扣血独立 max(0,·) 收敛，聚合结果与次序无关。
+            // 同帧自爆按实例 id 升序结算（两后端共同契约：事件流与泥地记账顺序可复现；
+            // 每次扣血独立 max(0,·) 收敛，聚合结果与次序无关）。
             _detScratch.Sort(static (a, b) => a.Id.CompareTo(b.Id));
 
             var toDestroy = new NativeArray<Entity>(_detScratch.Count, Allocator.Temp);
@@ -617,11 +707,26 @@ namespace Game.Outpost.Sim.Ecs
                 var arch = _archetypes[d.ArchIndex];
                 float dmg = arch.Attack * d.StatScale;
                 _playerHp = Math.Max(0f, _playerHp - dmg);
+                AddWreckManaged(d.Pos);
                 toDestroy[i] = d.Entity;
                 EnemyDetonated?.Invoke(new EnemyDetonatedEvent(d.Id, arch.Id, new Vector2(d.Pos.x, d.Pos.y), dmg, _playerHp));
             }
             _em.DestroyEntity(toDestroy);
             toDestroy.Dispose();
+        }
+
+        // 泥地记账（自爆侧，主线程）：与 ProjectileJob.AddWreck / 参考实现 AddWreck 逐行同式。
+        private void AddWreckManaged(float2 pos)
+        {
+            if (_wreckEnabled == 0) return;
+            int cell = SimMath.WreckCellIndex(pos.x, pos.y, _wreckGridHalf, _setup.WreckField.CellSize, _wreckGridDim);
+            var rs = _wreckRingState.Value;
+            if (rs.y == _wreckRing.Length) _wreckCells[_wreckRing[rs.x]]--;
+            else rs.y++;
+            _wreckRing[rs.x] = cell;
+            rs.x = (rs.x + 1) % _wreckRing.Length;
+            _wreckCells[cell]++;
+            _wreckRingState.Value = rs;
         }
 
         private void TickPlayer(float dt)
@@ -631,6 +736,7 @@ namespace Game.Outpost.Sim.Ecs
 
             GatherSnapshot();
 
+            // 射程内最近敌人（Burst 扫描）：既是开火资格判定，也是炮塔回转的目标。
             var scan = new NearestScanJob
             {
                 Pos = _snapPos.AsArray(),
@@ -647,55 +753,81 @@ namespace Game.Outpost.Sim.Ecs
                 return;
             }
 
-            // 回转与炮口方向的三角函数留在托管侧（理由见类型注释）；本 tick 内朝向不变，炮口落点也随之恒定，预算好传进 job。
+            // 回转与炮口三角函数留在托管侧（理由见类型注释）；击发循环 O(发数) 极轻，与参考实现逐行一致。
             var tpos = _snapPos[target];
             float desired = (float)(Math.Atan2(tpos.y, tpos.x) * Rad2Deg);
             _turretAngleDeg = SimMath.MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
 
             double muzzleRad = _turretAngleDeg / Rad2Deg;
             var muzzleDir = new float2((float)Math.Cos(muzzleRad), (float)Math.Sin(muzzleRad));
-            var barrelPoint = new float2(muzzleDir.x * _player.Range, muzzleDir.y * _player.Range);
+            bool aligned = Math.Abs(SimMath.DeltaAngleDeg(_turretAngleDeg, desired)) <= BattleSimTuning.AimToleranceDeg;
+            float effInterval = _player.AttackInterval;
+            bool firehose = effInterval < BattleSimTuning.FirehoseFireInterval;
 
-            _shots.Clear();
+            _playerAttackCooldown -= dt;
+            int shots = 0;
+            while (_playerAttackCooldown <= 0f && shots < BattleSimTuning.MaxShotsPerTick)
+            {
+                if (!firehose && !aligned) break; // 点射未对准：本 tick 静默（冷却由下方 clamp 兜住）
+                var dir = muzzleDir;
+                if (firehose)
+                {
+                    float off = (float)((_rng.NextDouble() * 2.0 - 1.0) * BattleSimTuning.FirehoseSpreadDeg);
+                    double rad = (_turretAngleDeg + off) / Rad2Deg;
+                    dir = new float2((float)Math.Cos(rad), (float)Math.Sin(rad));
+                }
+                _projPos.Add(default);
+                _projDir.Add(dir);
+                _projDamage.Add(_player.Attack);
+                TurretFired?.Invoke(new TurretFiredEvent(new Vector2(dir.x, dir.y)));
+                _playerAttackCooldown += effInterval;
+                shots++;
+            }
+            if (_playerAttackCooldown < 0f) _playerAttackCooldown = 0f;
+        }
+
+        private void TickProjectiles(float dt)
+        {
+            if (_projPos.Length == 0) return;
+
+            _hits.Clear();
             _killedEntities.Clear();
             _countRef.Value = _aliveCount;
-            _playerRef.Value = new PlayerCombatState
-            {
-                Hp = _playerHp,
-                Cooldown = _playerAttackCooldown,
-                Kills = Kills,
-                Score = Score,
-            };
+            _playerRef.Value = new PlayerHitState { Hp = _playerHp, Kills = Kills, Score = Score };
 
-            var combat = new CombatJob
+            var wf = _setup.WreckField;
+            var job = new ProjectileJob
             {
-                Dt = dt,
-                MuzzleDir = muzzleDir,
-                BarrelPoint = barrelPoint,
-                Attack = _player.Attack,
-                Range = _player.Range,
-                AttackInterval = _player.AttackInterval,
+                Step = _player.ProjectileSpeed * dt,
+                ProjRadius = _player.ProjectileRadius,
+                DespawnSq = _player.ProjectileDespawnRadius * _player.ProjectileDespawnRadius,
                 SplashRadius = _player.SplashRadius,
                 SplashDamageScale = _player.SplashDamageScale,
-                AimToleranceCosSq = BattleSimTuning.AimToleranceCosSq,
-                FirehoseInterval = BattleSimTuning.FirehoseFireInterval,
-                MaxShots = BattleSimTuning.MaxShotsPerTick,
                 Archetypes = _archetypes,
-                Pos = _snapPos.AsArray(),
-                Hp = _snapHp.AsArray(),
-                Meta = _snapMeta.AsArray(),
-                Entities = _snapEntities.AsArray(),
-                Count = _countRef,
+                EnemyPos = _snapPos.AsArray(),
+                EnemyHp = _snapHp.AsArray(),
+                EnemyMeta = _snapMeta.AsArray(),
+                EnemyEntities = _snapEntities.AsArray(),
+                EnemyCount = _countRef,
+                ProjPos = _projPos,
+                ProjDir = _projDir,
+                ProjDamage = _projDamage,
                 Player = _playerRef,
-                Shots = _shots,
+                Hits = _hits,
                 KilledEntities = _killedEntities,
+                WreckEnabled = _wreckEnabled,
+                WreckHalf = _wreckGridHalf,
+                WreckCellSize = wf.CellSize,
+                WreckDim = _wreckGridDim,
+                WreckCells = _wreckCells,
+                WreckRing = _wreckRing,
+                WreckRingState = _wreckRingState,
             };
-            combat.Schedule().Complete();
+            job.Schedule().Complete();
 
             _aliveCount = _countRef.Value;
             var st = _playerRef.Value;
             _playerHp = st.Hp;
-            _playerAttackCooldown = st.Cooldown;
             Kills = st.Kills;
             Score = st.Score;
 
@@ -703,24 +835,16 @@ namespace Game.Outpost.Sim.Ecs
             if (_killedEntities.Length > 0)
                 _em.DestroyEntity(_killedEntities.AsArray());
 
-            // 事件按 job 记录顺序重放（每发 EnemyHit 先于 TurretFired，与参考实现一致）；
-            // 幸存者血量稀疏写回 chunk——同一敌人同帧多次中弹按记录顺序覆盖、后死于后续发的用 Exists 挡掉（实体已销毁）。
-            for (int i = 0; i < _shots.Length; i++)
+            // 事件按 job 记录顺序重放（弹着次序 = 弹丸序，与参考实现一致）；幸存者血量稀疏写回 chunk——
+            // 同一敌人同帧多次中弹按记录顺序覆盖、后死于后续弹的用 Exists 挡掉（实体已销毁）。
+            for (int i = 0; i < _hits.Length; i++)
             {
-                var s = _shots[i];
-                if (s.Kind == 0)
-                {
-                    if (s.Killed == 0 && _em.Exists(s.Entity))
-                        _em.SetComponentData(s.Entity, new EnemyHp { Value = s.HpAfter });
-                    var arch = _archetypes[s.ArchIndex];
-                    var pos = new Vector2(s.Pos.x, s.Pos.y);
-                    EnemyHit?.Invoke(new EnemyHitEvent(s.EnemyId, arch.Id, pos, s.Damage, s.Killed != 0, s.Splash));
-                    TurretFired?.Invoke(new TurretFiredEvent(pos, true));
-                }
-                else
-                {
-                    TurretFired?.Invoke(new TurretFiredEvent(new Vector2(s.Pos.x, s.Pos.y), false));
-                }
+                var h = _hits[i];
+                if (h.Killed == 0 && _em.Exists(h.Entity))
+                    _em.SetComponentData(h.Entity, new EnemyHp { Value = h.HpAfter });
+                var arch = _archetypes[h.ArchIndex];
+                EnemyHit?.Invoke(new EnemyHitEvent(h.EnemyId, arch.Id,
+                    new Vector2(h.Impact.x, h.Impact.y), h.Damage, h.Killed != 0, h.Splash));
             }
         }
 
@@ -738,7 +862,7 @@ namespace Game.Outpost.Sim.Ecs
             for (int i = 0; i < _spawns.Length; i++)
                 if (_spawns[i].Remaining > 0) return;
 
-            // 波间维修（语义见参考实现 CheckWaveEnd 注释）。
+            // 波间维修（语义见参考实现 CheckWaveEnd 注释）。在飞弹丸不阻塞清波、随全场冻结，续波后继续飞。
             _playerHp = _player.MaxHp;
             Phase = BattlePhase.WaveCleared;
             WaveCleared?.Invoke(WaveIndex);

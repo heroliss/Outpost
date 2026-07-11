@@ -77,6 +77,13 @@
         <var name="playerMaxRange" type="float" comment="索敌半径升级上限（应小于 arenaRadius，留出拦截缓冲区；到顶后增程雷达不再出现）"/>
         <var name="splashRadius" type="float" comment="拦截溅射危险半径：在离基地小于此距离处击毁敌人，冲击波连带削基地（越近越疼；0=关闭）——近防炮'远处早拦'的张力来源"/>
         <var name="splashDamageScale" type="float" comment="溅射伤害系数：实际溅射 = 敌人自爆伤害 × 本系数 × 贴近度(0..1)"/>
+        <var name="projectileSpeed" type="float" comment="弹丸飞行速度（单位/秒）。命中非 hitscan：击发产生真实弹丸沿炮口方向直飞、扫掠碰撞在弹着帧结算"/>
+        <var name="projectileRadius" type="float" comment="弹丸碰撞半径（与敌人半径相加做扫掠求交）"/>
+        <var name="projectileDespawnRadius" type="float" comment="弹丸消散半径：飞离原点超过此距离才消失（远大于射程——未命中弹继续飞、途中仍可命中射程外敌人）。在飞弹数量主旋钮：越大并发越多、模拟碰撞负载越高"/>
+        <var name="wreckCellSize" type="float" comment="残骸减速泥地：密度格边长（世界单位）。网格覆盖 ±(arenaRadius+1)"/>
+        <var name="wreckSlowPerCount" type="float" comment="残骸减速：每具残骸贡献的减速量（如 0.012 = 每具 -1.2% 移速）"/>
+        <var name="wreckSlowFloor" type="float" comment="残骸减速下限乘数（如 0.4 = 最慢降到 40% 移速）"/>
+        <var name="wreckSimCap" type="int" comment="模拟侧残骸留存上限（环形复写）。≤0=整个泥地机制关闭。与表现层残骸各自独立记账"/>
         <var name="arenaRadius" type="float" comment="敌人出生环半径"/>
         <var name="interWaveDelay" type="float" comment="波间停留秒数（升级选择的最短展示时间）"/>
         <var name="resultDelay" type="float" comment="哨站失守后进结算的延迟秒数（留给终局表现）"/>

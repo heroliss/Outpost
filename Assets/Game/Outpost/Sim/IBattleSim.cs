@@ -58,7 +58,8 @@ namespace Game.Outpost.Sim
     }
 
     /// <summary>
-    /// 敌人被玩家击中（伤害飘字 / 击杀回收的驱动源；<see cref="Killed"/> 为 true 时该敌人已从存活列表移除）。
+    /// 敌人被弹丸击中（在<b>弹着帧</b>触发，<see cref="Position"/> 为弹着点——弹着特效 / 音效天然同帧同点；
+    /// <see cref="Killed"/> 为 true 时该敌人已从存活列表移除）。
     /// <see cref="SplashDamage"/> &gt; 0 表示这次击杀发生在离基地过近处、弹头冲击波仍连带削了基地（见 <see cref="IBattleSim"/> 溅射规则）。
     /// </summary>
     public readonly struct EnemyHitEvent
@@ -84,23 +85,53 @@ namespace Game.Outpost.Sim
     }
 
     /// <summary>
-    /// 炮塔击发一发——<b>每发都触发，无论是否命中</b>。表现层据此画炮口闪光 + 曳光；刻意与"敌人被击中"
-    /// (<see cref="EnemyHitEvent"/>) 分离：前者是"炮管吐了一发"，后者是"某敌人挨了打"，一发命中会两者都触发。
-    /// 高射速火墙里炮口在转向途中也持续击发，<see cref="Hit"/> 为 false 的是尚未对准目标的空放
-    /// （不结算伤害、曳光射向炮口方向），正是"边转边扫"火舌的可见来源。
+    /// 炮塔击发一发（在<b>击发帧</b>触发——炮口闪光 / 后坐 / 火力热度的驱动源）。与"敌人被击中"
+    /// (<see cref="EnemyHitEvent"/>，在<b>弹着帧</b>触发) 刻意分离：击发产生真实弹丸沿 <see cref="Direction"/>
+    /// 直飞，命不命中、命中谁由物理决定（扫掠碰撞）——本事件不再携带命中信息。
     /// </summary>
     public readonly struct TurretFiredEvent
     {
-        /// <summary>这一发的落点：命中时为目标敌人位置；空放时为炮口方向在射程边缘上的点。</summary>
-        public readonly Vector2 Aim;
+        /// <summary>这一发弹丸的初始飞行方向（单位向量；火墙散布已计入）。</summary>
+        public readonly Vector2 Direction;
 
-        /// <summary>是否命中了敌人（false = 转向途中未对准的空放）。</summary>
-        public readonly bool Hit;
+        public TurretFiredEvent(Vector2 direction) => Direction = direction;
+    }
 
-        public TurretFiredEvent(Vector2 aim, bool hit)
+    /// <summary>在飞弹丸的只读快照（表现层逐帧实例化绘制的读源；索引顺序不稳定，与 <see cref="EnemySnapshot"/> 同语义）。</summary>
+    public readonly struct ProjectileSnapshot
+    {
+        public readonly Vector2 Position;
+
+        /// <summary>飞行方向（单位向量，表现层据此定弹丸朝向）。</summary>
+        public readonly Vector2 Direction;
+
+        public ProjectileSnapshot(Vector2 position, Vector2 direction)
         {
-            Aim = aim;
-            Hit = hit;
+            Position = position;
+            Direction = direction;
+        }
+    }
+
+    /// <summary>
+    /// 泥地密度格的网格布局（可视化 / 调试的只读元数据；<see cref="Dim"/> = 0 表示泥地机制关闭）。
+    /// 格计数经 <see cref="IBattleSim.GetWreckCellCount"/> 按索引读取（index = iy × Dim + ix）。
+    /// </summary>
+    public readonly struct WreckGridInfo
+    {
+        /// <summary>网格一边的格数（正方形 Dim×Dim；0 = 泥地机制关闭）。</summary>
+        public readonly int Dim;
+
+        /// <summary>格边长（世界单位）。</summary>
+        public readonly float CellSize;
+
+        /// <summary>网格覆盖的半宽：坐标 (x,y) 落格按 floor((x+Half)/CellSize) 取整、越界钳到边缘格（与 <see cref="SimMath.WreckCellIndex"/> 同式）。</summary>
+        public readonly float Half;
+
+        public WreckGridInfo(int dim, float cellSize, float half)
+        {
+            Dim = dim;
+            CellSize = cellSize;
+            Half = half;
         }
     }
 
@@ -144,9 +175,14 @@ namespace Game.Outpost.Sim
     /// 事件回调里只做读取与外发，<b>不要</b>回调内再调本接口的写方法（Start / Tick / BeginNextWave / ApplyModifier）。<br/>
     /// <b>接触模型</b>：敌人径直冲向玩家，抵达即<b>自爆</b>（<see cref="EnemyDetonated"/>，一次性伤害后移除，不驻留输出）；
     /// 玩家在离基地过近处击毁敌人会吃<b>拦截溅射</b>（<see cref="EnemyHitEvent.SplashDamage"/>，越近越疼、随 <c>PlayerSetup.SplashRadius/SplashDamageScale</c> 配置）。<br/>
-    /// <b>开火模型</b>：炮塔按 <c>PlayerSetup.RotationSpeed</c> 逐帧转向最近目标；命中为 hitscan（对准最近目标即同帧结算，无飞行物）。
-    /// 低射速下"瞄准后才发"——转向途中静默；有效射速够高（火墙）时炮口在转向途中<b>也持续击发</b>（<see cref="TurretFired"/>，未对准的空放不结算伤害），
-    /// 使回转越慢越难覆盖四面来袭、越易漏怪（<see cref="TurretAngle"/> 供表现层画炮管）。<br/>
+    /// <b>开火模型（真弹道）</b>：炮塔按 <c>PlayerSetup.RotationSpeed</c> 逐帧转向最近目标，对准（角差 ≤ 容差）后按有效射速击发；
+    /// 火墙（间隔低于门槛）时转向途中也持续击发并带小角度确定性散布。每次击发产生一颗<b>真实弹丸</b>沿炮口方向直飞
+    /// （<see cref="TurretFired"/> 在击发帧触发）；命中为<b>扫掠线段碰撞</b>——弹丸本 tick 位移段与敌圆求交、取最早交点，
+    /// <see cref="EnemyHit"/> 在<b>弹着帧</b>触发、位置为弹着点；未命中的弹飞到消散半径才消失（途中仍可命中射程外敌人）。
+    /// 同帧多个自爆按实例 id 升序结算（后端间事件流可复现的契约之一）。弹丸经 <see cref="ProjectileCount"/> +
+    /// <see cref="GetProjectile"/> 零分配遍历；不 Tick 的阶段（波间抉择等）弹丸随全场冻结、续波后继续飞。<br/>
+    /// <b>残骸减速泥地</b>：击杀/自爆在密度格记账（<see cref="WreckFieldSetup"/>），敌人移速按所在格残骸密度打折——
+    /// 残骸是模拟状态（防御地形），与表现层的视觉残骸各自独立记账。<br/>
     /// <b>无限模式</b>：波次由 <c>WaveScaling</c> 逐波程序化生成——数量指数爬坡、约 20 波后到各角色 MaxCount 进入平台期（每波压力恒定）；
     /// 唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>），无胜利。<br/>
     /// <b>波间维修</b>：撑过一波（进入 <see cref="BattlePhase.WaveCleared"/> 时）血量自动回满——血量语义是"本波承受力"，
@@ -196,10 +232,22 @@ namespace Game.Outpost.Sim
         /// <summary>按索引取存活敌人快照（0 ≤ index &lt; <see cref="EnemyCount"/>）。</summary>
         EnemySnapshot GetEnemy(int index);
 
+        /// <summary>当前在飞弹丸数（性能行展示 + 表现层遍历上界）。</summary>
+        int ProjectileCount { get; }
+
+        /// <summary>按索引取在飞弹丸快照（0 ≤ index &lt; <see cref="ProjectileCount"/>；索引顺序不稳定）。</summary>
+        ProjectileSnapshot GetProjectile(int index);
+
+        /// <summary>泥地密度格布局（<c>Dim</c> = 0 表示机制关闭）。一局内布局不变，可开局缓存。</summary>
+        WreckGridInfo WreckGrid { get; }
+
+        /// <summary>按格索引取当前残骸计数（0 ≤ index &lt; Dim×Dim，O(1)）——泥地热力图可视化的数据源。</summary>
+        int GetWreckCellCount(int index);
+
         event Action<EnemySpawnedEvent> EnemySpawned;
         event Action<EnemyHitEvent> EnemyHit;
 
-        /// <summary>炮塔击发一发（命中或空放都触发）。表现层据此画炮口闪光 / 曳光，与 <see cref="EnemyHit"/>（敌人反应）分离；高射速火墙中转向途中的空放 <see cref="TurretFiredEvent.Hit"/> = false。</summary>
+        /// <summary>炮塔击发一发（击发帧；弹丸已生成）。表现层据此画炮口闪光 / 驱动火力热度；弹着反应见 <see cref="EnemyHit"/>。</summary>
         event Action<TurretFiredEvent> TurretFired;
 
         /// <summary>敌人抵达玩家并自爆（一次性伤害后即从存活列表移除）。取代了旧的"驻留逐拍攻击"模型。</summary>

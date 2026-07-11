@@ -22,6 +22,9 @@ namespace Game.Outpost.Sim
 
         /// <summary>波次成长曲线（无限模式下逐波程序化生成的参数）。</summary>
         public WaveScaling Scaling;
+
+        /// <summary>残骸减速泥地参数（<see cref="WreckFieldSetup.SimCap"/> ≤ 0 = 机制关闭）。</summary>
+        public WreckFieldSetup WreckField;
     }
 
     /// <summary>玩家（哨站炮塔）初始属性。玩家不移动，固定在原点自动索敌、转向目标后开火。</summary>
@@ -87,6 +90,39 @@ namespace Game.Outpost.Sim
 
         /// <summary>溅射伤害系数：实际溅射 = 敌人 Attack × 本系数 × 贴近度(0..1)。</summary>
         public float SplashDamageScale;
+
+        /// <summary>弹丸飞行速度（单位/秒）。命中已非 hitscan：击发产生真实弹丸沿炮口方向直飞，伤害在弹着帧结算。</summary>
+        public float ProjectileSpeed;
+
+        /// <summary>弹丸碰撞半径（与敌人半径相加做扫掠求交）。</summary>
+        public float ProjectileRadius;
+
+        /// <summary>
+        /// 弹丸消散半径：飞离原点超过此距离才消失（远大于射程——未命中的弹继续飞出场外，
+        /// 途中仍可命中射程外的敌人）。在飞弹数量的主要旋钮：越大并发越多、模拟碰撞负载越高。
+        /// </summary>
+        public float ProjectileDespawnRadius;
+    }
+
+    /// <summary>
+    /// 残骸减速泥地参数（残骸首次成为模拟状态）。规则本身以<b>密度网格</b>表述：场地按 <see cref="CellSize"/>
+    /// 划格，敌人被击杀/自爆时其弹着/自爆点所在格计数 +1（总量 <see cref="SimCap"/> 环形上限，最老的出格时 -1）；
+    /// 敌人移速 ×= <c>max(SlowFloor, 1 − SlowPerCount × 格计数)</c>——"上一波死在哪，下一波就在哪儿减速"，
+    /// 残骸层从纯观赏变成防御地形。格子化是规则而非实现优化：两后端 O(1) 同实现、天然确定性。
+    /// </summary>
+    public struct WreckFieldSetup
+    {
+        /// <summary>密度格边长（世界单位）。网格覆盖 ±(ArenaRadius+1)。</summary>
+        public float CellSize;
+
+        /// <summary>每具残骸贡献的减速量（如 0.012 = 每具 -1.2% 移速）。</summary>
+        public float SlowPerCount;
+
+        /// <summary>减速下限乘数（如 0.4 = 最慢降到 40% 移速）。</summary>
+        public float SlowFloor;
+
+        /// <summary>模拟侧残骸留存上限（环形复写）。≤ 0 = 整个泥地机制关闭。</summary>
+        public int SimCap;
     }
 
     /// <summary>敌人原型（一种敌人的静态属性）。生命 / 自爆伤害是第 1 波基准值，按波次 <see cref="WaveScaling.StatGrowth"/> 放大。</summary>

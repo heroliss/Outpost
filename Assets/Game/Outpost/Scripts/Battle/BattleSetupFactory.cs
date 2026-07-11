@@ -68,6 +68,9 @@ namespace Game.Outpost.Battle
                     MaxRotationSpeed = g.PlayerMaxRotationSpeed,
                     SplashRadius = g.SplashRadius,
                     SplashDamageScale = g.SplashDamageScale,
+                    ProjectileSpeed = g.ProjectileSpeed,
+                    ProjectileRadius = g.ProjectileRadius,
+                    ProjectileDespawnRadius = g.ProjectileDespawnRadius,
                 },
                 Enemies = enemies.ToArray(),
                 Scaling = new Sim.WaveScaling
@@ -75,6 +78,13 @@ namespace Game.Outpost.Battle
                     Roles = roles,
                     StatGrowth = cfg.TbWaveScaling.Data.StatGrowth,
                     MaxStatScale = cfg.TbWaveScaling.Data.MaxStatScale,
+                },
+                WreckField = new WreckFieldSetup
+                {
+                    CellSize = g.WreckCellSize,
+                    SlowPerCount = g.WreckSlowPerCount,
+                    SlowFloor = g.WreckSlowFloor,
+                    SimCap = g.WreckSimCap,
                 },
             };
         }

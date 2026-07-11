@@ -15,6 +15,8 @@
     { "key": "result/back", "zhCn": "回标题", "en": "Back to Title" },
 
     { "key": "common/close", "zhCn": "关闭", "en": "Close" },
+    { "key": "common/on", "zhCn": "开", "en": "On" },
+    { "key": "common/off", "zhCn": "关", "en": "Off" },
 
     { "key": "result/rank", "zhCn": "全服排名 第 {0} 名", "en": "Global rank #{0}" },
     { "key": "lb/title", "zhCn": "全服排行", "en": "Leaderboard" },
@@ -32,6 +34,8 @@
     { "key": "settings/language", "zhCn": "语言", "en": "Language" },
     { "key": "settings/backend", "zhCn": "战斗后端", "en": "Battle Backend" },
     { "key": "settings/backend-hint", "zhCn": "同一套规则的两个模拟内核（对比看战斗界面左下角性能行），切换下一局生效", "en": "Two kernels of the same rules (compare via the HUD perf line). Takes effect next battle" },
+    { "key": "settings/heatmap", "zhCn": "泥地热力图", "en": "Slow-field Heatmap" },
+    { "key": "settings/heatmap-hint", "zhCn": "叠加显示残骸密度格（越亮减速越狠），切换即时生效", "en": "Overlay of the wreck density grid (brighter = slower enemies). Applies instantly" },
     { "key": "settings/expansion-name", "zhCn": "增援电台", "en": "Reinforcement Radio" },
     { "key": "settings/expansion-desc", "zhCn": "扩展内容：战斗背景乐变体，下载后自动启用", "en": "Expansion: battle BGM variant, enabled once downloaded" },
     { "key": "settings/expansion-download", "zhCn": "下载", "en": "Download" },

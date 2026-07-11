@@ -30,9 +30,9 @@ namespace Game.Outpost.Battle
     /// 战斗导演：把纯 C# 模拟内核（<see cref="IBattleSim"/>）接到 Unity 表现与框架数据流上——
     /// 每帧 <c>Tick</c> 模拟、把聚合值（血量/波次/击杀/得分/敌人数/模拟耗时）写进 <see cref="BattleModel"/>（HUD 只读订阅）、
     /// 把逐事件（刷怪/击发/命中/自爆）翻成表现（敌人海实例化渲染 / 池化特效 / 相机震动 / 炮塔朝向），终局把战绩交给 <see cref="IGameFlow"/> 进结算。
-    /// <para><b>表现层双轨</b>：海量常驻敌人走 <see cref="SwarmRenderer"/> 实例化绘制（无 GameObject）；
-    /// 少量瞬时特效（曳光/脉冲/飘字/烟/碎片）走 <c>Bag.Spawn</c> 对象池。模拟内核对两者一无所知，
-    /// 置换 ECS 后端（<see cref="BattleSimBackend"/>）时本类的翻译层原样保留。</para>
+    /// <para><b>表现层双轨</b>：海量常驻实体（敌人海 / 在飞弹丸 / 残骸 / 泥地热力图）走 <see cref="SwarmRenderer"/>
+    /// 实例化绘制（无 GameObject）；少量瞬时特效（脉冲/飘字/烟/碎片）走 <c>Bag.Spawn</c> 对象池。
+    /// 模拟内核对两者一无所知，置换 ECS 后端（<see cref="BattleSimBackend"/>）时本类的翻译层原样保留。</para>
     /// <para><b>海量下的演出纪律</b>：命中/击杀/出生特效各有每帧预算（超出只结算数值不演出），
     /// 击杀的保底反馈是残骸——每具都留存进 <see cref="SwarmRenderer"/> 的残骸层、不占预算；
     /// 玩家受创（漏怪自爆 + 拦截溅射）在短窗口内聚合成一次震屏/红闪/汇总飘字——每秒上百次受创时逐条演出会刷屏。</para>
@@ -52,7 +52,7 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("伤害飘字 prefab（含 DamageFloater；玩家受创聚合展示）。")]
         private GameObject _floaterPrefab;
 
-        [SerializeField, Tooltip("弹道曳光 prefab（含 ProjectileTracer；开火曳光 / 击毁碎片共用）。")]
+        [SerializeField, Tooltip("发光短线 prefab（含 ProjectileTracer；击毁碎片流用——在飞弹丸是模拟实体、由 SwarmRenderer 实例化绘制）。")]
         private GameObject _tracerPrefab;
 
         [SerializeField, Tooltip("脉冲圈 prefab（含 PulseEffect；命中 / 死亡 / 出生 / 炮口闪光 / 烟雾共用）。")]
@@ -144,15 +144,8 @@ namespace Game.Outpost.Battle
         private const float BoomSfxMinInterval = 0.08f;
         private float _lastBoomSfxTime = -1f;
 
-        // 弹着对拍：内核是 hitscan（伤害在击发帧已结算），但曳光按定速飞行、弹着晚于炮响可感知（0.07~0.15s）。
-        // 命中 / 击毁音效按「炮口到弹着点距离 ÷ 曳光速度」延迟到弹着帧再响——先炮响后弹着，因果链才成立。
-        // 视觉爆点仍同帧播放（消隐 / 残骸由 sim 状态直接驱动、无从延迟；音频先行会穿帮，滞后 0.1s 在容差内），
-        // 音频是对拍收益最大、代价最小的一侧。
-        private const float TracerFlightSpeed = 55f; // 与 Tracer.prefab 的 _speed 一致（改 prefab 记得同步）
-        private struct PendingSfx { public float Due; public AudioClip Clip; public float Volume; public float Pitch; }
-        private readonly List<PendingSfx> _pendingSfx = new();
-
         // 弹着「叮」（击中未击毁）的重触发限流：高射速下弹着逐帧都有，限到 ~14 发/秒当质感纹理、不当逐发汇报。
+        // 弹着音效直接在 EnemyHit 帧播放——事件本就在弹着帧触发（真弹道），音画天然同拍，无需任何延迟机制。
         private const float ImpactSfxMinInterval = 0.07f;
         private float _lastImpactSfxTime = -1f;
 
@@ -163,19 +156,15 @@ namespace Game.Outpost.Battle
         private const float ShotSfxMinInterval = 0.08f;  // 单发层重触发下限（≈12 发/秒以上开始合并）
         private float _lastShotSfxTime = -1f;
 
-        // 表现色板（敌人本体色来自配置表的表现列，这里只留玩家侧 / 弹道的固定色）。
+        // 表现色板（敌人本体色来自配置表的表现列，这里只留玩家侧的固定色）。
         private static readonly Color PlayerHitColor = new(1f, 0.30f, 0.24f);
         private static readonly Color RepairColor = new(0.4f, 1.8f, 0.7f, 0.8f);       // 波间维修的回满提示（HDR 绿）
-        private static readonly Color TracerColor = new(0.9f, 3.2f, 3.0f, 1f);
         private static readonly Color ImpactColor = new(2.0f, 2.4f, 2.4f, 0.85f);
         private static readonly Color MuzzleColor = new(1.2f, 2.8f, 2.6f, 0.7f);
         private static readonly Color SmokeColor = new(0.42f, 0.42f, 0.46f, 0.55f); // 非 HDR 灰烟（不发光，读成烟）
         private static readonly Color DebrisColor = new(2.6f, 1.5f, 0.5f, 1f);       // HDR 暖橙火花碎片
 
-        // 高射速火墙的曳光散射半径（世界单位）：按火力热度缩放，让密集连发读成一片弹雨而非一条直线（纯表现，不改内核命中）。
-        private const float TracerScatter = 0.42f;
-
-        // 表现层自算的「火力热度」(0..1)：从 TurretFired 击发节奏推断当前射速，驱动炮塔辉光与曳光散射。
+        // 表现层自算的「火力热度」(0..1)：从 TurretFired 击发节奏推断当前射速，驱动炮塔辉光与循环轰鸣。
         // 内核只管开火逻辑，"点射收拢 → 火墙涨亮铺开"的渐变属于表现层、不进确定性内核。
         private const float HeatIntervalHot = 0.06f;    // 击发间隔 ≤ 此值算火墙 → 热度趋 1
         private const float HeatIntervalCold = 0.5f;    // 击发间隔 ≥ 此值算点射 → 热度趋 0
@@ -189,9 +178,9 @@ namespace Game.Outpost.Battle
         // 模拟耗时采样（性能 HUD 用）：Stopwatch 计每帧 Tick 耗时、指数平滑防抖。
         private float _simTickMs;
 
-        // 表现层的 Z 分层（相机 -10 朝 +Z 看）：地板 0.5 > 地面环 0.3 > 单位 0 > 脉冲 -0.2 > 曳光 -0.3 > 飘字 -0.8。
+        // 表现层的 Z 分层（相机 -10 朝 +Z 看）：地板 0.5 > 热力图 0.42 > 地面环 0.3 > 残骸 ~0.23 > 单位 0 > 脉冲 -0.2 > 弹丸/碎片 -0.3 > 飘字 -0.8。
         private const float PulseZ = -0.2f;
-        private const float TracerZ = -0.3f;
+        private const float DebrisZ = -0.3f; // 碎片流 / 炮口闪光层（与 SwarmRenderer 的弹丸层同深度）
         private const float FloaterZ = -0.8f;
 
         private void Start() => SetupAsync().Forget();
@@ -223,7 +212,13 @@ namespace Game.Outpost.Battle
             _model = this.GetModel<BattleModel>();
             _upgradeModel = this.GetModel<UpgradeModel>();
             _visuals = EnemyVisuals.Build(_cfg);
-            _swarm.Init(_visuals);
+            // 热力图亮度饱和点 = 减速到下限所需的每格残骸数——热力图刻度与减速规则同源。
+            _swarm.Init(_visuals, g.ArenaRadius,
+                (1f - g.WreckSlowFloor) / Mathf.Max(0.0001f, g.WreckSlowPerCount));
+
+            // 泥地热力图开关（纯表现）：订阅即时生效，Play 中随设置窗切换。
+            var prefs = this.GetModel<BattlePrefsModel>();
+            Bag.Subscribe(prefs.ShowWreckHeatmap, on => _swarm.WreckHeatmapVisible = on);
 
             // 战斗音效 clip 经资源系统加载（句柄进 Bag 随战斗场景释放）；火墙循环底噪交给炮塔挂 AudioSource 逐帧调制。
             _sfxExplosion = await Bag.Load<AudioClip>("sfx_explosion");
@@ -240,7 +235,7 @@ namespace Game.Outpost.Battle
             var setup = BattleSetupFactory.Build(_cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
             // 后端偏好开局采样一次（设置窗改动下一局生效）：模拟是一次性实例，不做局中热切（状态迁移不值得，ADR-0030）。
-            _backend = this.GetModel<BattlePrefsModel>().Backend.CurrentValue;
+            _backend = prefs.Backend.CurrentValue;
             _sim = CreateSim();
             if (_startWave > 1)
             {
@@ -341,7 +336,6 @@ namespace Game.Outpost.Battle
             _hitFxBudget = HitFxPerFrame;   // 每帧刷新演出预算（超出即降级，见各 On* 事件）
             _killFxBudget = KillFxPerFrame;
             _spawnFxBudget = SpawnFxPerFrame;
-            FlushPendingSfx();              // 到点的弹着音出声（终局定格期间也要放完已在途的弹着）
             AdvanceEffects();
             UpdateFireHeat(dt); // 表现层火力热度：驱动炮塔辉光（与 sim 解耦、纯 cosmetic，停火即冷却）
             if (!_ready || _sim == null) return;
@@ -418,8 +412,8 @@ namespace Game.Outpost.Battle
             SpawnPulse(ToWorld(e.Position, PulseZ), c, 2.6f * v.ExplosionScale, 0.4f, 0.35f);
         }
 
-        // 炮塔击发一发（命中或空放都触发）：画炮口闪光 + 曳光 + 命中冲击。与 OnEnemyHit（敌人反应）分离——
-        // 转向途中的空放也走这里，画出射向炮口方向的火舌。高射速下每帧限量，超预算即跳过（伤害早已在内核结算）。
+        // 炮塔击发一发：后坐 + 炮口闪光 + 单发音（弹丸本体是模拟实体、由 SwarmRenderer 逐帧绘制；
+        // 弹着反应在 OnEnemyHit——真弹道下击发与弹着是两个时刻）。高射速下闪光每帧限量，超预算只记节奏。
         private void OnTurretFired(TurretFiredEvent e)
         {
             // 记录击发节奏（超 FX 预算也照记，让热度反映真实射速）：与上一发的间隔喂给火力热度。
@@ -427,11 +421,12 @@ namespace Game.Outpost.Battle
             if (_lastFireTime >= 0f) _fireInterval = now - _lastFireTime;
             _lastFireTime = now;
 
-            TryPlayShotSfx(now); // 单发层不占视觉 FX 预算（有自己的重触发限流），空放同样响——弹药真打出去了
+            TryPlayShotSfx(now); // 单发层不占视觉 FX 预算（有自己的重触发限流）
 
             if (_hitFxBudget <= 0) return;
             _hitFxBudget--;
-            FireBurst(ToWorld(e.Aim), e.Hit);
+            _turret.Fire();
+            SpawnPulse(WithZ(_turret.MuzzleWorldPos, DebrisZ), MuzzleColor, 0.15f, 0.55f, 0.12f);
         }
 
         // 开火音单发层：低射速逐发清脆单响，射速升高后（热度上来）音量渐让位给循环轰鸣、热度近满时归零。
@@ -463,55 +458,28 @@ namespace Game.Outpost.Battle
         }
 
         // 爆炸类音效（拦截击毁 / 抵达自爆共用）：按时间限流（见 BoomSfxMinInterval）+ 随机音高防"机关枪同音"；
-        // 体量大的原型更低沉更响。拦截击毁传弹着延迟（FlightDelay）对拍曳光；抵达自爆发生在敌人自己身上、
-        // 无弹道，delay=0 原地即响。
-        private void PlayBoomSfx(int archetypeId, float delay = 0f)
+        // 体量大的原型更低沉更响。击毁事件在弹着帧触发，直接播即与视觉爆点同帧。
+        private void PlayBoomSfx(int archetypeId)
         {
             float now = Time.time;
             if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < BoomSfxMinInterval) return;
             _lastBoomSfxTime = now;
             float scale = EnemyVisuals.Get(_visuals, archetypeId).ExplosionScale;
             float pitch = Random.Range(0.92f, 1.12f) * (scale >= 0.8f ? 0.85f : 1.05f);
-            ScheduleSfx(_sfxExplosion, Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f), pitch, delay);
+            _audio.PlaySfx(_sfxExplosion, volume: Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f), pitch: pitch);
         }
 
-        // 弹着「叮」（击中未击毁）：与击毁 boom 分开的轻量金属短鸣，同样延迟到曳光弹着帧。
+        // 弹着「叮」（击中未击毁）：与击毁 boom 分开的轻量金属短鸣，在弹着帧直接播。
         // 音量恒定偏轻——它是"弹药落在装甲上"的质感层，不是逐发战果汇报；限流见 ImpactSfxMinInterval。
-        private void TryPlayImpactSfx(float delay)
+        private void TryPlayImpactSfx()
         {
             float now = Time.time;
             if (_lastImpactSfxTime >= 0f && now - _lastImpactSfxTime < ImpactSfxMinInterval) return;
             _lastImpactSfxTime = now;
-            ScheduleSfx(_sfxImpact, 0.22f, Random.Range(0.9f, 1.15f), delay);
+            _audio.PlaySfx(_sfxImpact, volume: 0.22f, pitch: Random.Range(0.9f, 1.15f));
         }
 
-        // 延迟极短（≤ 一帧上下）直接播，免得进队列白等一帧；其余进待播队列由 FlushPendingSfx 到点出声。
-        private void ScheduleSfx(AudioClip clip, float volume, float pitch, float delay)
-        {
-            if (delay <= 0.02f)
-            {
-                _audio.PlaySfx(clip, volume: volume, pitch: pitch);
-                return;
-            }
-            _pendingSfx.Add(new PendingSfx { Due = Time.time + delay, Clip = clip, Volume = volume, Pitch = pitch });
-        }
-
-        private void FlushPendingSfx()
-        {
-            float now = Time.time;
-            for (int i = _pendingSfx.Count - 1; i >= 0; i--)
-            {
-                if (now < _pendingSfx[i].Due) continue;
-                var p = _pendingSfx[i];
-                _pendingSfx.RemoveAt(i);
-                _audio.PlaySfx(p.Clip, volume: p.Volume, pitch: p.Pitch);
-            }
-        }
-
-        // 弹着延迟 = 炮口到弹着点的曳光飞行时间（与 ProjectileTracer 的定速直飞一致）。
-        private float FlightDelay(System.Numerics.Vector2 hitPos)
-            => Vector3.Distance(_turret.MuzzleWorldPos, ToWorld(hitPos)) / TracerFlightSpeed;
-
+        // 弹着帧的敌人反应（事件位置 = 弹着点）：音效 / 爆点 / 白闪全部同帧同点——真弹道下音画对拍是事件时序的天然结果。
         private void OnEnemyHit(EnemyHitEvent e)
         {
             // 拦截溅射并入受创聚合（不再逐条飘字——平台期贴基地击杀每秒发生多次）。
@@ -526,12 +494,17 @@ namespace Game.Outpost.Battle
                     _killFxBudget--;
                     SpawnKillExplosion(ToWorld(e.Position), e.ArchetypeId);
                 }
-                PlayBoomSfx(e.ArchetypeId, FlightDelay(e.Position));
+                PlayBoomSfx(e.ArchetypeId);
             }
             else
             {
                 _swarm.OnFlash(e.EnemyId);
-                TryPlayImpactSfx(FlightDelay(e.Position));
+                TryPlayImpactSfx();
+                if (_hitFxBudget > 0)
+                {
+                    _hitFxBudget--;
+                    SpawnPulse(ToWorld(e.Position, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f); // 弹着冲击闪
+                }
             }
         }
 
@@ -765,29 +738,7 @@ namespace Game.Outpost.Battle
             _decor.SetRange(_lastRange);
         }
 
-        // 开火演出：炮管后坐 + 炮口闪光 + 曳光从当前炮口飞向落点（hitscan 伤害早已结算，此处纯装饰）。
-        // 落点按火力热度做随机散射——高射速下密集连发才不会叠成一条直线，读成一片弹雨；命中冲击仍落在真实弹着点、不随散射抖。
-        private void FireBurst(Vector3 aim, bool hit)
-        {
-            _turret.Fire();
-            var muzzle = WithZ(_turret.MuzzleWorldPos, TracerZ);
-            SpawnPulse(muzzle, MuzzleColor, 0.15f, 0.55f, 0.12f);
-
-            var end = aim;
-            float scatter = TracerScatter * _fireHeat; // 越热越散（点射时几乎不散、火墙时散成弹雨）
-            if (scatter > 0.001f)
-            {
-                var j = Random.insideUnitCircle * scatter;
-                end += new Vector3(j.x, j.y, 0f);
-            }
-            var tracer = Bag.Spawn(_tracerPrefab, _arenaRoot).GetComponent<ProjectileTracer>();
-            tracer.Play(muzzle, WithZ(end, TracerZ), TracerColor);
-            _effects.Add(tracer);
-
-            if (hit) SpawnPulse(WithZ(aim, PulseZ), ImpactColor, 0.2f, 0.9f, 0.16f); // 命中冲击落在真实弹着点
-        }
-
-        // 击毁 / 自爆的碎片飞溅：从爆点向随机方向抛出若干短促发光碎片流（复用曳光，指定飞行时长拉出可见弧）。
+        // 击毁 / 自爆的碎片飞溅：从爆点向随机方向抛出若干短促发光碎片流（ProjectileTracer 定速直飞，指定飞行时长拉出可见弧）。
         private void SpawnDebris(Vector3 center, int count, float spread, float duration)
         {
             for (int i = 0; i < count; i++)
@@ -796,7 +747,7 @@ namespace Game.Outpost.Battle
                 float len = spread * (0.55f + 0.6f * Random.value);
                 var to = center + new Vector3(Mathf.Cos(ang) * len, Mathf.Sin(ang) * len, 0f);
                 var shard = Bag.Spawn(_tracerPrefab, _arenaRoot).GetComponent<ProjectileTracer>();
-                shard.Play(WithZ(center, TracerZ), WithZ(to, TracerZ), DebrisColor, duration);
+                shard.Play(WithZ(center, DebrisZ), WithZ(to, DebrisZ), DebrisColor, duration);
                 _effects.Add(shard);
             }
         }
@@ -843,6 +794,7 @@ namespace Game.Outpost.Battle
             SetI(_model.Kills, _sim.Kills);
             SetI(_model.Score, _sim.Score);
             SetI(_model.EnemyCount, _sim.EnemyCount);
+            SetI(_model.ProjectileCount, _sim.ProjectileCount);
             SetI(_model.WreckCount, _swarm.WreckCount);
             SetF(_model.SimTickMs, _simTickMs);
         }

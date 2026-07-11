@@ -5,7 +5,7 @@
         "baseCount": 6,
         "countGrowth": 1.36,
         "perWave": 0,
-        "maxCount": 3800,
+        "maxCount": 4500,
         "interval0": 1.4,
         "intervalMin": 0.002,
         "intervalDecay": 0
@@ -38,7 +38,7 @@
         "baseCount": 3,
         "countGrowth": 1.25,
         "perWave": 0,
-        "maxCount": 120,
+        "maxCount": 150,
         "interval0": 0.8,
         "intervalMin": 0.03,
         "intervalDecay": 0
