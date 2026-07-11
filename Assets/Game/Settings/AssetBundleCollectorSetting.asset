@@ -114,3 +114,26 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags: 
         UserData: 
+  - PackageName: OutpostExpansionPackage
+    PackageDesc: "Outpost \u6269\u5C55\u5185\u5BB9\u5305\uFF08\u589E\u63F4\u7535\u53F0\uFF09\uFF1A\u4E0D\u81EA\u52A8\u521D\u59CB\u5316\u3001\u663E\u5F0F\u4E0B\u8F7D\u5668\u5B89\u88C5\u7684
+      DLC \u59FF\u52BF\u3002"
+    EnableAddressable: 1
+    SupportExtensionless: 1
+    LocationToLower: 0
+    IncludeAssetGUID: 1
+    AutoCollectShaders: 1
+    IgnoreRuleName: NormalIgnoreRule
+    Groups:
+    - GroupName: ExpansionGroup
+      GroupDesc: "\u6269\u5C55\u5185\u5BB9\uFF08\u589E\u63F4\u7535\u53F0\uFF09\uFF1A\u6309\u9700\u4E0B\u8F7D\u7684\u7B2C\u4E8C\u4E1A\u52A1\u5305\u3002"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/Game/Outpost/ResExpansion
+        CollectorGUID: 1e0de49472004004f84438883e82a84b
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 

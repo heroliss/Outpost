@@ -28,5 +28,12 @@ namespace Game.Outpost.Save
 
         /// <summary>语言 code（<see cref="OutpostLocales"/> 常量）。空 = 未选过，按系统语言推断。</summary>
         public string Locale = "";
+
+        /// <summary>
+        /// 扩展包（OutpostExpansionPackage，「增援电台」）是否已安装。扩展包不自动初始化（按需下载的 DLC 姿势），
+        /// 已安装的会话间复原靠这个启动提示：Load 时为 true 则后台补一次 Initialize，音频侧才能继续用扩展内容。
+        /// 真源仍是资源系统的包状态（Ready + 无缺失下载），这里只是它的落盘快照。
+        /// </summary>
+        public bool ExpansionInstalled;
     }
 }

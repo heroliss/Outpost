@@ -2,6 +2,7 @@
     "name": "Game.Outpost",
     "rootNamespace": "Game.Outpost",
     "references": [
+        "Game.Main",
         "Game.Framework",
         "Game.Framework.Config",
         "Game.Framework.UI",

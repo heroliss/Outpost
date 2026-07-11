@@ -18,5 +18,8 @@ namespace Game.Main
 
         /// <summary>热更代码包（框架热更构建管线自动创建）</summary>
         public const string CodePackage = "CodePackage";
+
+        /// <summary>Outpost 扩展内容包（增援电台）：不自动初始化、显式下载器安装的 DLC 姿势。</summary>
+        public const string OutpostExpansionPackage = "OutpostExpansionPackage";
     }
 }

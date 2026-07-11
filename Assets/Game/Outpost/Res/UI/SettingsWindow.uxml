@@ -14,6 +14,18 @@
                 <ui:Button name="lang-zh" text="中文" class="op-btn op-btn--lang" />
                 <ui:Button name="lang-en" text="English" class="op-btn op-btn--lang" />
             </ui:VisualElement>
+            <!-- 扩展内容区（OutpostExpansionPackage）：不自动初始化的第二资源包，显式下载器带进度（DLC 姿势）。 -->
+            <ui:VisualElement class="op-expansion">
+                <ui:VisualElement class="op-expansion__head">
+                    <ui:Label name="exp-name" text="增援电台" class="op-label op-expansion__name" enable-rich-text="false" />
+                    <ui:Label name="exp-status" text="" class="op-label op-expansion__status" enable-rich-text="false" />
+                </ui:VisualElement>
+                <ui:Label name="exp-desc" text="扩展内容" class="op-expansion__desc" enable-rich-text="false" />
+                <ui:VisualElement name="exp-bar" class="op-progress">
+                    <ui:VisualElement name="exp-fill" class="op-progress__fill" />
+                </ui:VisualElement>
+                <ui:Button name="exp-download" text="下载" class="op-btn" />
+            </ui:VisualElement>
             <ui:Button name="close" text="关闭" class="op-btn" />
         </ui:VisualElement>
     </ui:VisualElement>

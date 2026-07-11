@@ -476,8 +476,12 @@ MonoBehaviour:
   - _name: DefaultPackage
     _autoInitialize: 1
     _enableOnDemandDownload: 1
+  - _name: OutpostExpansionPackage
+    _autoInitialize: 0
+    _enableOnDemandDownload: 0
   _defaultPackageName: DefaultPackage
   _playMode: 0
+  _playerPlayMode: 2
   _cdnUrls:
   - http://127.0.0.1:8080/
   _downloadingMaxNumber: 10

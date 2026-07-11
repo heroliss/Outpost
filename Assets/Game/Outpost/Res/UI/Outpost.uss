@@ -122,6 +122,47 @@
 /* 当前语言的按钮描边高亮（代码按 Locale 切换该类） */
 .op-btn--lang-active { border-color: rgb(255, 158, 64); }
 
+/* 扩展内容区（增援电台）：浅色顶边与滑条区分隔 */
+.op-expansion {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top-width: 1px;
+    border-top-color: rgba(120, 132, 165, 0.35);
+}
+
+.op-expansion__head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.op-expansion__name { margin-bottom: 0; }
+
+/* 状态短语（已启用 / 失败）：随代码换 key，绿色系表示"装好了" */
+.op-expansion__status { margin-bottom: 0; color: rgb(140, 214, 160); }
+
+.op-expansion__desc {
+    font-size: 11px;
+    color: rgb(140, 150, 178);
+    margin-top: 2px;
+    white-space: normal;
+}
+
+/* 下载进度条：容器暗槽 + 橙色填充（宽度百分比由代码驱动） */
+.op-progress {
+    height: 6px;
+    margin-top: 8px;
+    background-color: rgba(20, 26, 44, 0.9);
+    border-radius: 3px;
+}
+
+.op-progress__fill {
+    height: 100%;
+    width: 0;
+    background-color: rgb(255, 158, 64);
+    border-radius: 3px;
+}
+
 /* ── 排行榜弹窗 ───────────────────────────────────────── */
 
 .op-card--leaderboard { width: 430px; }

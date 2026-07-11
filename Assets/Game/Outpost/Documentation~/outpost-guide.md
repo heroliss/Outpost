@@ -73,6 +73,7 @@
 6. [`Res/UI/`](../Res/UI/) + [`Scripts/Windows/`](../Scripts/Windows/) —— uxml 布局 + uss 主题 + 代码接线的窗口标准姿势。
 7. [`Systems/OutpostAudioSystem.cs`](../Scripts/Systems/OutpostAudioSystem.cs) + [`Config/OutpostTextSource.cs`](../Scripts/Config/OutpostTextSource.cs) + [`Windows/SettingsWindow.cs`](../Scripts/Windows/SettingsWindow.cs) —— 音频 / 本地化 / 设置三个横切服务的消费侧：BGM 订流程事件、文本源 adapter、设置窗直连 Utility + 关窗落盘。
 8. [`Scripts/Net/`](../Scripts/Net/) + [`Windows/LeaderboardWindow.cs`](../Scripts/Windows/LeaderboardWindow.cs) —— 网络全家桶（§32 消费落点）：消息契约 + Protobuf 编解码注册（`OutpostNetMessages`）、进程内 dev server（`OutpostDevServer`，仅 Editor/DevBuild）、长连接维持 + 断线退避重连样板（[`Systems/OutpostNetSystem.cs`](../Scripts/Systems/OutpostNetSystem.cs)）、命令直达 HTTP（`NetCommands`）；排行榜窗是 `BindList` 的又一落点，结算页上传分数拿全服名次，服务器新纪录广播经 WS 推送转事件 → 全局 Toast。
+9. `Assets/Game/Main/GameEntry.cs` + 设置窗扩展区（`SettingsWindow` 下半） —— 构建收口两条线（M5）：热更入口怎么用代码搭引导资源栈拉起首场景（guide §15 样板真身）；第二资源包 `OutpostExpansionPackage`（增援电台）怎么走「不自动初始化 → 显式下载器带进度 → 安装标记落盘 → 启动复原 → 战斗 BGM 变体懒加载」的 DLC 全流程（§13 多包消费落点）。
 
 ---
 
@@ -89,7 +90,7 @@
 
 ## 里程碑与已知偏离
 
-里程碑：M0 骨架闭环 → M1 战斗核心 + 视觉 → M2 波间三选一 → M3 存档 + 音频 + 本地化 + 设置 → **M4 网络排行（已完成）** →（M5 构建收口 → M6 DOTS 置换）。当前形态：**无限模式 + 托管永续 + 数千同屏 + 双语 + 全服排行**——这正是为 M6 准备的真实压力场景：`Reference` 后端的 O(n) 线性扫描是刻意保留的对比基线，HUD 性能行随时读数。
+里程碑：M0 骨架闭环 → M1 战斗核心 + 视觉 → M2 波间三选一 → M3 存档 + 音频 + 本地化 + 设置 → M4 网络排行 → **M5 构建收口（已完成）** →（M6 DOTS 置换）。当前形态：**无限模式 + 托管永续 + 数千同屏 + 双语 + 全服排行 + Windows 玩家包端到端可发**（热更 9 程序集 + 双资源包 + 扩展内容 CDN 下载，见 [ADR-0029](../../../../docs/adr/0029-outpost-vertical-slice.md)）——这正是为 M6 准备的真实压力场景：`Reference` 后端的 O(n) 线性扫描是刻意保留的对比基线，HUD 性能行随时读数。
 
 已知偏离与接缝观察（诚实记录）：
 
@@ -97,6 +98,6 @@
 - **失守终态基本不可达**：全封顶 + 波间维修的稳态下，任何 build 最终都会收敛到全到顶——失守只在中段成长严重偏科时可能发生。这是"托管永续"目标的直接推论，撤离才是常规收束。
 - **本地化绑定要求文本源先就绪**：`BindLocalizedText` 的刷新信号只有 `Locale`，文本源（配置表）异步后到不会触发重绑——绑定先于就绪 = 裸 key 定格。业务解法 = `BootState` 进标题前 `await` 配置就绪（详见[技术笔记的 M3 档案节](outpost-tech-notes.md#2026-07--m3-收尾音频--本地化--设置窗272930-消费落点)）。
 - **框架看点弹窗刻意不本地化**：它是指向中文文档的教学文案墙，翻译只添维护噪音——本地化范围 = 游戏 UI。
-- **网络排行仅 dev 环境可见**：对端是进程内 dev server（Editor / Development Build 条件编译），正式包暂无服务器、排行入口整体隐藏——正式环境策略留给 M5 构建收口时定。M4 驱动的两个框架修订（WS 二进制 envelope 接缝 + 内置轻量 Protobuf 序列化器）见 ADR-0028 的 2026-07 修订与[技术笔记的 M4 档案节](outpost-tech-notes.md#2026-07--m4-网络排行protobuf-全程对讲--ws-二进制推送--排行榜)。
+- **网络排行仅 dev 环境可见**：对端是进程内 dev server（Editor / Development Build 条件编译），正式包暂无服务器、排行入口整体隐藏——**M5 已拍板维持此策略**（Windows 玩家包实测入口按门控自动消失），等「服务端生产化」里程碑（dev server 逻辑移植 ASP.NET Core 上云）接真后端时再开。M4 驱动的两个框架修订（WS 二进制 envelope 接缝 + 内置轻量 Protobuf 序列化器）见 ADR-0028 的 2026-07 修订与[技术笔记的 M4 档案节](outpost-tech-notes.md#2026-07--m4-网络排行protobuf-全程对讲--ws-二进制推送--排行榜)。
 
 更完整的框架能力清单、每个 §N 的教学与 API 见 [framework-guide.md](../../../../docs/framework-guide.md)；架构决策的来龙去脉见 [docs/adr/](../../../../docs/adr/)。

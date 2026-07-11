@@ -20,11 +20,16 @@ MonoBehaviour:
     _generateBuiltinShaderBundle: 0
   - _packageName: DefaultPackage
     _buildEnabled: 1
-    _builtinCopy: 2
+    _builtinCopy: 1
     _builtinTags: 
     _generateBuiltinShaderBundle: 1
   - _packageName: CodePackage
     _buildEnabled: 0
+    _builtinCopy: 2
+    _builtinTags: 
+    _generateBuiltinShaderBundle: 0
+  - _packageName: OutpostExpansionPackage
+    _buildEnabled: 1
     _builtinCopy: 2
     _builtinTags: 
     _generateBuiltinShaderBundle: 0
@@ -33,5 +38,7 @@ MonoBehaviour:
   _compression: 2
   _fileNameStyle: 2
   _fileOffset: 0
+  _packageConstantsPath: Assets/Game/Main/Generated/AssetPackages.g.cs
+  _packageConstantsNamespace: Game.Main
   _localServePort: 8080
   _localServeThrottleKBps: 1000
