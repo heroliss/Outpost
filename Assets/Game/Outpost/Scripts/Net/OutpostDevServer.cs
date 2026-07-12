@@ -33,7 +33,7 @@ namespace Game.Outpost.Net
     {
         private const string WsMagicGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"; // RFC6455 握手固定常量
 
-        private readonly ProtobufNetworkSerializer _proto = OutpostNet.CreateSerializer();
+        private readonly IWebSocketEnvelopeSerializer _proto = OutpostNet.CreateSerializer();
         private readonly HttpListener _http;
         private readonly TcpListener _wsListener;
         private readonly CancellationTokenSource _cts = new();
@@ -151,7 +151,7 @@ namespace Game.Outpost.Net
                         int count = int.TryParse(req.QueryString["count"], out int n) ? Math.Clamp(n, 1, 100) : 10;
                         var resp = new LeaderboardResponse();
                         lock (_board)
-                            resp.Entries.AddRange(_board.Take(count));
+                            resp.Entries.Add(_board.Take(count)); // RepeatedField.Add(IEnumerable)——生成类型无 AddRange
                         WriteProto(ctx.Response, 200, _proto.Serialize(resp));
                         break;
                     }

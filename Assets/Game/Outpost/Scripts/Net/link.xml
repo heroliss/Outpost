@@ -1,0 +1,10 @@
+<!--
+  IL2CPP 防裁剪：Google.Protobuf 运行时用反射注册 FileDescriptor / 构造消息类型，
+  代码引用图看不全，裁剪器会误删 → 玩家包（IL2CPP）反序列化炸。整包 preserve 保住。
+  生成的消息类型在 Game.Outpost（热更程序集，由 HybridCLR 整包加载、不经 IL2CPP 裁剪），无需在此列。
+  ⚠ 热更代码新用到的 Google.Protobuf 泛型实例（RepeatedField<T>/MessageParser<T> 等）的 AOT 元数据，
+    由 HybridCLR 构建期补充元数据（SuperSet）+ 解释器兜底覆盖，不在 link.xml 职责内。
+-->
+<linker>
+  <assembly fullname="Google.Protobuf" preserve="all"/>
+</linker>

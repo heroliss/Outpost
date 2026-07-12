@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+// Outpost 排行榜网络协议（官方 .proto 契约）。
+// 客户端经 protoc 生成 C#（菜单 SSFramework/Protobuf/生成 Outpost 协议代码 → Scripts/Net/Gen/），
+// 用 GoogleProtobufNetworkSerializer 走框架的 IWebSocketEnvelopeSerializer 接缝。
+// 服务端（Server~/OutpostServer）与进程内 dev server 也认这份字段号——三端 wire 互通。
+//
+// ⚠ 字段号是跨端契约：只增不改。改字段号 = 破坏兼容。
+// csharp_namespace 对齐既有 Game.Outpost.Net：生成类型与旧手写 DTO 同名同命名空间，
+// 消费方（NetCommands / LeaderboardWindow / OutpostNetSystem / ResultState）属性访问兼容、零改动。
+
+option csharp_namespace = "Game.Outpost.Net";
+
+// 上传一局成绩（POST api/score 请求体）。
+message SubmitScoreRequest {
+  string player = 1;
+  int32 score = 2;
+  int32 wave = 3;
+  int32 kills = 4;
+}
+
+// 上传成绩应答：该玩家当前全服名次（1 起）。
+message SubmitScoreResponse {
+  int32 rank = 1;
+}
+
+// 榜上一条战绩。
+message LeaderboardEntry {
+  string player = 1;
+  int32 score = 2;
+  int32 wave = 3;
+  int32 kills = 4;
+}
+
+// 排行榜（GET api/leaderboard?count=N 应答），分数降序。
+message LeaderboardResponse {
+  repeated LeaderboardEntry entries = 1;
+}
+
+// 「全服纪录被刷新」广播（WS 推送 type = "new_record"）。
+// 生成类由 partial 补 Game.Framework.Event.IEvent（见 NewRecordPushEvent.Event.cs），
+// 才能经 ws.RegisterPush 映射成框架事件被 Bag.Subscribe 消费（§32）。
+message NewRecordPushEvent {
+  string player = 1;
+  int32 score = 2;
+}
