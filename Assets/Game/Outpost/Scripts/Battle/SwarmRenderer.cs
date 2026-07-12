@@ -13,15 +13,14 @@ namespace Game.Outpost.Battle
     /// 前者数量大且逐帧全量重算，后者数量小且有独立生命周期。两个 Sim 后端共用本渲染层（对比才公平）。</para>
     /// <para>保留原 per-敌人视觉语义，改为逐实例数值计算：出生弹出、呼吸错相、受击白闪、血量变暗、
     /// 有向形状转向来袭方向。动画状态（出生/白闪时刻）由 <see cref="BattleDirectorSystem"/> 按模拟事件喂入。</para>
-    /// <para><b>残骸层</b>：死亡不是消失——每具尸体短促落定后烘焙进<b>静态实例批次</b>永久留存（环形上限复写），
-    /// 战场地面逐渐积出击杀分布的"历史地图"。这既是千级击杀率下的可读反馈（爆炸特效有每帧预算、残骸没有），
-    /// 也是实例化渲染的持续压力源：数万静态实例的矩阵/颜色只在落定时写一次，每帧直接提交缓存数组、零 CPU 重建。</para>
+    /// <para><b>残骸层 = 模拟槽位镜像</b>（ADR-0032）：残骸是逐实体模拟状态（位置会被敌人拱开、密度记账跟随），
+    /// 本层逐帧对照 <see cref="IBattleSim.GetWreckSlot"/> 增量维护静态实例批次——<c>Seq</c> 变 = 槽位换血
+    /// （新残骸落定，起一段原地收缩/滚转/冷却动画后定格），<c>Position</c> 变 = 被犁动（原位重写矩阵 + 滚转扰动）。
+    /// 矩阵/颜色只在变化时写，每帧直接提交缓存数组、零 CPU 重建；无头快进的战场历史也由镜像自动发现，无需专门烘焙入口。</para>
     /// <para><b>弹丸层</b>：在飞弹丸每帧直接从模拟快照实例化绘制（真弹道下同屏数百上千，逐弹 GameObject 不可行），
     /// 拖尾菱形按飞行方向定向、HDR 亮色触发 Bloom 读成光痕。</para>
-    /// <para><b>残骸互动（纯表现）</b>：推挤通道让存活敌人把身旁已烘焙残骸拱开——邻格查询走表现层残骸网格、
-    /// 每帧推挤预算限流（超出轮转到下帧）、单具累计漂移有上限（小于模拟密度格边长，表现位移不动摇模拟侧记账所在格）；
-    /// 泥地热力图按开关叠加绘制<b>模拟侧</b>密度格（读 <see cref="IBattleSim.WreckGrid"/>，残骸越密该格越亮），
-    /// 是"残骸是防御地形"这条规则的直读可视化。</para>
+    /// <para><b>泥地热力图</b>：按开关叠加绘制<b>模拟侧</b>密度格（读 <see cref="IBattleSim.WreckGrid"/>，
+    /// 残骸越密该格越亮），是"残骸是防御地形"这条规则的直读可视化——推挤入模拟后，车辙被踩穿在热力图上直接可见。</para>
     /// </summary>
     public sealed class SwarmRenderer : MonoBehaviour
     {
@@ -34,9 +33,6 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("受击白闪回落时长（秒）。")]
         private float _flashDuration = 0.12f;
 
-        [SerializeField, Tooltip("残骸留存上限（每原型一个环形缓冲，写满后从最老的开始覆盖；0 = 关闭残骸层）。")]
-        private int _wreckCap = 30000;
-
         private const int BatchSize = 1023; // DrawMeshInstanced 单批上限
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -48,7 +44,7 @@ namespace Game.Outpost.Battle
 
         // ── 泥地热力图 ──────────────────────────────────────────────────────
 
-        /// <summary>泥地热力图开关（设置窗即时生效；纯表现，读模拟侧密度格绘制）。</summary>
+        /// <summary>泥地热力图开关（战斗 HUD 即时切换；纯表现，读模拟侧密度格绘制）。</summary>
         public bool WreckHeatmapVisible { get; set; }
 
         private const float HeatmapZ = 0.42f;                                   // 地板(0.5)与地面环(0.3)之间：垫底不遮内容
@@ -69,84 +65,57 @@ namespace Game.Outpost.Battle
         private Material _material;
         private MaterialPropertyBlock _mpb;
 
-        // ── 残骸层 ──────────────────────────────────────────────────────────
+        // ── 残骸层（模拟槽位镜像）───────────────────────────────────────────
 
-        // 残骸落定参数（纯表现）：击毁瞬间沿弹道向外滑出、旋转衰减、余烬冷却成灰，之后烘焙为静态实例。
+        // 落定表现参数（纯 cosmetic）：新残骸原地收缩 / 滚转 / 余烬冷却后定格为静态实例。
         private const float WreckSettleDuration = 0.55f;
         private const float WreckScale = 0.85f;   // 落定后比活体略小，读成塌缩的空壳
         private const float WreckZ = 0.23f;       // 残骸 z 区间起点：活敌(0)之下、地面环(0.3)之上
         private const float WreckZSpread = 0.05f; // 每具随机加深，避免共面残骸 z-fighting 闪烁
 
-        // 落定中的残骸（击毁后 WreckSettleDuration 内逐帧插值，之后烘焙进静态批次不再计算）。
-        private struct SettlingWreck
-        {
-            public int ArchetypeId;
-            public Vector2 Pos;       // 死亡点
-            public Vector2 SlideDir;  // 滑出方向（弹道方向 + 随机偏角）
-            public float SlideDist;
-            public float StartTime;
-            public float BaseAngle;   // 死亡时的朝向（度，与活体一致）
-            public float Spin;        // 落定全程的总旋转量（度，随滑出一起衰减）
-            public float Z;
-        }
-
-        // 已落定残骸的静态烘焙批次：矩阵/颜色只在入队时写一次，逐帧把缓存数组原样交给 DrawMeshInstanced
-        //（推挤通道是唯一的事后改写方：原位重写被拱动残骸的矩阵，数组对象不变、提交路径零改动）。
-        // 环形复写：写满 _wreckCap 后从最老的槽位覆盖——个体被替换在数万残骸的战场上几乎不可察觉。
-        // Pos/Angle/Z/Drift 是按槽位对齐的推挤工作数据（slot = 批次序 × BatchSize + 批内序）。
+        // 已烘焙残骸的静态批次（按原型分组）：矩阵/颜色只在"槽位换血 / 被犁动 / 落定动画"时写，
+        // 每帧把缓存数组原样交给 DrawMeshInstanced。Slots 是批内序 → 模拟槽位的反查（换血 swap-remove 时补位用）。
         private sealed class WreckBuffer
         {
             public readonly List<Matrix4x4[]> Matrices = new();
             public readonly List<Vector4[]> Colors = new();
-            public readonly List<Vector2> Pos = new();
-            public readonly List<float> Angle = new();
-            public readonly List<float> Z = new();
-            public readonly List<float> Drift = new(); // 累计漂移（≥ PushMaxDrift 后不再被推）
-            public int Count; // 当前留存数（≤ 上限）
-            public int Next;  // 环形写入游标
+            public readonly List<int> Slots = new();
+            public int Count; // 当前批内实例数
+        }
+
+        // 槽位镜像（与模拟环形槽位一一对应，按需扩容）：缓存 Seq/Pos 做变化检测，视觉元数据（朝向/深度）随槽存放。
+        private int[] _slotSeq = System.Array.Empty<int>();       // 0 = 从未见过（模拟序号从 1 起）
+        private Vector2[] _slotPos = System.Array.Empty<Vector2>();
+        private int[] _slotArchId = System.Array.Empty<int>();
+        private int[] _slotBatch = System.Array.Empty<int>();     // 槽位在其原型批次里的批内序
+        private float[] _slotAngle = System.Array.Empty<float>();
+        private float[] _slotZ = System.Array.Empty<float>();
+
+        // 落定中的残骸（原地收缩/滚转/冷却动画，逐帧写回批次；Seq 失配 = 槽位已被复写，动画作废）。
+        private struct SettlingWreck
+        {
+            public int Slot;
+            public int Seq;
+            public float StartTime;
+            public float Spin; // 落定全程的总旋转量（度，随动画一起衰减到 0）
         }
 
         private readonly List<SettlingWreck> _settling = new(256);
         private readonly Dictionary<int, WreckBuffer> _wrecks = new();
-        private int _bakedWreckCount; // 已落定总数（性能行展示；环形复写后停在上限）
-
-        // ── 推挤通道（纯表现）───────────────────────────────────────────────
-
-        // 漂移上限刻意小于模拟密度格边长（1.0）：残骸怎么被拱都不会离开模拟记账所在格的邻域，
-        // 泥地减速的"看见尸堆=看见减速区"直觉不被表现位移破坏；也保证拱动只是让路、不会清出通道。
-        private const float PushMaxDrift = 0.8f;
-        private const float PushCellSize = 1.0f;   // 表现残骸网格边长（与模拟格无关，只服务邻格查询）
-        // 每帧「检视预算」：残骸怎么处置的成本在逐具距离判定上（不在实际拱动上）——成熟战场里大量残骸已到漂移上限、
-        // 只被判定不被推。预算按<b>检视一具残骸</b>扣（无论是否真推），才能真正封顶最坏开销；超出从轮转游标续到下帧，
-        // 海量敌人下所有个体轮流获得推挤机会。8000 次距离判定/帧 ≪ 1ms，与「敌×邻格残骸」无界扫描相比恒定可控。
-        private const int PushScanBudgetPerFrame = 8000;
-        private const float PushStep = 0.45f;      // 每次拱动吃掉的重叠比例（<1：多帧渐推，读成挤开而非弹飞）
-
-        // 表现残骸网格：cell → 该格内已烘焙残骸的 (原型 id, 槽位)。烘焙登记、环形复写换血、推挤跨格时迁移。
-        private List<(int arch, int slot)>[] _pushGrid;
-        private int _pushGridDim;
-        private float _pushGridHalf;
-        private int _pushCursor; // 敌人轮转起点：本帧预算耗尽时，下帧从这里继续（所有敌人轮流获得推挤机会）
 
         // 分批绘制缓冲（跨帧复用，零逐帧分配）。
         private readonly Matrix4x4[] _matrices = new Matrix4x4[BatchSize];
         private readonly Vector4[] _colors = new Vector4[BatchSize];
 
         /// <summary>
-        /// 战斗开始时由 director 调用：注入表现参数表并准备实例化材质与推挤网格。
-        /// <paramref name="arenaRadius"/> 定表现残骸网格的覆盖范围；<paramref name="heatmapFullCount"/> 是
-        /// 热力图亮度饱和的每格残骸数（按配置传"减速到下限所需的密度"，热力图亮度与减速规则同刻度）。
+        /// 战斗开始时由 director 调用：注入表现参数表并准备实例化材质。
+        /// <paramref name="heatmapFullCount"/> 是热力图亮度饱和的每格残骸数
+        /// （按配置传"减速到下限所需的密度"，热力图亮度与减速规则同刻度）。
         /// </summary>
-        public void Init(Dictionary<int, EnemyVisual> visuals, float arenaRadius, float heatmapFullCount)
+        public void Init(Dictionary<int, EnemyVisual> visuals, float heatmapFullCount)
         {
             _visuals = visuals;
             _heatmapFullCount = Mathf.Max(1f, heatmapFullCount);
-
-            // 表现残骸网格覆盖 ±(场地+3)：残骸出生点在场内，滑出与推挤都不会越过这个边距。
-            _pushGridHalf = arenaRadius + 3f;
-            _pushGridDim = Mathf.Max(1, Mathf.CeilToInt(_pushGridHalf * 2f / PushCellSize));
-            _pushGrid = new List<(int, int)>[_pushGridDim * _pushGridDim];
-            _pushCursor = 0;
 
             var shader = _shader != null ? _shader : Shader.Find("Outpost/SwarmUnlit");
             if (shader == null)
@@ -175,49 +144,13 @@ namespace Game.Outpost.Battle
             _anims[enemyId] = a;
         }
 
-        /// <summary>敌人离场（击杀 / 自爆），清掉动画状态。</summary>
+        /// <summary>敌人离场（击杀 / 自爆），清掉动画状态。残骸不用报——模拟槽位镜像自动发现新落定的残骸。</summary>
         public void OnRemoved(int enemyId) => _anims.Remove(enemyId);
 
         /// <summary>
-        /// 敌人死亡（拦截击毁 / 抵达自爆）：起一具落定中的残骸——沿弹道方向短促滑出、旋转衰减、余烬冷却，
-        /// 之后烘焙进静态批次永久留存。残骸不占演出预算：千级击杀率下它就是"每次击杀都可见"的反馈本体。
-        /// </summary>
-        public void SpawnWreck(int archetypeId, System.Numerics.Vector2 position)
-        {
-            if (_wreckCap <= 0 || _visuals == null || !_visuals.TryGetValue(archetypeId, out var v)) return;
-            var pos = new Vector2(position.X, position.Y);
-            float travel = Mathf.Atan2(pos.y, pos.x);            // 弹道方向 = 从哨站（原点）指向死亡点
-            float slideAng = travel + Random.Range(-0.6f, 0.6f); // ±34° 偏角：堆积不呈严格放射线
-            _settling.Add(new SettlingWreck
-            {
-                ArchetypeId = archetypeId,
-                Pos = pos,
-                SlideDir = new Vector2(Mathf.Cos(slideAng), Mathf.Sin(slideAng)),
-                SlideDist = v.Diameter * Random.Range(0.4f, 1.1f),
-                StartTime = Time.time,
-                BaseAngle = (travel + Mathf.PI) * Mathf.Rad2Deg, // 死亡瞬间仍朝向哨站（与活体一致）
-                Spin = Random.Range(100f, 280f) * (Random.value < 0.5f ? -1f : 1f),
-                Z = WreckZ + Random.value * WreckZSpread,
-            });
-        }
-
-        /// <summary>直接烘焙一具已落定的残骸（跳过落定动画，朝向随机）。供无头快进把跳过波次的击杀铺成战场历史。</summary>
-        public void BakeWreckInstant(int archetypeId, System.Numerics.Vector2 position)
-        {
-            if (_wreckCap <= 0 || _visuals == null || !_visuals.TryGetValue(archetypeId, out var v)) return;
-            var pos = new Vector2(position.X, position.Y);
-            float ang = Mathf.Atan2(pos.y, pos.x) + Random.Range(-0.6f, 0.6f);
-            pos += new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * (v.Diameter * Random.Range(0.4f, 1.1f));
-            BakeWreck(archetypeId, v, pos, WreckZ + Random.value * WreckZSpread, Random.Range(0f, 360f));
-        }
-
-        /// <summary>当前留存的残骸总数（含落定中的）。性能行展示——它是实例化渲染压力的主要持续来源。</summary>
-        public int WreckCount => _bakedWreckCount + _settling.Count;
-
-        /// <summary>
-        /// 绘制当前帧的战场（director 每帧调用）：泥地热力图（按开关）→ 残骸 → 存活敌人 → 在飞弹丸，
-        /// 随后跑一轮推挤（存活敌人拱开身旁残骸，预算限流）。敌人按原型分组遍历模拟快照、
-        /// 逐实例算矩阵与颜色、满批即提交——绘制次数 ≈ 实例数 / 1023 × 网格种数。
+        /// 绘制当前帧的战场（director 每帧调用）：泥地热力图（按开关）→ 残骸槽位镜像同步 + 落定动画 → 残骸批次
+        /// → 在飞弹丸 → 存活敌人。敌人按原型分组遍历模拟快照、逐实例算矩阵与颜色、满批即提交——
+        /// 绘制次数 ≈ 实例数 / 1023 × 网格种数。
         /// </summary>
         public void Render(IBattleSim sim)
         {
@@ -225,10 +158,10 @@ namespace Game.Outpost.Battle
 
             float now = Time.time;
             if (WreckHeatmapVisible) DrawWreckHeatmap(sim);
-            PromoteSettledWrecks(now);
-            DrawWrecks(now);
+            SyncWrecks(sim, now);
+            AdvanceSettling(now);
+            DrawWrecks();
             DrawProjectiles(sim);
-            PushWrecksByEnemies(sim);
             int total = sim.EnemyCount;
 
             // 按原型分批：外层枚举原型（种类少），内层扫全量快照挑出该原型——O(种类×n) 纯数值遍历，
@@ -273,24 +206,136 @@ namespace Game.Outpost.Battle
                 ShadowCastingMode.Off, receiveShadows: false);
         }
 
-        // ── 残骸层内部 ──────────────────────────────────────────────────────
+        // ── 残骸层内部（模拟槽位镜像）───────────────────────────────────────
 
-        // 落定到时的残骸烘焙进静态批次并移出动画列表（倒序 swap-remove，顺序无意义）。
-        private void PromoteSettledWrecks(float now)
+        // 逐槽对照模拟快照做增量维护：Seq 变 = 换血（旧居民摘出批次、新残骸入批 + 起落定动画）；
+        // Pos 变 = 被敌人犁动（原位重写矩阵 + 槽位交替滚转扰动，读成被碾开）。
+        // 全量遍历是纯数值比对（20000 槽 ≪ 1ms），矩阵/颜色只在变化时写。
+        private void SyncWrecks(IBattleSim sim, float now)
         {
-            for (int i = _settling.Count - 1; i >= 0; i--)
+            int n = sim.WreckSlotCount;
+            if (n == 0) return;
+            EnsureSlotCapacity(n);
+
+            for (int slot = 0; slot < n; slot++)
             {
-                var w = _settling[i];
-                if (now - w.StartTime < WreckSettleDuration) continue;
-                if (_visuals.TryGetValue(w.ArchetypeId, out var v))
-                    BakeWreck(w.ArchetypeId, v, w.Pos + w.SlideDir * w.SlideDist, w.Z, w.BaseAngle + w.Spin);
-                _settling[i] = _settling[^1];
-                _settling.RemoveAt(_settling.Count - 1);
+                var w = sim.GetWreckSlot(slot);
+                if (_slotSeq[slot] != w.Seq)
+                {
+                    ReplaceSlot(slot, w, now);
+                    continue;
+                }
+
+                var p = new Vector2(w.Position.X, w.Position.Y);
+                var old = _slotPos[slot];
+                if (p == old) continue;
+
+                // 被犁动：滚转量随位移走（槽位奇偶定向，读成被碾开而非平移）。
+                float moved = Vector2.Distance(old, p);
+                _slotPos[slot] = p;
+                _slotAngle[slot] += ((slot & 1) == 0 ? 1f : -1f) * moved * 90f;
+                if (_visuals.TryGetValue(_slotArchId[slot], out var v))
+                    WriteWreckMatrix(slot, v, WreckScale);
             }
         }
 
-        // 残骸绘制：静态批次直接提交缓存数组（零重建）；落定中的少量残骸逐帧插值（滑出/旋转/冷却同衰减）。
-        private void DrawWrecks(float now)
+        // 槽位换血：摘出旧居民（若有），新残骸写入其原型批次并登记落定动画。
+        private void ReplaceSlot(int slot, in WreckSnapshot w, float now)
+        {
+            if (_slotSeq[slot] != 0) RemoveFromBatch(slot);
+
+            _slotSeq[slot] = w.Seq;
+            _slotPos[slot] = new Vector2(w.Position.X, w.Position.Y);
+            _slotArchId[slot] = w.ArchetypeId;
+            _slotAngle[slot] = Random.Range(0f, 360f);
+            _slotZ[slot] = WreckZ + Random.value * WreckZSpread;
+
+            if (!_wrecks.TryGetValue(w.ArchetypeId, out var buf))
+                _wrecks[w.ArchetypeId] = buf = new WreckBuffer();
+            int b = buf.Count;
+            int page = b / BatchSize;
+            if (page == buf.Matrices.Count)
+            {
+                buf.Matrices.Add(new Matrix4x4[BatchSize]);
+                buf.Colors.Add(new Vector4[BatchSize]);
+            }
+            if (b == buf.Slots.Count) buf.Slots.Add(slot);
+            else buf.Slots[b] = slot;
+            buf.Count++;
+            _slotBatch[slot] = b;
+
+            if (_visuals.TryGetValue(w.ArchetypeId, out var v))
+            {
+                WriteWreckMatrix(slot, v, WreckScale);
+                buf.Colors[page][b % BatchSize] = AshColor(v.Color);
+            }
+            _settling.Add(new SettlingWreck
+            {
+                Slot = slot,
+                Seq = w.Seq,
+                StartTime = now,
+                Spin = Random.Range(100f, 280f) * (Random.value < 0.5f ? -1f : 1f),
+            });
+        }
+
+        // 把槽位从其原型批次摘出（末位补位 swap-remove，维护补位者的批内序反查）。
+        private void RemoveFromBatch(int slot)
+        {
+            var buf = _wrecks[_slotArchId[slot]];
+            int b = _slotBatch[slot];
+            int last = buf.Count - 1;
+            if (b != last)
+            {
+                buf.Matrices[b / BatchSize][b % BatchSize] = buf.Matrices[last / BatchSize][last % BatchSize];
+                buf.Colors[b / BatchSize][b % BatchSize] = buf.Colors[last / BatchSize][last % BatchSize];
+                int lastSlot = buf.Slots[last];
+                buf.Slots[b] = lastSlot;
+                _slotBatch[lastSlot] = b;
+            }
+            buf.Count--;
+        }
+
+        // 落定动画推进：原地收缩（活体尺寸 → 残骸尺寸）+ 滚转衰减 + 余烬冷却成灰，写回批次；到时定格为静态。
+        private void AdvanceSettling(float now)
+        {
+            for (int i = _settling.Count - 1; i >= 0; i--)
+            {
+                var s = _settling[i];
+                if (_slotSeq[s.Slot] != s.Seq || !_visuals.TryGetValue(_slotArchId[s.Slot], out var v))
+                {
+                    // 槽位已被环形复写：动画作废（新居民有自己的动画条目）。
+                    _settling[i] = _settling[^1];
+                    _settling.RemoveAt(_settling.Count - 1);
+                    continue;
+                }
+
+                float t = (now - s.StartTime) / WreckSettleDuration;
+                var buf = _wrecks[_slotArchId[s.Slot]];
+                int b = _slotBatch[s.Slot];
+                if (t >= 1f)
+                {
+                    WriteWreckMatrix(s.Slot, v, WreckScale);
+                    buf.Colors[b / BatchSize][b % BatchSize] = AshColor(v.Color);
+                    _settling[i] = _settling[^1];
+                    _settling.RemoveAt(_settling.Count - 1);
+                    continue;
+                }
+
+                float ease = 1f - (1f - t) * (1f - t); // easeOutQuad：滚转 / 收缩同步减速
+                float baseAngle = _slotAngle[s.Slot];  // 最终朝向不变，动画期以滚转偏移画（被犁动的扰动也叠在其上）
+                var pos = _slotPos[s.Slot];
+                buf.Matrices[b / BatchSize][b % BatchSize] = Matrix4x4.TRS(
+                    new Vector3(pos.x, pos.y, _slotZ[s.Slot]),
+                    Quaternion.Euler(0f, 0f, baseAngle - s.Spin * (1f - ease)),
+                    Vector3.one * (v.Diameter * Mathf.Lerp(1f, WreckScale, t)));
+                var ember = v.Color * 0.55f; // 余烬起色：明显暗于活体、亮于最终灰
+                ember.a = 1f;
+                buf.Colors[b / BatchSize][b % BatchSize] = Color.Lerp(ember, AshColor(v.Color), t);
+            }
+        }
+
+        // 残骸绘制：静态批次直接提交缓存数组（零重建；落定中的少数实例由 AdvanceSettling 原位改写同一批次）。
+        private void DrawWrecks()
         {
             foreach (var pair in _wrecks)
             {
@@ -304,193 +349,30 @@ namespace Game.Outpost.Battle
                         ShadowCastingMode.Off, receiveShadows: false);
                 }
             }
-
-            if (_settling.Count == 0) return;
-            foreach (var pair in _visuals) // 按原型分批，与活敌同一套姿势
-            {
-                int archId = pair.Key;
-                var v = pair.Value;
-                if (v.Mesh == null) continue;
-
-                int batch = 0;
-                for (int i = 0; i < _settling.Count; i++)
-                {
-                    var w = _settling[i];
-                    if (w.ArchetypeId != archId) continue;
-
-                    float t = Mathf.Clamp01((now - w.StartTime) / WreckSettleDuration);
-                    float ease = 1f - (1f - t) * (1f - t); // easeOutQuad：滑出 / 旋转同步减速
-                    var p = w.Pos + w.SlideDir * (w.SlideDist * ease);
-                    _matrices[batch] = Matrix4x4.TRS(new Vector3(p.x, p.y, w.Z),
-                        Quaternion.Euler(0f, 0f, w.BaseAngle + w.Spin * ease),
-                        Vector3.one * (v.Diameter * Mathf.Lerp(1f, WreckScale, t)));
-                    var ember = v.Color * 0.55f; // 余烬起色：明显暗于活体、亮于最终灰
-                    ember.a = 1f;
-                    _colors[batch] = Color.Lerp(ember, AshColor(v.Color), t);
-                    batch++;
-
-                    if (batch == BatchSize)
-                    {
-                        Flush(v.Mesh, batch);
-                        batch = 0;
-                    }
-                }
-                if (batch > 0) Flush(v.Mesh, batch);
-            }
         }
 
-        // 把一具残骸写进该原型的环形批次（矩阵/颜色此后只被推挤通道原位改写），并登记进推挤网格。
-        private void BakeWreck(int archetypeId, in EnemyVisual v, Vector2 pos, float z, float angleDeg)
+        // 按槽位镜像数据写静态矩阵（位置 / 朝向 / 深度随槽存放）。
+        private void WriteWreckMatrix(int slot, in EnemyVisual v, float scale)
         {
-            if (!_wrecks.TryGetValue(archetypeId, out var buf))
-                _wrecks[archetypeId] = buf = new WreckBuffer();
-
-            int slot = buf.Next;
-            int b = slot / BatchSize;
-            int k = slot % BatchSize;
-            if (b == buf.Matrices.Count)
-            {
-                buf.Matrices.Add(new Matrix4x4[BatchSize]);
-                buf.Colors.Add(new Vector4[BatchSize]);
-            }
-            buf.Matrices[b][k] = Matrix4x4.TRS(new Vector3(pos.x, pos.y, z),
-                Quaternion.Euler(0f, 0f, angleDeg), Vector3.one * (v.Diameter * WreckScale));
-            buf.Colors[b][k] = AshColor(v.Color);
-
-            // 推挤工作数据按槽位对齐；环形复写 = 旧残骸换血，先把旧登记摘出网格。
-            if (slot < buf.Pos.Count)
-            {
-                PushGridRemove(PushCellOf(buf.Pos[slot]), archetypeId, slot);
-                buf.Pos[slot] = pos;
-                buf.Angle[slot] = angleDeg;
-                buf.Z[slot] = z;
-                buf.Drift[slot] = 0f;
-            }
-            else
-            {
-                buf.Pos.Add(pos);
-                buf.Angle.Add(angleDeg);
-                buf.Z.Add(z);
-                buf.Drift.Add(0f);
-            }
-            PushGridAdd(PushCellOf(pos), archetypeId, slot);
-
-            buf.Next = (buf.Next + 1) % _wreckCap;
-            if (buf.Count < _wreckCap)
-            {
-                buf.Count++;
-                _bakedWreckCount++;
-            }
+            var buf = _wrecks[_slotArchId[slot]];
+            int b = _slotBatch[slot];
+            var pos = _slotPos[slot];
+            buf.Matrices[b / BatchSize][b % BatchSize] = Matrix4x4.TRS(
+                new Vector3(pos.x, pos.y, _slotZ[slot]),
+                Quaternion.Euler(0f, 0f, _slotAngle[slot]),
+                Vector3.one * (v.Diameter * scale));
         }
 
-        // ── 推挤通道内部 ────────────────────────────────────────────────────
-
-        // 表现残骸网格的格索引（越界钳边；与模拟侧密度格同式但互不相关——这张网格只服务邻格查询）。
-        private int PushCellOf(Vector2 p)
+        private void EnsureSlotCapacity(int n)
         {
-            int ix = Mathf.Clamp(Mathf.FloorToInt((p.x + _pushGridHalf) / PushCellSize), 0, _pushGridDim - 1);
-            int iy = Mathf.Clamp(Mathf.FloorToInt((p.y + _pushGridHalf) / PushCellSize), 0, _pushGridDim - 1);
-            return iy * _pushGridDim + ix;
-        }
-
-        private void PushGridAdd(int cell, int arch, int slot)
-        {
-            var list = _pushGrid[cell];
-            if (list == null) _pushGrid[cell] = list = new List<(int, int)>(8);
-            list.Add((arch, slot));
-        }
-
-        private void PushGridRemove(int cell, int arch, int slot)
-        {
-            var list = _pushGrid[cell];
-            if (list == null) return;
-            for (int i = list.Count - 1; i >= 0; i--)
-            {
-                if (list[i].arch != arch || list[i].slot != slot) continue;
-                list[i] = list[^1];
-                list.RemoveAt(list.Count - 1);
-                return;
-            }
-        }
-
-        // 存活敌人拱开身旁残骸：从轮转游标起逐敌查所在格 ±1 的已烘焙残骸，体积重叠即沿"敌→残骸"方向
-        // 推掉部分重叠并原位重写矩阵（带槽位交替的滚转扰动，读成被碾开）。每帧「检视残骸」次数有预算（见常量），
-        // 耗尽停在当前敌人、下帧从游标续——海量敌人时所有个体轮流获得推挤机会，不会某一片永远推不动。
-        private void PushWrecksByEnemies(IBattleSim sim)
-        {
-            if (_pushGrid == null || _bakedWreckCount == 0) return;
-            int total = sim.EnemyCount;
-            if (total == 0) return;
-
-            int budget = PushScanBudgetPerFrame;
-            if (_pushCursor >= total) _pushCursor = 0;
-            int start = _pushCursor;
-            for (int n = 0; n < total && budget > 0; n++)
-            {
-                int idx = start + n;
-                if (idx >= total) idx -= total;
-                var snap = sim.GetEnemy(idx);
-                if (!_visuals.TryGetValue(snap.ArchetypeId, out var ev)) continue;
-                float er = ev.Diameter * 0.5f;
-                var epos = new Vector2(snap.Position.X, snap.Position.Y);
-
-                int cx = Mathf.Clamp(Mathf.FloorToInt((epos.x + _pushGridHalf) / PushCellSize), 0, _pushGridDim - 1);
-                int cy = Mathf.Clamp(Mathf.FloorToInt((epos.y + _pushGridHalf) / PushCellSize), 0, _pushGridDim - 1);
-                for (int oy = -1; oy <= 1; oy++)
-                {
-                    int gy = cy + oy;
-                    if (gy < 0 || gy >= _pushGridDim) continue;
-                    for (int ox = -1; ox <= 1; ox++)
-                    {
-                        int gx = cx + ox;
-                        if (gx < 0 || gx >= _pushGridDim) continue;
-                        var list = _pushGrid[gy * _pushGridDim + gx];
-                        if (list == null) continue;
-                        for (int i = list.Count - 1; i >= 0 && budget > 0; i--)
-                        {
-                            budget--; // 检视一具残骸即一次距离判定＝成本单位，无论是否真推（封顶最坏扫描开销）
-                            var (arch, slot) = list[i];
-                            var buf = _wrecks[arch];
-                            float drift = buf.Drift[slot];
-                            if (drift >= PushMaxDrift) continue; // 漂移到顶：拱不动了（保持格位可信，见常量注释）
-                            if (!_visuals.TryGetValue(arch, out var wv)) continue;
-
-                            var wpos = buf.Pos[slot];
-                            var d = wpos - epos;
-                            float contact = er + wv.Diameter * WreckScale * 0.5f;
-                            float distSq = d.sqrMagnitude;
-                            if (distSq >= contact * contact) continue;
-
-                            float dist = Mathf.Sqrt(distSq);
-                            // 完全重合（弹着点就是死亡点的常见情形）：沿敌人来袭的径向让开。
-                            var dir = dist > 1e-4f ? d / dist
-                                : (epos.sqrMagnitude > 1e-4f ? epos.normalized : Vector2.right);
-                            float move = Mathf.Min((contact - dist) * PushStep, PushMaxDrift - drift);
-                            if (move <= 0.005f) continue;
-
-                            wpos += dir * move;
-                            buf.Pos[slot] = wpos;
-                            buf.Drift[slot] = drift + move;
-                            float ang = buf.Angle[slot] + ((slot & 1) == 0 ? 1f : -1f) * move * 90f;
-                            buf.Angle[slot] = ang;
-                            buf.Matrices[slot / BatchSize][slot % BatchSize] = Matrix4x4.TRS(
-                                new Vector3(wpos.x, wpos.y, buf.Z[slot]),
-                                Quaternion.Euler(0f, 0f, ang),
-                                Vector3.one * (wv.Diameter * WreckScale));
-
-                            // 跨格迁移登记（漂移上限 < 格边长，至多挪进邻格）。
-                            int newCell = PushCellOf(wpos);
-                            if (newCell != gy * _pushGridDim + gx)
-                            {
-                                list[i] = list[^1];
-                                list.RemoveAt(list.Count - 1);
-                                PushGridAdd(newCell, arch, slot);
-                            }
-                        }
-                    }
-                }
-                _pushCursor = idx + 1;
-            }
+            if (_slotSeq.Length >= n) return;
+            int cap = Mathf.Max(4096, Mathf.NextPowerOfTwo(n));
+            System.Array.Resize(ref _slotSeq, cap);
+            System.Array.Resize(ref _slotPos, cap);
+            System.Array.Resize(ref _slotArchId, cap);
+            System.Array.Resize(ref _slotBatch, cap);
+            System.Array.Resize(ref _slotAngle, cap);
+            System.Array.Resize(ref _slotZ, cap);
         }
 
         // ── 弹丸层内部 ──────────────────────────────────────────────────────

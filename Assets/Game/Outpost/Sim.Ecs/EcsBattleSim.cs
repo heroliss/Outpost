@@ -193,14 +193,18 @@ namespace Game.Outpost.Sim.Ecs
         public NativeList<HitRecord> Hits;
         public NativeList<Entity> KilledEntities;
 
-        // 泥地记账（击杀侧）：与主线程自爆侧共用同一批容器，逻辑与参考实现 AddWreck 逐行同式。
+        // 残骸落定（击杀侧）：与主线程自爆侧共用同一批槽位容器，逻辑与参考实现 AddWreck 逐行同式。
         public byte WreckEnabled;
         public float WreckHalf;
         public float WreckCellSize;
         public int WreckDim;
         public NativeArray<int> WreckCells;
-        public NativeArray<int> WreckRing;
-        public NativeReference<int2> WreckRingState; // x = Next（环形游标）, y = Count（当前留存数）
+        public NativeArray<float2> WreckPos;
+        public NativeArray<int> WreckArch;
+        public NativeArray<float> WreckDrift;
+        public NativeArray<int> WreckSeq;
+        public NativeArray<int> WreckCellSlot;
+        public NativeReference<int3> WreckState; // x = 环形游标, y = 已用槽位数, z = 下一创建序号
 
         public void Execute()
         {
@@ -247,7 +251,7 @@ namespace Game.Outpost.Sim.Ecs
                             splash = arch.Attack * m.StatScale * SplashDamageScale * proximity;
                             player.Hp = math.max(0f, player.Hp - splash);
                         }
-                        AddWreck(impact);
+                        AddWreck(impact, m.ArchIndex);
                         KilledEntities.Add(ent);
                         // swap-remove：末位补位，保持工作数组紧凑（索引顺序变化已在接口契约声明）。
                         count--;
@@ -298,18 +302,191 @@ namespace Game.Outpost.Sim.Ecs
             ProjDamage.RemoveAtSwapBack(i);
         }
 
-        // 泥地记账：与参考实现 AddWreck / 主线程自爆侧逐行同式（残骸所在格 +1，环形上限挤掉最老的）。
-        private void AddWreck(float2 pos)
+        // 残骸落定：与参考实现 AddWreck / 主线程自爆侧逐行同式（事件点 + 确定性散布，写环形槽位并在静置格记账）。
+        private void AddWreck(float2 eventPos, int archIndex)
         {
             if (WreckEnabled == 0) return;
+            var st = WreckState.Value;
+            int seq = st.z++;
+            SimMath.WreckRestOffset(eventPos.x, eventPos.y, Archetypes[archIndex].Radius, seq, out float ox, out float oy);
+            var pos = new float2(eventPos.x + ox, eventPos.y + oy);
             int cell = SimMath.WreckCellIndex(pos.x, pos.y, WreckHalf, WreckCellSize, WreckDim);
-            var rs = WreckRingState.Value;
-            if (rs.y == WreckRing.Length) WreckCells[WreckRing[rs.x]]--;
-            else rs.y++;
-            WreckRing[rs.x] = cell;
-            rs.x = (rs.x + 1) % WreckRing.Length;
+
+            int slot = st.x;
+            if (st.y == WreckPos.Length) WreckCells[WreckCellSlot[slot]]--; // 环形复写：最老的出格
+            else st.y++;
+            WreckPos[slot] = pos;
+            WreckArch[slot] = archIndex;
+            WreckDrift[slot] = 0f;
+            WreckSeq[slot] = seq;
+            WreckCellSlot[slot] = cell;
+            st.x = (st.x + 1) % WreckPos.Length;
             WreckCells[cell]++;
-            WreckRingState.Value = rs;
+            WreckState.Value = st;
+        }
+    }
+
+    /// <summary>
+    /// 敌人占位网格重建（推挤查询用；CSR 三段式：计数 → 前缀和 → 填充，填充期间计数清零复用为写游标）。
+    /// 单线程 Burst——O(敌人数) 极轻，确定性的分段布局是下游并行推挤的只读输入。
+    /// </summary>
+    [BurstCompile(FloatMode = FloatMode.Strict, CompileSynchronously = true)]
+    internal struct BuildEnemyGridJob : IJob
+    {
+        [ReadOnly] public NativeArray<float2> EnemyPos;
+        public int Count;
+        public float GridHalf;
+        public float GridCellSize;
+        public int GridDim;
+        public NativeArray<int> CellCount;
+        public NativeArray<int> CellStart; // 长度 cells+1（前缀和）
+        public NativeArray<int> Items;     // 按格分段的敌人索引（容量 ≥ Count）
+
+        public void Execute()
+        {
+            for (int c = 0; c < CellCount.Length; c++) CellCount[c] = 0;
+            for (int i = 0; i < Count; i++)
+                CellCount[SimMath.WreckCellIndex(EnemyPos[i].x, EnemyPos[i].y, GridHalf, GridCellSize, GridDim)]++;
+
+            int sum = 0;
+            for (int c = 0; c < CellCount.Length; c++)
+            {
+                CellStart[c] = sum;
+                sum += CellCount[c];
+            }
+            CellStart[CellCount.Length] = sum;
+
+            for (int c = 0; c < CellCount.Length; c++) CellCount[c] = 0;
+            for (int i = 0; i < Count; i++)
+            {
+                int c = SimMath.WreckCellIndex(EnemyPos[i].x, EnemyPos[i].y, GridHalf, GridCellSize, GridDim);
+                Items[CellStart[c] + CellCount[c]++] = i;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 残骸推挤（<b>逐槽并行</b> Burst）：每具残骸找"重叠的最近敌人"（距离平方最小、平票取小实例 id——
+    /// 顺序无关的归约，所以并行调度不破坏确定性）、沿"敌→残骸"方向推开。每槽只写自己（IJobParallelFor
+    /// 的默认安全约束恰好如此）；跨密度格的记账变更经 <see cref="CellChanges"/> 队列带回主线程回放
+    /// （加减法可交换，入队顺序无关）。这条规则的演算量随残骸留存累计增长——参考实现同一算法托管直写会
+    /// 逐波变慢，本 job 并行摊平，是后端置换收益随战局拉大的落点（ADR-0032）。
+    /// </summary>
+    [BurstCompile(FloatMode = FloatMode.Strict, CompileSynchronously = true)]
+    internal struct WreckPushJob : IJobParallelFor
+    {
+        public float MaxStep;   // PushSpeed × dt
+        public float MaxDrift;
+        public float RecoverDt; // DriftRecoverPerSecond × dt（车辙回淤；0 = 不回淤）
+        [ReadOnly] public NativeArray<EnemyArchetype> Archetypes;
+
+        // 敌人快照 + 占位网格（只读）
+        [ReadOnly] public NativeArray<float2> EnemyPos;
+        [ReadOnly] public NativeArray<EnemyMeta> EnemyMeta;
+        [ReadOnly] public NativeArray<int> CellCount;
+        [ReadOnly] public NativeArray<int> CellStart;
+        [ReadOnly] public NativeArray<int> Items;
+        public float GridHalf;
+        public float GridCellSize;
+        public int GridDim;
+
+        // 残骸槽位（写仅限 Execute 的 index 槽）
+        public NativeArray<float2> WreckPos;
+        [ReadOnly] public NativeArray<int> WreckArch;
+        public NativeArray<float> WreckDrift;
+        public NativeArray<int> WreckCellSlot;
+
+        // 密度格布局（重算所在格用；计数本体不在并行 job 内改）
+        public float WreckHalf;
+        public float WreckCellSize;
+        public int WreckDim;
+        public NativeQueue<int2>.ParallelWriter CellChanges; // x = 旧格, y = 新格
+
+        public void Execute(int slot)
+        {
+            float drift = WreckDrift[slot];
+            if (RecoverDt > 0f && drift > 0f)
+            {
+                // 车辙回淤：漂移预算随时间恢复——车流必须持续碾压才能保持通道（与参考实现逐式一致）。
+                drift -= RecoverDt;
+                if (drift < 0f) drift = 0f;
+                WreckDrift[slot] = drift;
+            }
+            if (drift >= MaxDrift) return; // 漂移到顶：本 tick 拱不动了（回淤后下一 tick 又能动一点）
+
+            float2 wpos = WreckPos[slot];
+            float wreckR = Archetypes[WreckArch[slot]].Radius * BattleSimTuning.WreckBodyScale;
+            int cx = (int)math.floor((wpos.x + GridHalf) / GridCellSize);
+            int cy = (int)math.floor((wpos.y + GridHalf) / GridCellSize);
+            if (cx < 0) cx = 0; else if (cx >= GridDim) cx = GridDim - 1;
+            if (cy < 0) cy = 0; else if (cy >= GridDim) cy = GridDim - 1;
+
+            int best = -1;
+            float bestDsq = float.MaxValue;
+            int bestId = int.MaxValue;
+            float bestContact = 0f;
+            for (int oy = -1; oy <= 1; oy++)
+            {
+                int gy = cy + oy;
+                if (gy < 0 || gy >= GridDim) continue;
+                for (int ox = -1; ox <= 1; ox++)
+                {
+                    int gx = cx + ox;
+                    if (gx < 0 || gx >= GridDim) continue;
+                    int cell = gy * GridDim + gx;
+                    int start = CellStart[cell];
+                    int end = start + CellCount[cell];
+                    for (int k = start; k < end; k++)
+                    {
+                        int ei = Items[k];
+                        float contact = Archetypes[EnemyMeta[ei].ArchIndex].Radius + wreckR;
+                        float ddx = wpos.x - EnemyPos[ei].x, ddy = wpos.y - EnemyPos[ei].y;
+                        float dsq = ddx * ddx + ddy * ddy;
+                        if (dsq >= contact * contact) continue;
+                        int id = EnemyMeta[ei].Id;
+                        if (dsq < bestDsq || (dsq == bestDsq && id < bestId))
+                        {
+                            bestDsq = dsq;
+                            bestId = id;
+                            best = ei;
+                            bestContact = contact;
+                        }
+                    }
+                }
+            }
+            if (best < 0) return;
+
+            float2 epos = EnemyPos[best];
+            float dist = math.sqrt(bestDsq);
+            float dirX, dirY;
+            if (dist > 1e-4f)
+            {
+                dirX = (wpos.x - epos.x) / dist;
+                dirY = (wpos.y - epos.y) / dist;
+            }
+            else
+            {
+                // 完全重合：沿远离哨站的径向让开（与参考实现逐式一致）。
+                float wl = math.length(wpos);
+                if (wl > 1e-4f) { dirX = wpos.x / wl; dirY = wpos.y / wl; }
+                else { dirX = 1f; dirY = 0f; }
+            }
+            float move = bestContact - dist;
+            if (move > MaxStep) move = MaxStep;
+            float room = MaxDrift - drift;
+            if (move > room) move = room;
+            if (move <= 1e-4f) return;
+
+            wpos = new float2(wpos.x + dirX * move, wpos.y + dirY * move);
+            WreckPos[slot] = wpos;
+            WreckDrift[slot] = drift + move;
+            int newCell = SimMath.WreckCellIndex(wpos.x, wpos.y, WreckHalf, WreckCellSize, WreckDim);
+            int oldCell = WreckCellSlot[slot];
+            if (newCell != oldCell)
+            {
+                WreckCellSlot[slot] = newCell; // 记账跟随位置：车辙被踩穿、路边堆垄
+                CellChanges.Enqueue(new int2(oldCell, newCell));
+            }
         }
     }
 
@@ -389,13 +566,27 @@ namespace Game.Outpost.Sim.Ecs
         private NativeReference<PlayerHitState> _playerRef;
         private NativeReference<int> _bestRef;
 
-        // 泥地（密度格 + 创建序环形缓冲）：主线程（自爆）与弹丸 job（击杀）共写，job 全部当帧 Complete 无竞争。
+        // 泥地（密度格 + 逐实体 SoA 槽位）：主线程（自爆）与弹丸 job（击杀）共写落定、推挤 job 并行改位置，
+        // job 全部当帧 Complete 无竞争。
         private NativeArray<int> _wreckCells;
-        private NativeArray<int> _wreckRing;
-        private NativeReference<int2> _wreckRingState;
+        private NativeArray<float2> _wreckPos;
+        private NativeArray<int> _wreckArch;
+        private NativeArray<float> _wreckDrift;
+        private NativeArray<int> _wreckSeq;
+        private NativeArray<int> _wreckCellSlot;
+        private NativeReference<int3> _wreckState; // x=环形游标, y=已用槽位数, z=下一创建序号
         private byte _wreckEnabled;
         private float _wreckGridHalf;
         private int _wreckGridDim;
+
+        // 敌人占位网格（推挤查询，每 tick 重建）+ 跨格记账队列。
+        private float _enemyGridCellSize;
+        private float _enemyGridHalf;
+        private int _enemyGridDim;
+        private NativeArray<int> _enemyCellCount;
+        private NativeArray<int> _enemyCellStart;
+        private NativeList<int> _enemyCellItems;
+        private NativeQueue<int2> _wreckCellChanges;
 
         private bool _disposed;
 
@@ -440,6 +631,14 @@ namespace Game.Outpost.Sim.Ecs
             => _wreckEnabled == 0 ? default : new WreckGridInfo(_wreckGridDim, _setup.WreckField.CellSize, _wreckGridHalf);
 
         public int GetWreckCellCount(int index) => _wreckCells[index];
+
+        public int WreckSlotCount => _wreckState.IsCreated ? _wreckState.Value.y : 0;
+
+        public WreckSnapshot GetWreckSlot(int slot)
+        {
+            var p = _wreckPos[slot];
+            return new WreckSnapshot(_wreckSeq[slot], _archetypes[_wreckArch[slot]].Id, new Vector2(p.x, p.y));
+        }
 
         public void Start(BattleSetup setup)
         {
@@ -487,7 +686,22 @@ namespace Game.Outpost.Sim.Ecs
                 _wreckGridHalf = setup.ArenaRadius + 1f;
                 _wreckGridDim = Math.Max(1, (int)Math.Ceiling(_wreckGridHalf * 2f / wf.CellSize));
                 _wreckCells = new NativeArray<int>(_wreckGridDim * _wreckGridDim, Allocator.Persistent);
-                _wreckRing = new NativeArray<int>(wf.SimCap, Allocator.Persistent);
+                _wreckPos = new NativeArray<float2>(wf.SimCap, Allocator.Persistent);
+                _wreckArch = new NativeArray<int>(wf.SimCap, Allocator.Persistent);
+                _wreckDrift = new NativeArray<float>(wf.SimCap, Allocator.Persistent);
+                _wreckSeq = new NativeArray<int>(wf.SimCap, Allocator.Persistent);
+                _wreckCellSlot = new NativeArray<int>(wf.SimCap, Allocator.Persistent);
+
+                // 敌人占位网格布局与参考实现同式推导（格边长 = 最大接触距离的上界，3×3 邻域必覆盖接触对）。
+                float maxRadius = 0f;
+                for (int i = 0; i < setup.Enemies.Length; i++)
+                    if (setup.Enemies[i].Radius > maxRadius) maxRadius = setup.Enemies[i].Radius;
+                _enemyGridCellSize = Math.Max(1f, maxRadius * (1f + BattleSimTuning.WreckBodyScale));
+                _enemyGridHalf = setup.ArenaRadius + 3f;
+                _enemyGridDim = Math.Max(1, (int)Math.Ceiling(_enemyGridHalf * 2f / _enemyGridCellSize));
+                _enemyCellCount = new NativeArray<int>(_enemyGridDim * _enemyGridDim, Allocator.Persistent);
+                _enemyCellStart = new NativeArray<int>(_enemyGridDim * _enemyGridDim + 1, Allocator.Persistent);
+                _enemyCellItems = new NativeList<int>(1024, Allocator.Persistent);
             }
             else
             {
@@ -495,9 +709,19 @@ namespace Game.Outpost.Sim.Ecs
                 _wreckGridHalf = 1f;
                 _wreckGridDim = 1;
                 _wreckCells = new NativeArray<int>(1, Allocator.Persistent);
-                _wreckRing = new NativeArray<int>(1, Allocator.Persistent);
+                _wreckPos = new NativeArray<float2>(1, Allocator.Persistent);
+                _wreckArch = new NativeArray<int>(1, Allocator.Persistent);
+                _wreckDrift = new NativeArray<float>(1, Allocator.Persistent);
+                _wreckSeq = new NativeArray<int>(1, Allocator.Persistent);
+                _wreckCellSlot = new NativeArray<int>(1, Allocator.Persistent);
+                _enemyGridDim = 1;
+                _enemyCellCount = new NativeArray<int>(1, Allocator.Persistent);
+                _enemyCellStart = new NativeArray<int>(2, Allocator.Persistent);
+                _enemyCellItems = new NativeList<int>(1, Allocator.Persistent);
             }
-            _wreckRingState = new NativeReference<int2>(Allocator.Persistent);
+            _wreckState = new NativeReference<int3>(Allocator.Persistent);
+            _wreckState.Value = new int3(0, 0, 1); // 空场、创建序号从 1 起（0 = 表现层"从未见过"哨兵）
+            _wreckCellChanges = new NativeQueue<int2>(Allocator.Persistent);
 
             BeginWave(1);
         }
@@ -549,8 +773,9 @@ namespace Game.Outpost.Sim.Ecs
                 return;
             }
             TickPlayer(deltaTime);        // 回血 + gather + 回转 + 击发（生成弹丸，托管）
-            TickProjectiles(deltaTime);   // 弹丸 job（推进 + 扫掠弹着 + 泥地记账）+ 事件回放
+            TickProjectiles(deltaTime);   // 弹丸 job（推进 + 扫掠弹着 + 残骸落定）+ 事件回放
             if (CheckDefeat()) return;    // 溅射致死：快照已是当帧终态
+            TickWreckPush(deltaTime);     // 敌人拱开残骸（并行 job）——负载随残骸留存累计增长
             CheckWaveEnd();
         }
 
@@ -583,8 +808,16 @@ namespace Game.Outpost.Sim.Ecs
             if (_playerRef.IsCreated) _playerRef.Dispose();
             if (_bestRef.IsCreated) _bestRef.Dispose();
             if (_wreckCells.IsCreated) _wreckCells.Dispose();
-            if (_wreckRing.IsCreated) _wreckRing.Dispose();
-            if (_wreckRingState.IsCreated) _wreckRingState.Dispose();
+            if (_wreckPos.IsCreated) _wreckPos.Dispose();
+            if (_wreckArch.IsCreated) _wreckArch.Dispose();
+            if (_wreckDrift.IsCreated) _wreckDrift.Dispose();
+            if (_wreckSeq.IsCreated) _wreckSeq.Dispose();
+            if (_wreckCellSlot.IsCreated) _wreckCellSlot.Dispose();
+            if (_wreckState.IsCreated) _wreckState.Dispose();
+            if (_enemyCellCount.IsCreated) _enemyCellCount.Dispose();
+            if (_enemyCellStart.IsCreated) _enemyCellStart.Dispose();
+            if (_enemyCellItems.IsCreated) _enemyCellItems.Dispose();
+            if (_wreckCellChanges.IsCreated) _wreckCellChanges.Dispose();
             if (_world != null && _world.IsCreated) _world.Dispose();
             _world = null;
         }
@@ -707,7 +940,7 @@ namespace Game.Outpost.Sim.Ecs
                 var arch = _archetypes[d.ArchIndex];
                 float dmg = arch.Attack * d.StatScale;
                 _playerHp = Math.Max(0f, _playerHp - dmg);
-                AddWreckManaged(d.Pos);
+                AddWreckManaged(d.Pos, d.ArchIndex);
                 toDestroy[i] = d.Entity;
                 EnemyDetonated?.Invoke(new EnemyDetonatedEvent(d.Id, arch.Id, new Vector2(d.Pos.x, d.Pos.y), dmg, _playerHp));
             }
@@ -715,18 +948,80 @@ namespace Game.Outpost.Sim.Ecs
             toDestroy.Dispose();
         }
 
-        // 泥地记账（自爆侧，主线程）：与 ProjectileJob.AddWreck / 参考实现 AddWreck 逐行同式。
-        private void AddWreckManaged(float2 pos)
+        // 残骸落定（自爆侧，主线程）：与 ProjectileJob.AddWreck / 参考实现 AddWreck 逐行同式。
+        private void AddWreckManaged(float2 eventPos, int archIndex)
         {
             if (_wreckEnabled == 0) return;
+            var st = _wreckState.Value;
+            int seq = st.z++;
+            SimMath.WreckRestOffset(eventPos.x, eventPos.y, _archetypes[archIndex].Radius, seq, out float ox, out float oy);
+            var pos = new float2(eventPos.x + ox, eventPos.y + oy);
             int cell = SimMath.WreckCellIndex(pos.x, pos.y, _wreckGridHalf, _setup.WreckField.CellSize, _wreckGridDim);
-            var rs = _wreckRingState.Value;
-            if (rs.y == _wreckRing.Length) _wreckCells[_wreckRing[rs.x]]--;
-            else rs.y++;
-            _wreckRing[rs.x] = cell;
-            rs.x = (rs.x + 1) % _wreckRing.Length;
+
+            int slot = st.x;
+            if (st.y == _wreckPos.Length) _wreckCells[_wreckCellSlot[slot]]--;
+            else st.y++;
+            _wreckPos[slot] = pos;
+            _wreckArch[slot] = archIndex;
+            _wreckDrift[slot] = 0f;
+            _wreckSeq[slot] = seq;
+            _wreckCellSlot[slot] = cell;
+            st.x = (st.x + 1) % _wreckPos.Length;
             _wreckCells[cell]++;
-            _wreckRingState.Value = rs;
+            _wreckState.Value = st;
+        }
+
+        // 推挤相位：重建敌人占位网格（单线程 job）→ 逐槽并行推挤 → 主线程回放跨格记账（加减可交换，顺序无关）。
+        private void TickWreckPush(float dt)
+        {
+            if (_wreckEnabled == 0 || _aliveCount == 0) return;
+            var wf = _setup.WreckField;
+            if (wf.PushSpeed <= 0f) return;
+            int slots = _wreckState.Value.y;
+            if (slots == 0) return;
+
+            _enemyCellItems.ResizeUninitialized(_aliveCount);
+            new BuildEnemyGridJob
+            {
+                EnemyPos = _snapPos.AsArray(),
+                Count = _aliveCount,
+                GridHalf = _enemyGridHalf,
+                GridCellSize = _enemyGridCellSize,
+                GridDim = _enemyGridDim,
+                CellCount = _enemyCellCount,
+                CellStart = _enemyCellStart,
+                Items = _enemyCellItems.AsArray(),
+            }.Schedule().Complete();
+
+            new WreckPushJob
+            {
+                MaxStep = wf.PushSpeed * dt,
+                MaxDrift = wf.PushMaxDrift,
+                RecoverDt = wf.DriftRecoverPerSecond > 0f ? wf.DriftRecoverPerSecond * dt : 0f,
+                Archetypes = _archetypes,
+                EnemyPos = _snapPos.AsArray(),
+                EnemyMeta = _snapMeta.AsArray(),
+                CellCount = _enemyCellCount,
+                CellStart = _enemyCellStart,
+                Items = _enemyCellItems.AsArray(),
+                GridHalf = _enemyGridHalf,
+                GridCellSize = _enemyGridCellSize,
+                GridDim = _enemyGridDim,
+                WreckPos = _wreckPos,
+                WreckArch = _wreckArch,
+                WreckDrift = _wreckDrift,
+                WreckCellSlot = _wreckCellSlot,
+                WreckHalf = _wreckGridHalf,
+                WreckCellSize = wf.CellSize,
+                WreckDim = _wreckGridDim,
+                CellChanges = _wreckCellChanges.AsParallelWriter(),
+            }.Schedule(slots, 128).Complete();
+
+            while (_wreckCellChanges.TryDequeue(out var ch))
+            {
+                _wreckCells[ch.x]--;
+                _wreckCells[ch.y]++;
+            }
         }
 
         private void TickPlayer(float dt)
@@ -820,8 +1115,12 @@ namespace Game.Outpost.Sim.Ecs
                 WreckCellSize = wf.CellSize,
                 WreckDim = _wreckGridDim,
                 WreckCells = _wreckCells,
-                WreckRing = _wreckRing,
-                WreckRingState = _wreckRingState,
+                WreckPos = _wreckPos,
+                WreckArch = _wreckArch,
+                WreckDrift = _wreckDrift,
+                WreckSeq = _wreckSeq,
+                WreckCellSlot = _wreckCellSlot,
+                WreckState = _wreckState,
             };
             job.Schedule().Complete();
 

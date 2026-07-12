@@ -105,10 +105,13 @@ namespace Game.Outpost.Sim
     }
 
     /// <summary>
-    /// 残骸减速泥地参数（残骸首次成为模拟状态）。规则本身以<b>密度网格</b>表述：场地按 <see cref="CellSize"/>
-    /// 划格，敌人被击杀/自爆时其弹着/自爆点所在格计数 +1（总量 <see cref="SimCap"/> 环形上限，最老的出格时 -1）；
-    /// 敌人移速 ×= <c>max(SlowFloor, 1 − SlowPerCount × 格计数)</c>——"上一波死在哪，下一波就在哪儿减速"，
-    /// 残骸层从纯观赏变成防御地形。格子化是规则而非实现优化：两后端 O(1) 同实现、天然确定性。
+    /// 残骸减速泥地参数。残骸是<b>逐实体模拟状态</b>（环形槽位，上限 <see cref="SimCap"/>）：击杀/自爆时在
+    /// 事件点附近静置一具（确定性散布，见 <c>SimMath.WreckRestOffset</c>），其所在密度格计数 +1；
+    /// 敌人移速 ×= <c>max(SlowFloor, 1 − SlowPerCount × 格计数)</c>——"上一波死在哪，下一波就在哪儿减速"。
+    /// <para><b>推挤（<see cref="PushSpeed"/> &gt; 0 时启用）</b>：敌人碾过残骸把它拱开——每 tick 每具残骸被
+    /// 重叠的最近敌人推离，<b>密度记账跟随位置</b>（跨格时旧格 −1 新格 +1）：车辙被真的踩穿、残骸往路两侧堆成垄，
+    /// 防御地形随进攻路径侵蚀。该规则的演算量随留存残骸数累计增长（O(残骸 × 邻域敌人)，刻意不设预算——
+    /// 它是规则不是演出），是后端置换收益随战局拉大的主要负载源。</para>
     /// </summary>
     public struct WreckFieldSetup
     {
@@ -123,6 +126,19 @@ namespace Game.Outpost.Sim
 
         /// <summary>模拟侧残骸留存上限（环形复写）。≤ 0 = 整个泥地机制关闭。</summary>
         public int SimCap;
+
+        /// <summary>残骸被推挤的移动速度上限（单位/秒；≤ 0 = 推挤关闭，残骸静止如 M7）。</summary>
+        public float PushSpeed;
+
+        /// <summary>单具残骸的累计漂移上限（世界单位）。记账跟随位置，可跨密度格——上限保住"尸堆=减速区"的可读性。</summary>
+        public float PushMaxDrift;
+
+        /// <summary>
+        /// 漂移预算的恢复速度（单位/秒；≤ 0 = 不回淤，漂移一次性耗尽即定格）。<b>车辙回淤</b>：被碾开的残骸
+        /// 慢慢恢复"可被推"状态——车流必须持续碾压才能保持通道，停止通行的车辙会重新淤积。
+        /// 这也让推挤负载在成熟战场上<b>持续存在</b>（不回淤则漂移到顶的残骸只剩一次早退比较，负载饱和后回落）。
+        /// </summary>
+        public float DriftRecoverPerSecond;
     }
 
     /// <summary>敌人原型（一种敌人的静态属性）。生命 / 自爆伤害是第 1 波基准值，按波次 <see cref="WaveScaling.StatGrowth"/> 放大。</summary>

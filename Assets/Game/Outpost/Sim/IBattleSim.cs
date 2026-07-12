@@ -113,6 +113,30 @@ namespace Game.Outpost.Sim
     }
 
     /// <summary>
+    /// 一具残骸的只读快照（按<b>环形槽位</b>读取，槽位号在 0 ≤ slot &lt; <see cref="IBattleSim.WreckSlotCount"/>）。
+    /// 槽位是稳定地址：同一具残骸一直住在同一槽，直到环形上限把它复写——<see cref="Seq"/>（创建序号，全局单调递增）
+    /// 变化即"换血"信号，表现层据此增量镜像：Seq 变 = 新残骸落定，<see cref="Position"/> 变 = 被敌人推挤犁动。
+    /// </summary>
+    public readonly struct WreckSnapshot
+    {
+        /// <summary>创建序号（&gt; 0，全局单调递增）。同槽位序号变化 = 旧残骸被环形复写。</summary>
+        public readonly int Seq;
+
+        /// <summary>原型 id（对应 <see cref="EnemyArchetype.Id"/>，表现层用它选网格 / 颜色 / 体型）。</summary>
+        public readonly int ArchetypeId;
+
+        /// <summary>当前位置（静置点起步，会被推挤逐帧改变；密度记账始终跟随本值所在格）。</summary>
+        public readonly Vector2 Position;
+
+        public WreckSnapshot(int seq, int archetypeId, Vector2 position)
+        {
+            Seq = seq;
+            ArchetypeId = archetypeId;
+            Position = position;
+        }
+    }
+
+    /// <summary>
     /// 泥地密度格的网格布局（可视化 / 调试的只读元数据；<see cref="Dim"/> = 0 表示泥地机制关闭）。
     /// 格计数经 <see cref="IBattleSim.GetWreckCellCount"/> 按索引读取（index = iy × Dim + ix）。
     /// </summary>
@@ -181,8 +205,11 @@ namespace Game.Outpost.Sim
     /// <see cref="EnemyHit"/> 在<b>弹着帧</b>触发、位置为弹着点；未命中的弹飞到消散半径才消失（途中仍可命中射程外敌人）。
     /// 同帧多个自爆按实例 id 升序结算（后端间事件流可复现的契约之一）。弹丸经 <see cref="ProjectileCount"/> +
     /// <see cref="GetProjectile"/> 零分配遍历；不 Tick 的阶段（波间抉择等）弹丸随全场冻结、续波后继续飞。<br/>
-    /// <b>残骸减速泥地</b>：击杀/自爆在密度格记账（<see cref="WreckFieldSetup"/>），敌人移速按所在格残骸密度打折——
-    /// 残骸是模拟状态（防御地形），与表现层的视觉残骸各自独立记账。<br/>
+    /// <b>残骸减速泥地 + 推挤</b>：残骸是<b>逐实体模拟状态</b>（环形槽位，经 <see cref="WreckSlotCount"/> +
+    /// <see cref="GetWreckSlot"/> 读取，表现层直接镜像绘制）——击杀/自爆在事件点附近静置一具（确定性散布），
+    /// 敌人移速按所在密度格残骸数打折；敌人还会把重叠的残骸<b>拱开</b>（每具残骸被最近重叠敌人推离、
+    /// 密度记账跟随位置），车辙被踩穿、路边堆垄，参数见 <see cref="WreckFieldSetup"/>。
+    /// 推挤是顺序无关的归约（最近敌 + id 平票），两后端可逐位对拍。<br/>
     /// <b>无限模式</b>：波次由 <c>WaveScaling</c> 逐波程序化生成——数量指数爬坡、约 20 波后到各角色 MaxCount 进入平台期（每波压力恒定）；
     /// 唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>），无胜利。<br/>
     /// <b>波间维修</b>：撑过一波（进入 <see cref="BattlePhase.WaveCleared"/> 时）血量自动回满——血量语义是"本波承受力"，
@@ -243,6 +270,12 @@ namespace Game.Outpost.Sim
 
         /// <summary>按格索引取当前残骸计数（0 ≤ index &lt; Dim×Dim，O(1)）——泥地热力图可视化的数据源。</summary>
         int GetWreckCellCount(int index);
+
+        /// <summary>已使用的残骸槽位数（≤ <c>WreckFieldSetup.SimCap</c>；环形写满后恒等于上限）。</summary>
+        int WreckSlotCount { get; }
+
+        /// <summary>按环形槽位取残骸快照（0 ≤ slot &lt; <see cref="WreckSlotCount"/>）——表现层增量镜像的读源，语义见 <see cref="WreckSnapshot"/>。</summary>
+        WreckSnapshot GetWreckSlot(int slot);
 
         event Action<EnemySpawnedEvent> EnemySpawned;
         event Action<EnemyHitEvent> EnemyHit;

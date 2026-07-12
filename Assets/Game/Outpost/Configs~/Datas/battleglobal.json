@@ -20,7 +20,10 @@
     "wreckCellSize": 1.0,
     "wreckSlowPerCount": 0.012,
     "wreckSlowFloor": 0.4,
-    "wreckSimCap": 20000,
+    "wreckSimCap": 30000,
+    "wreckPushSpeed": 1.5,
+    "wreckPushMaxDrift": 1.5,
+    "wreckPushDriftRecover": 0.25,
     "arenaRadius": 13,
     "interWaveDelay": 1.5,
     "resultDelay": 1.2

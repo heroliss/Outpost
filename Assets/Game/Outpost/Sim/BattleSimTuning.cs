@@ -27,5 +27,19 @@ namespace Game.Outpost.Sim
 
         /// <summary>火墙击发的散布半角（度，均匀分布 ±此值；点射无散布）。散布消耗种子 RNG——两后端消耗顺序一致是对拍契约的一部分。</summary>
         public const float FirehoseSpreadDeg = 2f;
+
+        // ── 残骸实体（推挤规则，见 WreckFieldSetup）─────────────────────────
+
+        /// <summary>残骸碰撞半径 = 原型半径 × 此值（含散落的碎片带——敌人蹭到边缘即开始拱开，不必正踩中心）。</summary>
+        public const float WreckBodyScale = 1.0f;
+
+        /// <summary>静置径向偏移下限（× 原型半径）：残骸被"打飞"离死点至少这么远。</summary>
+        public const float WreckRestRadialMin = 0.8f;
+
+        /// <summary>静置径向偏移上限（× 原型半径）。</summary>
+        public const float WreckRestRadialMax = 2.2f;
+
+        /// <summary>静置侧向抖动幅度（× 原型半径，±）：堆积不呈严格放射线。</summary>
+        public const float WreckRestSideMax = 0.6f;
     }
 }

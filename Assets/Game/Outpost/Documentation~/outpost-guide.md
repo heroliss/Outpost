@@ -20,7 +20,8 @@
 | HUD 实时刷血量/波次/击杀/得分/性能行 | **读写分离 + 只读订阅**（View 经查询 Command 拿 `ReadOnlyReactiveProperty`） | [`Battle/BattleHudView.cs`](../Scripts/Battle/BattleHudView.cs) | guide §5 / [ADR-0001](../../../../docs/adr/0001-five-layers-and-permission-interfaces.md) |
 | 波间弹出三选一升级卡片 | **响应式集合增量绑定** `ObservableList` + `Bag.BindList` | [`Battle/UpgradeChoiceView.cs`](../Scripts/Battle/UpgradeChoiceView.cs) | guide §24 / [ADR-0027](../../../../docs/adr/0027-reactive-collections-list-binding.md) |
 | 点卡片 / 托管开关 / 撤离按钮 | **命令外发**：View 不能直调 System，写意图经 `ExecuteCommand` 中转 | [`Battle/UpgradeCommands.cs`](../Scripts/Battle/UpgradeCommands.cs)、[`BattleCommands.cs`](../Scripts/Battle/BattleCommands.cs) | guide §3 |
-| 数千同屏的敌人海 + 铺满战场的残骸 | **实例化渲染**（`SwarmRenderer` 批量绘制活敌；残骸烘焙成静态批次永久留存，零 GameObject） | [`Battle/SwarmRenderer.cs`](../Scripts/Battle/SwarmRenderer.cs) | 本文§2 |
+| 数千同屏的敌人海 + 铺满战场的残骸 | **实例化渲染**（`SwarmRenderer` 批量绘制活敌；残骸是逐实体模拟状态、表现层**槽位镜像**成静态批次，零 GameObject） | [`Battle/SwarmRenderer.cs`](../Scripts/Battle/SwarmRenderer.cs) | 本文§2 |
+| 敌人海犁开残骸、车辙被踩穿、路边堆垄 | **残骸推挤入模拟**（残骸逐实体、敌人推开身旁残骸、密度记账跟随位置——负载随残骸累积增长＝后端差距随战局拉大） | [`Sim/ReferenceBattleSim.cs`](../Sim/ReferenceBattleSim.cs) `TickWreckPush` · [`Sim.Ecs/EcsBattleSim.cs`](../Sim.Ecs/EcsBattleSim.cs) `WreckPushJob` | [ADR-0032](../../../../docs/adr/0032-outpost-wreck-entities-sim-push.md) |
 | 曳光 / 脉冲 / 飘字 / 碎片成群出现又消失 | **对象池** `IPoolUtility`（`Bag.Spawn`/`Despawn` 自动借还） | [`Battle/BattleDirectorSystem.cs`](../Scripts/Battle/BattleDirectorSystem.cs) | guide §7 / [ADR-0007](../../../../docs/adr/0007-custom-object-pool.md) |
 | 敌人五种、升级六种、波次成长曲线、表现参数 | **配置表** Luban（数值列进模拟、表现列表现层直读——加敌人=加一行） | [`Configs~/`](../Configs~/) → [`Config/Gen/`](../Config/Gen/) | guide §16 / [ADR-0009](../../../../docs/adr/0009-luban-integration.md) |
 | 历史最佳 / 局数跨会话保留、结算"新纪录"高亮 | **本地存储** `IStorageUtility`（`[Serializable]` 类整存整取、原子写 + 备份回退） | [`Scripts/Save/`](../Scripts/Save/) | guide §18 / [ADR-0021](../../../../docs/adr/0021-local-storage.md) |
@@ -41,6 +42,7 @@
 - **可 AOT**：热更/裁剪环境永不炸。
 - **可置换后端（M6 已兑现，ADR-0030）**：`BattleSimBackend` 枚举 + `CreateSim()` 工厂后并存两个后端——`Reference`（OOP 参考实现 = 规则的可执行规格）与 `Ecs`（[`Sim.Ecs/`](../Sim.Ecs/)，Entities chunk 存储 + Burst job 热路径，自建 World 完全藏在接缝后），事件→表现翻译层、Model、HUD 全部零改动，场景默认已切 `Ecs`；**设置窗可手动切**（下一局生效）。两后端**可对拍**：关 Burst 同种子逐 tick 逐位全等；开 Burst 后浮点 ulp 差异被混沌放大成 <1% 的击杀归属漂移（"同一个游戏、不是逐位同一局"）。HUD 左下角的**性能行**（后端名 · 敌人数 · 在飞弹数 · 残骸数 · 模拟耗时 · fps）就是这场"同题对比"的度量面板。
 - **后端置换的收益从"数字"变成"手感"（M7，ADR-0031）**：M6 时真实游戏规模两后端都远离帧预算，差距只在合成基准里可见——这是"先 OOP、接缝留后路"的诚实结论。M7 把真实玩法本身推进那个量级：hitscan 改**真弹道**（飞行弹 + 扫掠碰撞，弹×敌配对随射速涨到十万百万级）、残骸变**减速泥地**（均匀密度网格，规则本身、两后端 O(1) 同实现）。于是设置窗切到 `Reference`，真实平台期后期就肉眼掉帧（p95 14ms 破 60fps 帧预算）；切回 `Ecs` 满帧。**这是接缝价值最直观的证明**——同一份规则、同一 O(P×N) 算法，只有执行模型（Burst + 连续内存 + 并行）不同。战斗 HUD 右下角两个演示旋钮配合看：「泥地图」开关直读模拟侧密度格把"残骸是防御地形"画出来，「速度」按钮（0.25×–4×，写 `Time.timeScale`）慢放能亲眼看清弹丸扫掠命中、快进快速看规模爬坡。
+- **差距从"恒定一段"变成"随战局拉大"（M8，ADR-0032）**：M7 的后端差距在平台期是恒定的（敌数/弹数封顶后 `Reference` 耗时钉住）。M8 把残骸推挤扶正为模拟规则——残骸是全场唯一累计增长的量，推挤演算 `O(残骸×邻域敌人)` 随残骸爬到上限而增长：成长期（w12，~560 残骸）两后端几乎持平（都 ~0.25ms），平台期（w24，残骸满 2 万）`Reference` 已 13.8ms 破帧预算、`Ecs` 仍 3.25ms（~4.3×）。**"越往后打，切 OOP 越卡、切 Ecs 越稳"**——把"选对执行模型、规模越大越值"从空间维度（一次快照的敌人数）延伸到了时间维度（一局越打越重的累计状态）。
 
 ### 2. 事件 → 表现翻译层，与"实例化渲染 × 对象池"的分工
 
@@ -49,7 +51,7 @@
 表现层按"数量级"分两条路径，这是海量同屏下的关键取舍：
 
 - **海量常驻单位 → 实例化渲染**：[`SwarmRenderer`](../Scripts/Battle/SwarmRenderer.cs) 每帧直接遍历模拟快照，`Graphics.DrawMeshInstanced` 按原型分批绘制全部敌人（出生弹出/呼吸/白闪/血量变暗全部逐实例数值计算）——敌人不占任何 GameObject，两三千同屏不掉帧。
-- **死亡 → 残骸层**：击杀不是消失——每具尸体沿弹道短促滑出落定后，**烘焙进静态实例批次**永久留存（环形上限复写，默认 3 万），战场地面逐渐积出击杀分布的"历史地图"。这既是千级击杀率下的保底反馈（爆炸特效有每帧预算、残骸没有），也是实例化渲染的持续压力源：数万静态实例的矩阵/颜色只在落定时写一次，每帧零重建直接提交（实测 3000 活敌 + 3.6 万残骸约 100fps）。
+- **死亡 → 残骸层（逐实体模拟状态，M8/ADR-0032）**：击杀不是消失——残骸是**模拟侧的逐实体状态**（环形槽位，上限默认 3 万），会被敌人海推挤犁开、密度记账跟随位置（车辙被踩穿）。表现层 [`SwarmRenderer.SyncWrecks`](../Scripts/Battle/SwarmRenderer.cs) 每帧**镜像模拟槽位**成静态实例批次（`Seq` 变=换血、`Position` 变=被犁动，矩阵/颜色只在变化时写、每帧零重建直接提交）。这既是千级击杀率下的保底反馈（爆炸特效有每帧预算、残骸没有），也是**后端差距随战局拉大的负载源**：推挤演算 `O(残骸×邻域敌人)` 随残骸累积增长——切 `Reference` 后期逐波变慢、切 `Ecs` 并行 job 摊平（详见下一条）。
 - **少量瞬时特效 → 对象池**：曳光/脉冲/烟/碎片/飘字走 `Bag.Spawn` 借还，并有**每帧演出预算**（命中/击毁/出生特效各有限量，超出只结算数值不演出）；玩家受创（漏怪自爆+拦截溅射）在 0.25s 窗口内**聚合**成一次震屏/红闪/汇总飘字——每秒上百次受创时逐条演出会刷屏。
 
 ### 3. 难度模型：数量爬坡到平台期 + 双方全封顶 = 托管永续

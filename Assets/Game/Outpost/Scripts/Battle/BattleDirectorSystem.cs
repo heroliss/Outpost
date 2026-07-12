@@ -213,8 +213,7 @@ namespace Game.Outpost.Battle
             _upgradeModel = this.GetModel<UpgradeModel>();
             _visuals = EnemyVisuals.Build(_cfg);
             // 热力图亮度饱和点 = 减速到下限所需的每格残骸数——热力图刻度与减速规则同源。
-            _swarm.Init(_visuals, g.ArenaRadius,
-                (1f - g.WreckSlowFloor) / Mathf.Max(0.0001f, g.WreckSlowPerCount));
+            _swarm.Init(_visuals, (1f - g.WreckSlowFloor) / Mathf.Max(0.0001f, g.WreckSlowPerCount));
 
             // 泥地热力图开关（纯表现）：订阅即时生效，HUD 按钮随时切换。
             var prefs = this.GetModel<BattlePrefsModel>();
@@ -280,15 +279,10 @@ namespace Game.Outpost.Battle
 
         // 无头快进到目标波：纯 C# 模拟不依赖渲染帧率，可在加载期把前面的波次静默跑完（IBattleSim 接缝的直接红利，
         // 与平衡标定用的无头 harness 是同一姿势）。升级走与托管相同的贪心优先级，数值与正常托管打法一致；
-        // 表现事件全程不挂，只收击杀位置直接烘焙成残骸——进场时战场自带这段被跳过战斗的痕迹。
+        // 表现事件全程不挂——残骸是模拟状态，快进积累的战场历史由 SwarmRenderer 的槽位镜像在首帧自动发现。
         private async UniTask FastForwardTo(int targetWave)
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            System.Action<EnemyHitEvent> onHit = e => { if (e.Killed) _swarm.BakeWreckInstant(e.ArchetypeId, e.Position); };
-            System.Action<EnemyDetonatedEvent> onDet = e => _swarm.BakeWreckInstant(e.ArchetypeId, e.Position);
-            _sim.EnemyHit += onHit;
-            _sim.EnemyDetonated += onDet;
-
             const float dt = 1f / 30f;
             int guard = 2_000_000; // 防呆：配置异常导致波次推不动时不至于死循环（约 18 小时模拟时间）
             int slice = 0;
@@ -311,9 +305,7 @@ namespace Game.Outpost.Battle
                 }
             }
 
-            _sim.EnemyHit -= onHit;
-            _sim.EnemyDetonated -= onDet;
-            Debug.Log($"[BattleDirectorSystem] 无头快进至第 {_sim.WaveIndex} 波（击杀 {_sim.Kills}、残骸 {_swarm.WreckCount}），耗时 {sw.ElapsedMilliseconds}ms。");
+            Debug.Log($"[BattleDirectorSystem] 无头快进至第 {_sim.WaveIndex} 波（击杀 {_sim.Kills}、残骸 {_sim.WreckSlotCount}），耗时 {sw.ElapsedMilliseconds}ms。");
         }
 
         // 快进版选卡：没有面板与随机三选一，直接从全部未到顶的升级里按托管优先级拿最优——与长跑标定的贪心策略一致。
@@ -491,8 +483,7 @@ namespace Game.Outpost.Battle
 
             if (e.Killed)
             {
-                _swarm.OnRemoved(e.EnemyId);
-                _swarm.SpawnWreck(e.ArchetypeId, e.Position); // 残骸不占预算：千级击杀率下的保底反馈 + 战场历史
+                _swarm.OnRemoved(e.EnemyId); // 残骸是模拟状态、由槽位镜像自动落定——不占预算的保底反馈 + 战场历史
                 if (_killFxBudget > 0)
                 {
                     _killFxBudget--;
@@ -515,8 +506,7 @@ namespace Game.Outpost.Battle
         // 敌人抵达基地自爆：伤害并入受创聚合，来袭弹自身的爆炸限量演出，回收其实例。
         private void OnEnemyDetonated(EnemyDetonatedEvent e)
         {
-            _swarm.OnRemoved(e.EnemyId);
-            _swarm.SpawnWreck(e.ArchetypeId, e.Position); // 自爆也留残骸——基地周界的积尸环即是"漏怪都从哪来"的可视化
+            _swarm.OnRemoved(e.EnemyId); // 自爆也留残骸（模拟状态）——基地周界的积尸环即是"漏怪都从哪来"的可视化
             AccumulatePlayerDamage(e.Damage);
             PlayBoomSfx(e.ArchetypeId);
 
@@ -799,7 +789,7 @@ namespace Game.Outpost.Battle
             SetI(_model.Score, _sim.Score);
             SetI(_model.EnemyCount, _sim.EnemyCount);
             SetI(_model.ProjectileCount, _sim.ProjectileCount);
-            SetI(_model.WreckCount, _swarm.WreckCount);
+            SetI(_model.WreckCount, _sim.WreckSlotCount);
             SetF(_model.SimTickMs, _simTickMs);
         }
 

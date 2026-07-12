@@ -65,5 +65,43 @@ namespace Game.Outpost.Sim
             if (iy < 0) iy = 0; else if (iy >= dim) iy = dim - 1;
             return iy * dim + ix;
         }
+
+        /// <summary>
+        /// 整数哈希 → [0, 1)（xxhash 风格雪崩混合）。规则里"每具残骸各不相同但完全确定"的散布系数来源——
+        /// 纯整数运算，Burst 与托管逐位一致，且不消耗种子 RNG 流（不动两后端的 RNG 消耗顺序契约）。
+        /// </summary>
+        public static float Hash01(uint h)
+        {
+            h ^= h >> 16;
+            h *= 2246822519u;
+            h ^= h >> 13;
+            h *= 3266489917u;
+            h ^= h >> 16;
+            return (h >> 8) * (1f / 16777216f); // 取高 24 位当尾数，恰落 [0,1)
+        }
+
+        /// <summary>
+        /// 残骸静置偏移：击杀/自爆点 (px,py) 沿远离哨站（原点）的径向滑出、带侧向抖动——
+        /// 死点即弹道来向的延长线，残骸被"打飞"一小段（幅度按原型半径 <paramref name="radius"/> 缩放）。
+        /// 系数由 <see cref="Hash01"/> 按创建序号 <paramref name="seq"/> 取：确定性、无三角函数
+        /// （方向经 normalize 得到，sqrt 是 IEEE 正确舍入运算，两后端逐位一致）。幅度常量见 BattleSimTuning。
+        /// </summary>
+        public static void WreckRestOffset(float px, float py, float radius, int seq, out float ox, out float oy)
+        {
+            float lenSq = px * px + py * py;
+            float dx = 1f, dy = 0f;
+            if (lenSq > 1e-8f)
+            {
+                float inv = 1f / (float)Math.Sqrt(lenSq);
+                dx = px * inv;
+                dy = py * inv;
+            }
+            float radial = radius * (BattleSimTuning.WreckRestRadialMin
+                + (BattleSimTuning.WreckRestRadialMax - BattleSimTuning.WreckRestRadialMin) * Hash01((uint)seq * 2u));
+            float side = radius * BattleSimTuning.WreckRestSideMax * (Hash01((uint)seq * 2u + 1u) * 2f - 1f);
+            // 垂线 (-dy, dx)：径向滑出 + 侧向抖动，堆积不呈严格放射线。
+            ox = dx * radial - dy * side;
+            oy = dy * radial + dx * side;
+        }
     }
 }

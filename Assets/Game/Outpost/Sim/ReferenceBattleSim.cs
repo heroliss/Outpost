@@ -68,13 +68,27 @@ namespace Game.Outpost.Sim
         private float _waveStatScale = 1f;  // 当前波次的敌人成长系数（StatGrowth^(w-1)），出生时写进 EnemyState
         private int _nextEnemyId = 1;
 
-        // 残骸减速泥地（规则见 WreckFieldSetup）：密度格计数 + 创建序环形缓冲（挤掉最老的记账）。
+        // 残骸减速泥地 + 推挤（规则见 WreckFieldSetup）：密度格计数 + 逐实体 SoA 槽位（环形复写挤掉最老的）。
         private int[] _wreckCells;
-        private int[] _wreckRing;
-        private int _wreckRingNext;
-        private int _wreckRingCount;
+        private Vector2[] _wreckPos;
+        private int[] _wreckArch;     // 原型索引（推挤接触半径 / 快照原型 id）
+        private float[] _wreckDrift;  // 累计漂移（≥ PushMaxDrift 后不再被推）
+        private int[] _wreckSeq;      // 创建序号（表现层镜像的换血检测信号）
+        private int[] _wreckCell;     // 当前所在密度格（记账跟随位置）
+        private int _wreckSlotCount;
+        private int _wreckNext;       // 环形写入游标
+        private int _nextWreckSeq = 1;
         private int _wreckGridDim;
         private float _wreckGridHalf;
+
+        // 敌人占位网格（推挤查询用，每 tick 重建；CSR 三段式：计数 → 前缀和 → 填充）。
+        // 格边长按"最大接触距离"（敌半径 + 残骸半径×WreckBodyScale 的全原型上界）推导，3×3 邻域必覆盖一切接触对。
+        private float _enemyGridCellSize;
+        private float _enemyGridHalf;
+        private int _enemyGridDim;
+        private int[] _enemyCellCount;
+        private int[] _enemyCellStart;  // 长度 cells+1（前缀和）
+        private int[] _enemyCellItems;  // 按格分段的敌人索引（容量随敌人数增长）
 
         public BattlePhase Phase { get; private set; } = BattlePhase.Idle;
         public int WaveIndex { get; private set; }
@@ -116,6 +130,11 @@ namespace Game.Outpost.Sim
 
         public int GetWreckCellCount(int index) => _wreckCells[index];
 
+        public int WreckSlotCount => _wreckSlotCount;
+
+        public WreckSnapshot GetWreckSlot(int slot)
+            => new(_wreckSeq[slot], _archetypes[_wreckArch[slot]].Id, _wreckPos[slot]);
+
         public void Start(BattleSetup setup)
         {
             if (Phase != BattlePhase.Idle)
@@ -143,7 +162,21 @@ namespace Game.Outpost.Sim
                 _wreckGridHalf = setup.ArenaRadius + 1f;
                 _wreckGridDim = Math.Max(1, (int)Math.Ceiling(_wreckGridHalf * 2f / wf.CellSize));
                 _wreckCells = new int[_wreckGridDim * _wreckGridDim];
-                _wreckRing = new int[wf.SimCap];
+                _wreckPos = new Vector2[wf.SimCap];
+                _wreckArch = new int[wf.SimCap];
+                _wreckDrift = new float[wf.SimCap];
+                _wreckSeq = new int[wf.SimCap];
+                _wreckCell = new int[wf.SimCap];
+
+                float maxRadius = 0f;
+                for (int i = 0; i < _archetypes.Length; i++)
+                    if (_archetypes[i].Radius > maxRadius) maxRadius = _archetypes[i].Radius;
+                _enemyGridCellSize = Math.Max(1f, maxRadius * (1f + BattleSimTuning.WreckBodyScale));
+                _enemyGridHalf = setup.ArenaRadius + 3f;
+                _enemyGridDim = Math.Max(1, (int)Math.Ceiling(_enemyGridHalf * 2f / _enemyGridCellSize));
+                _enemyCellCount = new int[_enemyGridDim * _enemyGridDim];
+                _enemyCellStart = new int[_enemyGridDim * _enemyGridDim + 1];
+                _enemyCellItems = new int[256];
             }
 
             BeginWave(1);
@@ -195,6 +228,7 @@ namespace Game.Outpost.Sim
             TickPlayer(deltaTime);        // 回血 + 回转 + 击发（生成弹丸）
             TickProjectiles(deltaTime);   // 弹丸推进 + 扫掠弹着结算（拦截溅射在此发生）
             if (CheckDefeat()) return;    // 溅射致死
+            TickWreckPush(deltaTime);     // 敌人拱开残骸（记账跟随位置）——负载随残骸留存累计增长
             CheckWaveEnd();
         }
 
@@ -349,7 +383,7 @@ namespace Game.Outpost.Sim
                 var arch = _archetypes[e.ArchIndex];
                 float dmg = arch.Attack * e.StatScale;
                 _playerHp = Math.Max(0f, _playerHp - dmg);
-                AddWreck(e.Pos);
+                AddWreck(e.Pos, e.ArchIndex);
                 EnemyDetonated?.Invoke(new EnemyDetonatedEvent(e.Id, arch.Id, e.Pos, dmg, _playerHp));
             }
 
@@ -492,7 +526,7 @@ namespace Game.Outpost.Sim
                     splash = arch.Attack * e.StatScale * _player.SplashDamageScale * proximity;
                     _playerHp = Math.Max(0f, _playerHp - splash);
                 }
-                AddWreck(impact); // 泥地记账：弹着点即残骸点
+                AddWreck(impact, e.ArchIndex); // 残骸落定在弹着点附近（确定性散布）
                 // swap-remove：末位补位，保持 List 紧凑（索引顺序变化已在接口契约声明）。
                 _enemies[index] = _enemies[^1];
                 _enemies.RemoveAt(_enemies.Count - 1);
@@ -506,19 +540,159 @@ namespace Game.Outpost.Sim
             EnemyHit?.Invoke(new EnemyHitEvent(e.Id, arch.Id, impact, damage, killed, splash));
         }
 
-        // 泥地记账：残骸所在格 +1；总量到 SimCap 后环形复写（最老的出格 -1）。
-        private void AddWreck(Vector2 pos)
+        // 残骸落定：事件点 + 确定性散布偏移（SimMath.WreckRestOffset，零 RNG 消耗），写入环形槽位并在静置格记账；
+        // 写满 SimCap 后复写游标处最老的槽位（旧居民出格 -1）。
+        private void AddWreck(Vector2 eventPos, int archIndex)
         {
             if (_wreckCells == null) return;
+            int seq = _nextWreckSeq++;
+            SimMath.WreckRestOffset(eventPos.X, eventPos.Y, _archetypes[archIndex].Radius, seq, out float ox, out float oy);
+            var pos = new Vector2(eventPos.X + ox, eventPos.Y + oy);
             int cell = SimMath.WreckCellIndex(pos.X, pos.Y, _wreckGridHalf, _setup.WreckField.CellSize, _wreckGridDim);
-            if (_wreckRingCount == _wreckRing.Length)
-                _wreckCells[_wreckRing[_wreckRingNext]]--;
-            else
-                _wreckRingCount++;
-            _wreckRing[_wreckRingNext] = cell;
-            _wreckRingNext = (_wreckRingNext + 1) % _wreckRing.Length;
+
+            int slot = _wreckNext;
+            if (_wreckSlotCount == _wreckPos.Length) _wreckCells[_wreckCell[slot]]--; // 环形复写：最老的出格
+            else _wreckSlotCount++;
+            _wreckPos[slot] = pos;
+            _wreckArch[slot] = archIndex;
+            _wreckDrift[slot] = 0f;
+            _wreckSeq[slot] = seq;
+            _wreckCell[slot] = cell;
+            _wreckNext = (_wreckNext + 1) % _wreckPos.Length;
             _wreckCells[cell]++;
         }
+
+        // 推挤：每具残骸被"重叠的最近敌人"推开（距离平方最小、平票取小实例 id——顺序无关的归约：
+        // 结果与遍历顺序无关，两后端可逐位对拍、ECS 侧可逐槽并行）。密度记账跟随位置（跨格旧 -1 新 +1）。
+        // 刻意不设预算——它是规则不是演出；演算量随留存残骸数累计增长，正是两后端同题对比的主要负载源（ADR-0032）。
+        private void TickWreckPush(float dt)
+        {
+            if (_wreckCells == null || _wreckSlotCount == 0 || _enemies.Count == 0) return;
+            var wf = _setup.WreckField;
+            if (wf.PushSpeed <= 0f) return;
+
+            RebuildEnemyGrid();
+            float maxStep = wf.PushSpeed * dt;
+            float recover = wf.DriftRecoverPerSecond > 0f ? wf.DriftRecoverPerSecond * dt : 0f;
+
+            for (int slot = 0; slot < _wreckSlotCount; slot++)
+            {
+                float drift = _wreckDrift[slot];
+                if (recover > 0f && drift > 0f)
+                {
+                    // 车辙回淤：漂移预算随时间恢复——车流必须持续碾压才能保持通道。
+                    drift -= recover;
+                    if (drift < 0f) drift = 0f;
+                    _wreckDrift[slot] = drift;
+                }
+                if (drift >= wf.PushMaxDrift) continue; // 漂移到顶：本 tick 拱不动了（回淤后下一 tick 又能动一点）
+
+                var wpos = _wreckPos[slot];
+                float wreckR = _archetypes[_wreckArch[slot]].Radius * BattleSimTuning.WreckBodyScale;
+                int cx = (int)Math.Floor((wpos.X + _enemyGridHalf) / _enemyGridCellSize);
+                int cy = (int)Math.Floor((wpos.Y + _enemyGridHalf) / _enemyGridCellSize);
+                if (cx < 0) cx = 0; else if (cx >= _enemyGridDim) cx = _enemyGridDim - 1;
+                if (cy < 0) cy = 0; else if (cy >= _enemyGridDim) cy = _enemyGridDim - 1;
+
+                int best = -1;
+                float bestDsq = float.MaxValue;
+                int bestId = int.MaxValue;
+                float bestContact = 0f;
+                for (int oy = -1; oy <= 1; oy++)
+                {
+                    int gy = cy + oy;
+                    if (gy < 0 || gy >= _enemyGridDim) continue;
+                    for (int ox2 = -1; ox2 <= 1; ox2++)
+                    {
+                        int gx = cx + ox2;
+                        if (gx < 0 || gx >= _enemyGridDim) continue;
+                        int cell = gy * _enemyGridDim + gx;
+                        int start = _enemyCellStart[cell];
+                        int end = start + _enemyCellCount[cell];
+                        for (int k = start; k < end; k++)
+                        {
+                            int ei = _enemyCellItems[k];
+                            var e = _enemies[ei];
+                            float contact = _archetypes[e.ArchIndex].Radius + wreckR;
+                            float ddx = wpos.X - e.Pos.X, ddy = wpos.Y - e.Pos.Y;
+                            float dsq = ddx * ddx + ddy * ddy;
+                            if (dsq >= contact * contact) continue;
+                            if (dsq < bestDsq || (dsq == bestDsq && e.Id < bestId))
+                            {
+                                bestDsq = dsq;
+                                bestId = e.Id;
+                                best = ei;
+                                bestContact = contact;
+                            }
+                        }
+                    }
+                }
+                if (best < 0) continue;
+
+                var epos = _enemies[best].Pos;
+                float dist = (float)Math.Sqrt(bestDsq);
+                float dirX, dirY;
+                if (dist > 1e-4f)
+                {
+                    dirX = (wpos.X - epos.X) / dist;
+                    dirY = (wpos.Y - epos.Y) / dist;
+                }
+                else
+                {
+                    // 完全重合（弹着点即敌人中心的常见情形）：沿远离哨站的径向让开（与静置偏移同款回退）。
+                    float wl = wpos.Length();
+                    if (wl > 1e-4f) { dirX = wpos.X / wl; dirY = wpos.Y / wl; }
+                    else { dirX = 1f; dirY = 0f; }
+                }
+                float move = bestContact - dist;
+                if (move > maxStep) move = maxStep;
+                float room = wf.PushMaxDrift - drift;
+                if (move > room) move = room;
+                if (move <= 1e-4f) continue;
+
+                wpos = new Vector2(wpos.X + dirX * move, wpos.Y + dirY * move);
+                _wreckPos[slot] = wpos;
+                _wreckDrift[slot] = drift + move;
+                int newCell = SimMath.WreckCellIndex(wpos.X, wpos.Y, _wreckGridHalf, wf.CellSize, _wreckGridDim);
+                if (newCell != _wreckCell[slot])
+                {
+                    _wreckCells[_wreckCell[slot]]--;
+                    _wreckCells[newCell]++;
+                    _wreckCell[slot] = newCell; // 记账跟随位置：车辙被踩穿、路边堆垄
+                }
+            }
+        }
+
+        // 敌人占位网格重建（CSR 三段式：计数 → 前缀和 → 填充；填充期间计数清零复用为写游标）。O(敌人数)，每 tick 一次。
+        private void RebuildEnemyGrid()
+        {
+            int n = _enemies.Count;
+            if (_enemyCellItems.Length < n)
+                _enemyCellItems = new int[Math.Max(n, _enemyCellItems.Length * 2)];
+
+            Array.Clear(_enemyCellCount, 0, _enemyCellCount.Length);
+            for (int i = 0; i < n; i++)
+                _enemyCellCount[EnemyCellIndex(_enemies[i].Pos)]++;
+
+            int sum = 0;
+            for (int c = 0; c < _enemyCellCount.Length; c++)
+            {
+                _enemyCellStart[c] = sum;
+                sum += _enemyCellCount[c];
+            }
+            _enemyCellStart[_enemyCellCount.Length] = sum;
+
+            Array.Clear(_enemyCellCount, 0, _enemyCellCount.Length);
+            for (int i = 0; i < n; i++)
+            {
+                int c = EnemyCellIndex(_enemies[i].Pos);
+                _enemyCellItems[_enemyCellStart[c] + _enemyCellCount[c]++] = i;
+            }
+        }
+
+        // 敌人占位格索引（与 SimMath.WreckCellIndex 同式的钳边网格，只是格边长 / 覆盖范围不同）。
+        private int EnemyCellIndex(Vector2 p)
+            => SimMath.WreckCellIndex(p.X, p.Y, _enemyGridHalf, _enemyGridCellSize, _enemyGridDim);
 
         private void CheckWaveEnd()
         {

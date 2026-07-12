@@ -85,6 +85,9 @@ namespace Game.Outpost.Battle
                     SlowPerCount = g.WreckSlowPerCount,
                     SlowFloor = g.WreckSlowFloor,
                     SimCap = g.WreckSimCap,
+                    PushSpeed = g.WreckPushSpeed,
+                    PushMaxDrift = g.WreckPushMaxDrift,
+                    DriftRecoverPerSecond = g.WreckPushDriftRecover,
                 },
             };
         }

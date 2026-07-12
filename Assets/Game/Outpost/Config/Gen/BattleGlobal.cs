@@ -41,6 +41,9 @@ public sealed partial class BattleGlobal : Luban.BeanBase
         WreckSlowPerCount = _buf.ReadFloat();
         WreckSlowFloor = _buf.ReadFloat();
         WreckSimCap = _buf.ReadInt();
+        WreckPushSpeed = _buf.ReadFloat();
+        WreckPushMaxDrift = _buf.ReadFloat();
+        WreckPushDriftRecover = _buf.ReadFloat();
         ArenaRadius = _buf.ReadFloat();
         InterWaveDelay = _buf.ReadFloat();
         ResultDelay = _buf.ReadFloat();
@@ -136,9 +139,21 @@ public sealed partial class BattleGlobal : Luban.BeanBase
     /// </summary>
     public readonly float WreckSlowFloor;
     /// <summary>
-    /// 模拟侧残骸留存上限（环形复写）。≤0=整个泥地机制关闭。与表现层残骸各自独立记账
+    /// 模拟侧残骸留存上限（环形复写）。≤0=整个泥地机制关闭。残骸是逐实体模拟状态，表现层直接镜像绘制
     /// </summary>
     public readonly int WreckSimCap;
+    /// <summary>
+    /// 残骸推挤速度（单位/秒；≤0=推挤关闭）。敌人碾过残骸把它拱开——密度记账跟随位置：车辙被踩穿、路边堆垄。演算量随残骸留存累计增长（后端对比的主要负载源，ADR-0032）
+    /// </summary>
+    public readonly float WreckPushSpeed;
+    /// <summary>
+    /// 单具残骸的累计漂移上限（世界单位；可跨密度格）。上限保住&#39;尸堆=减速区&#39;的可读性
+    /// </summary>
+    public readonly float WreckPushMaxDrift;
+    /// <summary>
+    /// 漂移预算恢复速度（单位/秒；≤0=不回淤）。车辙回淤：车流必须持续碾压才能保持通道，也让推挤负载在成熟战场持续存在
+    /// </summary>
+    public readonly float WreckPushDriftRecover;
     /// <summary>
     /// 敌人出生环半径
     /// </summary>
@@ -184,6 +199,9 @@ public sealed partial class BattleGlobal : Luban.BeanBase
         + "wreckSlowPerCount:" + WreckSlowPerCount + ","
         + "wreckSlowFloor:" + WreckSlowFloor + ","
         + "wreckSimCap:" + WreckSimCap + ","
+        + "wreckPushSpeed:" + WreckPushSpeed + ","
+        + "wreckPushMaxDrift:" + WreckPushMaxDrift + ","
+        + "wreckPushDriftRecover:" + WreckPushDriftRecover + ","
         + "arenaRadius:" + ArenaRadius + ","
         + "interWaveDelay:" + InterWaveDelay + ","
         + "resultDelay:" + ResultDelay + ","
