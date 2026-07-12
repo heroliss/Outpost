@@ -1,0 +1,7 @@
+# .NET 构建产物
+bin/
+obj/
+# SQLite 运行时库文件（榜单数据，不入库）
+*.db
+*.db-shm
+*.db-wal

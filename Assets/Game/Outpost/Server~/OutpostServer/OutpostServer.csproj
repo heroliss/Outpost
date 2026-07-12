@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Outpost 排行榜服务端（生产化参考实现）。
+    把进程内 dev server（Assets/Game/Outpost/Scripts/Net/OutpostDevServer.cs）的逻辑移植到独立 ASP.NET Core：
+      · Kestrel 原生 WebSocket（扔掉手写 RFC6455 握手/掩码/分帧）
+      · SQLite 持久化榜单（进程重启不丢，Microsoft.Data.Sqlite 零 ORM 依赖）
+      · wire 格式与客户端完全一致——复用同一套 ProtoWire（真 protobuf wire 格式）+ envelope 契约
+    客户端切到真后端零改动：只把 IHttpUtility 的 baseUrl / IWebSocketUtility 的 ws url 指过来。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RootNamespace>Outpost.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <!-- 显式 pin 修补版原生 SQLite（覆盖 Microsoft.Data.Sqlite 传递的旧版，清 GHSA-2m69-gcr7-jv3q）。 -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.0" />
+  </ItemGroup>
+
+</Project>
