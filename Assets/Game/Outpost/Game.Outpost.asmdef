@@ -5,6 +5,7 @@
         "Game.Main",
         "Game.Framework",
         "Game.Framework.Config",
+        "Game.Framework.Network.Proto",
         "Game.Framework.UI",
         "Game.Framework.UI.Toolkit",
         "Game.Framework.UI.UGui",

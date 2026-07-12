@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d311c918e932182478f126faf1a1d7f9, type: 3}
+  m_Name: OutpostProtoProfile
+  m_EditorClassIdentifier: Game.Framework.Network.Proto.Editor::Game.Framework.Network.Proto.Editor.ProtoConfigProfile
+  _protocDir: Tools/Protoc
+  _protoDir: Assets/Game/Outpost/Proto~
+  _outputCodeDir: Assets/Game/Outpost/Scripts/Net/Gen
+  _extraArgs: 
