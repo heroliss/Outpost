@@ -1,5 +1,3 @@
-using System;
-
 namespace Game.Outpost.Sim
 {
     /// <summary>
@@ -9,24 +7,8 @@ namespace Game.Outpost.Sim
     /// </summary>
     public static class BattleSimTuning
     {
-        /// <summary>炮口角度差在此容差内即视为对准、可开火（度）。</summary>
-        public const float AimToleranceDeg = 6f;
-
-        /// <summary>
-        /// 锥判定用 cos²(容差)：热路径以点积代替逐敌反三角——
-        /// <c>dot ≥ cos(容差)·|p|</c> ⟺ <c>dot² ≥ cos²·|p|²</c>（且 <c>dot &gt; 0</c>），数学等价且零三角函数。
-        /// </summary>
-        public static readonly float AimToleranceCosSq =
-            (float)Math.Pow(Math.Cos(AimToleranceDeg * Math.PI / 180.0), 2);
-
-        /// <summary>无上限射速下单帧最多发数（防病态循环；远超玩法所需）。</summary>
+        /// <summary>单帧最多发数（射速无上限，此值防单帧病态循环；远超玩法所需）。</summary>
         public const int MaxShotsPerTick = 64;
-
-        /// <summary>有效射速间隔低于此即进「火墙」：炮口未对准也持续击发（边转边扫），并带 <see cref="FirehoseSpreadDeg"/> 散布。</summary>
-        public const float FirehoseFireInterval = 0.06f;
-
-        /// <summary>火墙击发的散布半角（度，均匀分布 ±此值；点射无散布）。散布消耗种子 RNG——两后端消耗顺序一致是对拍契约的一部分。</summary>
-        public const float FirehoseSpreadDeg = 2f;
 
         // ── 残骸实体（推挤规则，见 WreckFieldSetup）─────────────────────────
 

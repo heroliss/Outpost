@@ -888,7 +888,7 @@ namespace Game.Outpost.Sim.Ecs
         private void SpawnEnemy(int archIndex)
         {
             // 出生角走托管 System.Random + System.Math——与参考实现共享同一 RNG 语义与三角实现
-            // （消耗顺序：刷怪 → 击发散布，两后端一致，对拍前提）。
+            // （击发不再消耗 RNG，故 RNG 序列 = 刷怪序列，两后端一致，对拍前提）。
             double angle = _rng.NextDouble() * Math.PI * 2.0;
             var pos = new float2(
                 (float)Math.Cos(angle) * _setup.ArenaRadius,
@@ -1055,26 +1055,17 @@ namespace Game.Outpost.Sim.Ecs
 
             double muzzleRad = _turretAngleDeg / Rad2Deg;
             var muzzleDir = new float2((float)Math.Cos(muzzleRad), (float)Math.Sin(muzzleRad));
-            bool aligned = Math.Abs(SimMath.DeltaAngleDeg(_turretAngleDeg, desired)) <= BattleSimTuning.AimToleranceDeg;
             float effInterval = _player.AttackInterval;
-            bool firehose = effInterval < BattleSimTuning.FirehoseFireInterval;
 
             _playerAttackCooldown -= dt;
             int shots = 0;
             while (_playerAttackCooldown <= 0f && shots < BattleSimTuning.MaxShotsPerTick)
             {
-                if (!firehose && !aligned) break; // 点射未对准：本 tick 静默（冷却由下方 clamp 兜住）
-                var dir = muzzleDir;
-                if (firehose)
-                {
-                    float off = (float)((_rng.NextDouble() * 2.0 - 1.0) * BattleSimTuning.FirehoseSpreadDeg);
-                    double rad = (_turretAngleDeg + off) / Rad2Deg;
-                    dir = new float2((float)Math.Cos(rad), (float)Math.Sin(rad));
-                }
+                // 不分射速一律边转边打，沿当前炮口方向吐弹（与参考实现逐行一致）。
                 _projPos.Add(default);
-                _projDir.Add(dir);
+                _projDir.Add(muzzleDir);
                 _projDamage.Add(_player.Attack);
-                TurretFired?.Invoke(new TurretFiredEvent(new Vector2(dir.x, dir.y)));
+                TurretFired?.Invoke(new TurretFiredEvent(new Vector2(muzzleDir.x, muzzleDir.y)));
                 _playerAttackCooldown += effInterval;
                 shots++;
             }

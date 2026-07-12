@@ -27,6 +27,8 @@ M6（ADR-0030）证明了后端可置换与 Burst 的规模收益，但留下一
 | 弹丸快照 | `int ProjectileCount` + `ProjectileSnapshot GetProjectile(int)`（Position+Direction，O(1)，索引不稳定，与 GetEnemy 同语义） | 表现层实例化绘制的读源 |
 | 泥地网格只读访问器 | `WreckGridInfo WreckGrid` + `int GetWreckCellCount(int)`（Dim/CellSize/Half + 逐格计数，O(1)） | 泥地热力图可视化直读模拟侧密度格；规则的可视化而非另算一套 |
 
+> ⚠ **2026-07-12 修订（后于本 ADR）**：上表「真弹道」行的**开火分档已移除**——不再区分"点射(对准锥容差才发)↔火墙(转向途中也边扫)"，改为**不分射速一律沿炮口方向边转边打**；火墙 ±2° 散布一并删除（击发不再消耗 RNG）。`AimToleranceDeg` / `FirehoseFireInterval` / `FirehoseSpreadDeg` 随之从 `BattleSimTuning` 删除，扫掠碰撞与其余各行不变。详见 [`outpost-tech-notes.md` §7「开火统一」](../../Assets/Game/Outpost/Documentation~/outpost-tech-notes.md)。
+
 ### 表现层（纯表现，零对拍影响）
 
 | 系统 | 实现 | 纪律 |

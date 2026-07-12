@@ -11,8 +11,8 @@ namespace Game.Outpost.Sim
     /// 它同时是规则的可执行规格，纯 C# 可直接单测 / 无头跑数。
     /// </summary>
     /// <remarks>
-    /// 确定性：随机源仅出生角度与火墙散布（<see cref="BattleSetup.Seed"/> 种子化的 <see cref="Random"/>，
-    /// 消耗顺序 = 刷怪 → 击发，两后端一致）；敌人列表按索引顺序演算、死亡 swap-remove；
+    /// 确定性：随机源仅出生角度（<see cref="BattleSetup.Seed"/> 种子化的 <see cref="Random"/>——
+    /// 击发不再消耗 RNG，故 RNG 序列 = 刷怪序列，两后端一致）；敌人列表按索引顺序演算、死亡 swap-remove；
     /// 同帧多个自爆按<b>实例 id 升序</b>结算（事件流与泥地记账顺序是两后端共同契约）；
     /// 炮塔朝向按固定回转速度逐帧趋近目标——同 Setup + 同 Tick 序列在同一平台上结果完全一致。
     /// 无限模式：波次由 <see cref="WaveScaling"/> 逐波生成，唯一终态是哨站被摧毁（<see cref="BattlePhase.Defeat"/>）。
@@ -415,29 +415,19 @@ namespace Game.Outpost.Sim
             float desired = (float)(Math.Atan2(tpos.Y, tpos.X) * Rad2Deg);
             _turretAngleDeg = SimMath.MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
 
-            // 击发（真弹道）：对准目标（角差 ≤ 容差）后按有效射速吐弹；火墙（间隔低于门槛）转向途中也吐、
-            // 带 ±FirehoseSpreadDeg 确定性散布。弹丸打到谁由 TickProjectiles 的扫掠碰撞决定——
-            // 锥内选敌已随 hitscan 一同退役。单帧可多发（上限 MaxShotsPerTick）。
+            // 击发（真弹道）：不分射速一律「边转边打」——按有效射速沿当前炮口方向吐弹，不设对准门槛，
+            // 转向途中照发（甩枪那几发划过战场，打到谁由 TickProjectiles 的扫掠碰撞决定，穿排/漏射自然涌现）。
+            // 单帧可多发（上限 MaxShotsPerTick）。
             double muzzleRad = _turretAngleDeg / Rad2Deg;
             var muzzleDir = new Vector2((float)Math.Cos(muzzleRad), (float)Math.Sin(muzzleRad));
-            bool aligned = Math.Abs(SimMath.DeltaAngleDeg(_turretAngleDeg, desired)) <= BattleSimTuning.AimToleranceDeg;
             float effInterval = _player.AttackInterval;
-            bool firehose = effInterval < BattleSimTuning.FirehoseFireInterval;
 
             _playerAttackCooldown -= dt;
             int shots = 0;
             while (_playerAttackCooldown <= 0f && shots < BattleSimTuning.MaxShotsPerTick)
             {
-                if (!firehose && !aligned) break; // 点射未对准：本 tick 静默（冷却由下方 clamp 兜住）
-                var dir = muzzleDir;
-                if (firehose)
-                {
-                    float off = (float)((_rng.NextDouble() * 2.0 - 1.0) * BattleSimTuning.FirehoseSpreadDeg);
-                    double rad = (_turretAngleDeg + off) / Rad2Deg;
-                    dir = new Vector2((float)Math.Cos(rad), (float)Math.Sin(rad));
-                }
-                _projectiles.Add(new ProjectileState { Pos = default, Dir = dir, Damage = _player.Attack });
-                TurretFired?.Invoke(new TurretFiredEvent(dir));
+                _projectiles.Add(new ProjectileState { Pos = default, Dir = muzzleDir, Damage = _player.Attack });
+                TurretFired?.Invoke(new TurretFiredEvent(muzzleDir));
                 _playerAttackCooldown += effInterval;
                 shots++;
             }
