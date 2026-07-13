@@ -60,8 +60,8 @@ docker run -d -p 8080:8080 -v outpost-data:/data outpost-server
 
 ## 客户端接线（切到本服务端）
 
-客户端目前在 `OutpostNetSystem` / 存档 Callsign 那条链用 dev server 的 `HttpBaseUrl` / `WsUrl`。切真后端只改注册处的两个地址（`IHttpUtility` 的 baseUrl、`IWebSocketUtility.Connect` 的 url），业务调用代码零改动——这正是双接缝（传输/序列化构造注入）的价值。正式包网络策略当前是「保持隐藏」（`OutpostNet.Available` 门控），接真后端后再开。
+`OutpostContext` 的 Inspector 直接切：`_remoteHttpBaseUrl` / `_remoteWsUrl` 填本服务端地址（如 `http://127.0.0.1:5080` / `ws://127.0.0.1:5080/ws`）即直连、不再起进程内 dev server；两个都留空回默认。地址收口在 `OutpostNetEndpoint`（唯一真源），业务调用代码零改动——这正是双接缝（传输/序列化构造注入）的价值。已实测（2026-07-13）：Unity 客户端栈对本服务端 POST 名次 / GET 榜单 / WS `new_record` 推送 → Toast 全链路互通。正式包网络策略当前是「保持隐藏」（`OutpostNet.Available` 门控），云端部署后再开。
 
-## 未来：换 Google.Protobuf
+## 序列化实现：两端可各自演进（灰度已实测）
 
-本服务端与客户端都用手写 ProtoWire（消息就这几个，划算）。若消息膨胀到需要 map/oneof/有符号/浮点、或想共享一份 `.proto`：把上面的 .proto 喂 protoc 生成 C#，两端各自换用 Google.Protobuf 实现 `INetworkSerializer`/`IWebSocketEnvelopeSerializer`——因为都是标准 protobuf wire，**换实现线上格式不变、可灰度**（一端先换、另一端不动仍互通）。
+客户端已换官方 Google.Protobuf（框架模块 `Game.Framework.Network.Proto`，契约在 `Proto~/outpost_net.proto`）；本服务端仍用手写 ProtoWire（消息就这几个，划算）。两端产同一套标准 protobuf wire、字段号一致，联调实测互通——**「换实现线上格式不变、可灰度」不再是推断而是现状**。服务端消息膨胀到需要 map/oneof/有符号/浮点时，同样把上面的 .proto 喂 protoc 换 Google.Protobuf 即可。

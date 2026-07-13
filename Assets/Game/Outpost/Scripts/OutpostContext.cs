@@ -1,3 +1,4 @@
+using System;
 using Game.Framework;
 using Game.Framework.Audio;
 using Game.Framework.Context;
@@ -9,6 +10,7 @@ using Game.Framework.Systems;
 using Game.Outpost.Net;
 using Game.Outpost.Save;
 using OutpostCfg;
+using UnityEngine;
 
 namespace Game.Outpost
 {
@@ -23,6 +25,15 @@ namespace Game.Outpost
     /// </remarks>
     public sealed class OutpostContext : MonoGlobalContext
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [Header("排行榜对端（仅 Editor / Development Build 生效）")]
+        [Tooltip("独立真后端（Server~/OutpostServer）的 HTTP 基地址，如 http://127.0.0.1:5080。\n留空 = 起进程内 dev server（零配置默认）。")]
+        [SerializeField] private string _remoteHttpBaseUrl = "";
+
+        [Tooltip("独立真后端的 WebSocket 地址，如 ws://127.0.0.1:5080/ws。\n与 HTTP 基地址要么都填、要么都留空。")]
+        [SerializeField] private string _remoteWsUrl = "";
+#endif
+
         protected override void InstallBindings(ContainerBuilder builder)
         {
             // 命令分发：LoggingCommandSystem 装饰默认实现——开发期「SSFramework/诊断/框架诊断面板」可看命令流水。
@@ -54,13 +65,29 @@ namespace Game.Outpost
                 typeof(ILocalizationUtility));
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // M4 网络排行（仅 dev 环境）：进程内 dev server 起在最前（构造即监听、随本 Context Dispose 停），
-            // HTTP / WS 客户端栈全程 Protobuf（同一契约两侧各建一份序列化器）。HTTP 无状态挂根全局共享；
+            // 网络排行（仅 dev 环境）：对端二选一——Inspector 留空 = 进程内 dev server（构造即监听、随本
+            // Context Dispose 停）；填了地址 = 直连独立真后端（Server~/OutpostServer），不起 dev server。
+            // 两侧共享同一份 .proto 契约、wire 兼容，客户端栈零差异——「换端只改地址」的接缝就落在这里。
+            // HTTP / WS 客户端栈全程 Protobuf（两个 utility 各建一份序列化器）。HTTP 无状态挂根全局共享；
             // WS 单条长连接也挂根——新纪录广播要跨阶段可见（连接维持在 OutpostNetSystem）。§32 / ADR-0028。
-            var devServer = new OutpostDevServer();
-            builder.RegisterOwned(devServer, typeof(OutpostDevServer));
+            OutpostNetEndpoint endpoint;
+            if (string.IsNullOrEmpty(_remoteHttpBaseUrl))
+            {
+                var devServer = new OutpostDevServer();
+                builder.RegisterOwned(devServer, typeof(OutpostDevServer));
+                endpoint = new OutpostNetEndpoint(devServer.HttpBaseUrl, devServer.WsUrl);
+            }
+            else
+            {
+                // 半配置 fail-fast（§22）：只填 HTTP 会让 WS 维持循环拿空地址无限退避，把配置错误拖成"连不上"疑难。
+                if (string.IsNullOrEmpty(_remoteWsUrl))
+                    throw new InvalidOperationException(
+                        "OutpostContext：配置了真后端 HTTP 基地址但缺 WS 地址——两个地址要么都填（连独立服务端），要么都留空（进程内 dev server）。");
+                endpoint = new OutpostNetEndpoint(_remoteHttpBaseUrl.TrimEnd('/'), _remoteWsUrl);
+            }
+            builder.RegisterValue(endpoint, typeof(OutpostNetEndpoint));
             builder.RegisterOwned(
-                new HttpUtility(devServer.HttpBaseUrl, serializer: OutpostNet.CreateSerializer()),
+                new HttpUtility(endpoint.HttpBaseUrl, serializer: OutpostNet.CreateSerializer()),
                 typeof(IHttpUtility));
             builder.RegisterOwned(
                 new WebSocketUtility(serializer: OutpostNet.CreateSerializer()),

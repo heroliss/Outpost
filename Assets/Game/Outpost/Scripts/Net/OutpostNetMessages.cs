@@ -14,8 +14,9 @@ namespace Game.Outpost.Net
     /// </summary>
     public static class OutpostNet
     {
-        /// <summary>网络栈是否可用：M4 阶段只有进程内 dev server（Editor / Development Build）；
-        /// 正式包无对端，网络 UI 全部隐藏（接真后端策略见 Server~/README）。</summary>
+        /// <summary>网络栈是否可用：仅 Editor / Development Build（对端 = 进程内 dev server，
+        /// 或 <c>OutpostContext</c> Inspector 指定的独立真后端）；正式包无网络栈，网络 UI 全部隐藏
+        /// （正式接入策略见 Server~/README）。</summary>
         public static bool Available =>
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             true;

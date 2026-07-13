@@ -20,7 +20,8 @@ namespace Game.Outpost.Net
     /// WS 在全服纪录被刷新时向所有连接广播 <c>new_record</c>。
     /// 全程 Protobuf 对讲（<see cref="OutpostNet.CreateSerializer"/> 同一契约、二进制 WS 帧）——
     /// 框架被验证的是客户端栈（<c>IHttpUtility</c>/<c>IWebSocketUtility</c> + <c>ProtobufNetworkSerializer</c>），
-    /// 对端在哪个进程不影响验证效力；换独立后端时本类即弃、客户端只改 baseUrl。
+    /// 对端在哪个进程不影响验证效力；换独立真后端（<c>Server~/OutpostServer</c>）= 在 <c>OutpostContext</c>
+    /// Inspector 填对端地址，本类不再构造、客户端栈零改动。
     /// </summary>
     /// <remarks>
     /// 结构照 <c>DemoGameServer</c>（ADR-0028 §8 的结论直接复用）：<b>HTTP 用 <see cref="HttpListener"/></b>
