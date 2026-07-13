@@ -1,0 +1,28 @@
+{
+    "name": "Game.Outpost.Sim.Test",
+    "rootNamespace": "Game.Outpost.Sim.Test",
+    "references": [
+        "Game.Outpost",
+        "Game.Outpost.Sim",
+        "Game.Outpost.Sim.Ecs",
+        "Luban.Runtime",
+        "Unity.Burst",
+        "Unity.Entities",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "UnityEngine.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
