@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c128799ed12b1cf43ac7c8143f85fedf, type: 3}
+  m_Name: SceneShortcutProfile
+  m_EditorClassIdentifier: Game.Framework.Editor::Game.Framework.Editor.SceneShortcutProfile
+  _entries:
+  - Scene: {fileID: 102900000, guid: a21f10aa8c1a67f4b8c6b7d0a4718f51, type: 3}
+    DisplayName: 
+    Group: 
+    OpenAdditive: 0
+  - Scene: {fileID: 102900000, guid: 739b609d66e3780408fefe75db25e0cd, type: 3}
+    DisplayName: 
+    Group: Outpost
+    OpenAdditive: 0
+  - Scene: {fileID: 102900000, guid: 50bacf9bd1119c24b9de61dbf3ed0201, type: 3}
+    DisplayName: 
+    Group: Outpost
+    OpenAdditive: 0
+  _playFromBootScene: 0
+  _bootScene: {fileID: 102900000, guid: bbf1fa3f2385d914089174424425b39b, type: 3}
