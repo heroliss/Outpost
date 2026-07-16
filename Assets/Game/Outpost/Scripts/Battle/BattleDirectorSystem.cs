@@ -584,18 +584,20 @@ namespace Game.Outpost.Battle
             for (int i = 0; i < BoomSectorCount; i++)
                 if (_boomEnergy[i] > bestE) { best = i; bestE = _boomEnergy[i]; }
             if (best < 0) return;
+
+            // 接棒**全额**让位（与单发层→火墙同构，音量随 blend 归零）：部分衰减试了三档（75%/55%/68%）
+            // 都被听出"咚咚"——人耳对瞬态的探测不看音量，离散炸点压多小声都能被清晰追踪；物理上
+            // 每秒几百爆的合并结果就是一整段连续轰鸣，任何离散"咚"都不该存在（用户点破）。融合区
+            // 门控不播、不清扇区、不耗冷却：能量自然衰减，击杀率回落 blend 松开时残余合爆立即复现。
+            float blend = KillFusionBlend();
+            float volume = Mathf.Min(Mathf.Sqrt(bestE), 0.95f) * (1f - blend);
+            if (volume < 0.05f) return;
             _lastBoomSfxTime = now;
             _nextBoomGap = BoomSfxMinInterval * Random.Range(0.85f, 1.45f); // 重掷抖动，防节拍器
 
             Vector3 pos = _boomPosSum[best] / bestE;
-            // 接棒衰减 68%（融合区顶格 ~0.30）：75% 试听"合爆太小"、55% 试听"咚咚又回来"——且 55%
-            // 那版同时调低了火墙、撤了弹着叮，遮蔽变薄合爆被双重暴露。0.30 取两版听感之间。
-            float blend = KillFusionBlend();
-            float volume = Mathf.Min(Mathf.Sqrt(bestE), 0.95f) * (1f - 0.68f * blend);
             float pitch = Random.Range(0.92f, 1.12f) * (_boomMaxScale[best] >= 0.8f ? 0.85f : 1.05f);
-            // 聚合体量→音高下沉，但随接棒退坡："咚咚"感一半住在深音高里；融合区的低频体量是底床
-            // 的地界，残余合爆读作"近旁炸点"（近=高频未被空气吸掉，偏亮才与暗色底床分得开）。
-            pitch *= 1f - 0.12f * Mathf.Clamp01((bestE - 0.5f) / 2f) * (1f - blend);
+            pitch *= 1f - 0.12f * Mathf.Clamp01((bestE - 0.5f) / 2f) * (1f - blend); // 体量下沉随接棒退坡
             _audio.PlaySfxAt(_sfxExplosion, pos, volume: volume, pitch: pitch,
                 minDistance: SfxMinDistance, maxDistance: SfxMaxDistance);
 
