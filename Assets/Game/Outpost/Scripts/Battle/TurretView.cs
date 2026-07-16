@@ -190,7 +190,7 @@ namespace Game.Outpost.Battle
             _servoSpeed = Mathf.Lerp(_servoSpeed, inst, 1f - Mathf.Exp(-10f * dt)); // 指数平滑：起转快、停转留短余韵
 
             float norm = Mathf.InverseLerp(30f, 320f, _servoSpeed); // 30 度/秒以下静音（追踪微调），320 度/秒拉满
-            float v = norm * 0.30f * _sfxVolumeScale;
+            float v = norm * 0.38f * _sfxVolumeScale;
             if (v <= 0.005f)
             {
                 if (_servoLoop.isPlaying) _servoLoop.Pause(); // 同火墙层：Pause 保相位，再动时从中段续播无重启爆点

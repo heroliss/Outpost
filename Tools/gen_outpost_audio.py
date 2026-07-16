@@ -13,6 +13,14 @@
 #   游戏内混音只由播放侧音量参数负责（OutpostAudioSystem.MusicVolume / 各 PlaySfx volume）。
 # 保留的既有决策：全小调（Am/Dm/Em）；打击类指数衰减长尾；循环无缝 = 尾部回绕 + 噪声环形淡接。
 #
+# 2026-07-16 三轮（用户反馈"射击/爆炸闷、像敲桌子；电台皮听不出差别；BGM 想要立体声层次"）：
+# - 打击类 SFX 补高频层：爆膛 crack 提早提亮 + 4~9kHz sizzle/碎裂层——同 RMS 下低频占优的声音
+#   听感更闷更小（等响度曲线），"结实"靠低频、"清脆"靠高频，两头都要有。
+# - BGM 真立体声摆位：此前文件虽是双声道但主体是"双单声道"（同信号进左右）；现在踩镲/和弦戳/
+#   琶音/钟声做等功率声像摆位，鼓/贝斯/drone 守中央（低频守中是混音惯例——立体声低频相位问题+能量分散）。
+# - 电台皮识别度：莫尔斯呼叫提前到 A 段/break（原先只在 32s 后的 C 段，前半首和默认皮几乎无差别），
+#   静电底/噼啪增益上调——切换开关应在数秒内可辨。
+#
 # 每个资产独立 RNG seed —— 音色可任意增删改序互不影响。战斗曲构建器 build_battle_track 被
 # gen_outpost_expansion_audio.py 复用（radio=True 换"军用电台"皮），保证两首战斗曲同一能量骨架。
 import numpy as np
@@ -91,20 +99,27 @@ def bass_note(m, sec, rng):
     return softclip(x, 1.3) * env_ar(n, 0.004, min(0.06, sec * 0.4))
 
 
-def stab_chord(notes, sec, rng, band=None):
-    """和弦戳：失谐锯齿三和音、快速衰减；band 给定时改窄带（电台皮的"薄"音色）。"""
-    x = np.zeros(samples(sec))
-    for m in notes:
-        x += detuned_saw_stack(midi(m), sec, voices=2, detune_cents=6, rng=rng)
-    x = lowpass(x, 1500) if band is None else bandpass(x, *band)
-    return x * env_exp(len(x), 0.09)
+def stab_chord(notes, sec, rng, band=None, spread=0.5):
+    """和弦戳：失谐锯齿三和音、快速衰减，和弦音按 spread 在声场内展开（低音→高音从一侧到另一侧，
+    spread 取负镜像）——立体声宽度来自声部摆位而非事后加宽。band 给定时改窄带（电台皮的"薄"音色）。"""
+    n = samples(sec)
+    out = np.zeros((n, 2))
+    for k, m in enumerate(notes):
+        pan = spread * (2 * k / max(len(notes) - 1, 1) - 1)
+        out += to_stereo(detuned_saw_stack(midi(m), sec, voices=2, detune_cents=6, rng=rng), pan)
+    out = lowpass(out, 1500) if band is None else bandpass(out, *band)
+    return out * env_exp(n, 0.09)[:, None]
 
 
 def lead_note(m, sec, rng):
-    """主题旋律音色（战斗曲 C 段）：失谐锯齿过低通——暗色、有分量，不是亮色电子音。"""
-    x = detuned_saw_stack(midi(m), sec, voices=3, detune_cents=8, rng=rng)
-    x = lowpass(x, 1100)
-    return x * env_ar(len(x), 0.02, min(0.3, sec * 0.5))
+    """主题旋律音色（战斗曲 C 段）：失谐锯齿过低通——暗色、有分量，不是亮色电子音。
+    三个失谐声部左/中/右展开（超锯齿的经典宽度手法：失谐拍频在两耳间流动）。返回立体声。"""
+    n = samples(sec)
+    out = np.zeros((n, 2))
+    for cents, pan in ((-8.0, -0.4), (0.0, 0.0), (8.0, 0.4)):
+        out += to_stereo(osc_saw(midi(m) * 2 ** (cents / 1200), sec, phase0=rng.random()), pan)
+    out = lowpass(out / 3, 1100)
+    return out * env_ar(n, 0.02, min(0.3, sec * 0.5))[:, None]
 
 
 def title_lead_note(m, sec):
@@ -149,8 +164,9 @@ _LEAD = [
     (22, 0, 74, 6), (22, 8, 72, 4), (22, 12, 69, 4),
 ]
 
-# 电台皮的莫尔斯呼叫（替代主题旋律）：每两小节一组"短-短-长"，两个呼叫音高交替。
-_MORSE_BARS = [(16, 880.0), (18, 988.0), (20, 784.0), (22, 880.0)]
+# 电台皮的莫尔斯呼叫：每组"短-短-长"，呼叫音高交替。开场 A 段与 break 也有呼叫——
+# 电台皮的辨识度必须在数秒内建立（此前只在 32s 后的 C 段出现，前半首与默认皮几乎无差别）。
+_MORSE_BARS = [(0, 880.0), (2, 988.0), (13, 740.0), (16, 880.0), (18, 988.0), (20, 784.0), (22, 880.0)]
 
 
 def _at(bar, step=0.0):
@@ -172,8 +188,9 @@ def build_battle_track(rng, radio=False):
         fifth = osc_sine(midi(root + 7), seg_len) * env_ar(samples(seg_len), 1.0, 1.4)
         mix_into(drone, fifth, _at(start), gain=0.10)
 
-    # 鼓组
+    # 鼓组：底鼓/军鼓守中央（低频+骨架），踩镲进独立立体声总线做声像摆位（高频件拉宽声场）
     drums = silence(total)
+    hats_st = silence(total, stereo=True)
     for bar in range(BATTLE_BARS):
         in_break = 12 <= bar <= 14
         grooving = bar >= 4 and not in_break and bar != 15
@@ -190,10 +207,11 @@ def build_battle_track(rng, radio=False):
             if bar != 15:
                 for s in (4, 12):
                     mix_into(drums, drum_snare(rng), _at(bar, s), gain=0.42)
-        # 踩镲：八分、强弱交替；电台皮换行军刷点（军鼓噪声更低沉的 brush 感由窄带镲代替）
+        # 踩镲：八分、强弱交替，强拍偏左弱拍偏右（左右摆是最经典的镲组宽度手法）
         if grooving:
             for i, s in enumerate(range(0, 16, 2)):
-                mix_into(drums, drum_hat(rng), _at(bar, s), gain=0.30 if i % 2 == 0 else 0.16)
+                pan = -0.55 if i % 2 == 0 else 0.55
+                mix_into(hats_st, to_stereo(drum_hat(rng), pan), _at(bar, s), gain=0.30 if i % 2 == 0 else 0.16)
 
     # 贝斯：A 段直八分、B/C 段 riff；break 静默（把空间让给垫和上升器）
     bass = silence(total)
@@ -204,15 +222,16 @@ def build_battle_track(rng, radio=False):
         for s, off, ln in pattern:
             mix_into(bass, bass_note(_ROOTS[bar] + off + 12, ln * STEP * 0.92, rng), _at(bar, s), gain=0.5)
 
-    # 和弦戳：B/C 段离拍（步 6/14），三和音在 A3 声位；电台皮改窄带"薄"音色
-    stabs = silence(total)
+    # 和弦戳：B/C 段离拍（步 6/14），三和音在 A3 声位，左右交替摆位（离拍件在两侧与中央鼓组错开）；
+    # 电台皮改窄带"薄"音色
+    stabs = silence(total, stereo=True)
     band = (500.0, 2200.0) if radio else None
     for bar in range(BATTLE_BARS):
         if not (4 <= bar <= 11 or 16 <= bar <= 23):
             continue
         r = _ROOTS[bar] + 24
-        for s in (6, 14):
-            mix_into(stabs, stab_chord((r, r + 3, r + 7), 0.35, rng, band=band), _at(bar, s), gain=0.16)
+        for s, spread in ((6, -0.5), (14, 0.5)):  # 两个离拍互为镜像：声部展开方向左右交替
+            mix_into(stabs, stab_chord((r, r + 3, r + 7), 0.35, rng, band=band, spread=spread), _at(bar, s), gain=0.16)
 
     # break 垫涌起（Em）：慢起慢收，填住鼓撤走的空间
     pad = silence(total)
@@ -220,19 +239,25 @@ def build_battle_track(rng, radio=False):
     for m in (52, 55, 59):
         mix_into(seg, pad_note(m, BAR * 4 + 2.0, rng, attack=1.6, release=2.0), 0.0, gain=0.4)
     mix_into(pad, lowpass(seg, 900), _at(12))
-    pad_st = chorus(to_stereo(pad), rate_hz=0.3, depth_ms=6.0, mix=0.35)
+    pad_st = chorus(to_stereo(pad), rate_hz=0.3, depth_ms=8.0, mix=0.5)
 
-    # 主题层：默认皮=暗色旋律 + 乒乓回声；电台皮=莫尔斯呼叫（同为 C 段的"人声位"）
-    theme = silence(total)
+    # 主题层：默认皮=暗色旋律（声部立体展开）+ 乒乓回声；电台皮=莫尔斯呼叫（点源守中央）。
+    # 乒乓回声路径要求单声道输入，主信号与回声 send 分开累积
+    theme = silence(total, stereo=True)
+    theme_send = silence(total)
     if not radio:
         for bar, s, m, ln in _LEAD:
-            mix_into(theme, lead_note(m, ln * STEP * 1.05, rng), _at(bar, s), gain=0.20)
+            note = lead_note(m, ln * STEP * 1.05, rng)
+            mix_into(theme, note, _at(bar, s), gain=0.20)
+            mix_into(theme_send, note.mean(axis=1), _at(bar, s), gain=0.20)
     else:
         for bar, freq in _MORSE_BARS:
             for i, dur in enumerate((0.07, 0.07, 0.2)):
                 beep = osc_sine(freq, dur + 0.05) * env_ar(samples(dur + 0.05), 0.004, 0.05)
-                mix_into(theme, bandpass(beep, freq * 0.6, freq * 1.8), _at(bar) + i * 0.14, gain=0.30)
-    theme_st = to_stereo(theme) + delay_echo(theme, STEP * 3, feedback=0.35, pingpong=True) * 0.5
+                beep = bandpass(beep, freq * 0.6, freq * 1.8)
+                mix_into(theme, to_stereo(beep), _at(bar) + i * 0.14, gain=0.30)
+                mix_into(theme_send, beep, _at(bar) + i * 0.14, gain=0.30)
+    theme_st = theme + delay_echo(theme_send, STEP * 3, feedback=0.35, pingpong=True) * 0.5
 
     # 上升器（bar 14-15）：高通噪声时变低通上扫 + 音量 ^2 渐强，60ms 尾巴淡出（回绕后被 C 段首拍掩蔽）
     riser_len = BAR * 2 + 0.06
@@ -244,16 +269,20 @@ def build_battle_track(rng, radio=False):
     riser_buf = silence(total)
     mix_into(riser_buf, riser, _at(14), gain=0.15)
 
-    # 电台皮附加层：静电底 + 偶发噼啪（"频道没关"的持续存在感）
+    # 电台皮附加层：静电底 + 偶发噼啪（"频道没关"的持续存在感）——增益给到可辨级别，
+    # 它与莫尔斯呼叫共同构成电台皮的第一识别特征
     extra_st = np.zeros((n, 2))
     if radio:
         t = np.arange(n) / RATE
         static = lowpass(white(total, rng), 3000) * (0.65 + 0.35 * np.sin(2 * np.pi * 1.0 * t))
         pops = bandpass(crackle(total, rng, density_hz=3.0, tau=1e9), 800, 4000)
-        extra_st = np.stack([static, np.roll(static, 631)], axis=1) * 0.012 + to_stereo(pops) * 0.04
+        extra_st = np.stack([static, np.roll(static, 631)], axis=1) * 0.028 + to_stereo(pops) * 0.08
 
-    dry = to_stereo(drone + drums + bass + riser_buf)
-    wet = reverb(pad_st + theme_st + to_stereo(stabs), mix=0.28, rt=1.8, damp=0.35)
+    # 鼓+贝斯过短房间混响（低 mix、短 rt 保打点）：给中央骨架一点空间——否则 dry 总线是纯"双单声道"，
+    # 两耳信号完全相同，戴耳机听像贴在头中央
+    room = reverb(to_stereo(drums + bass), mix=0.14, rt=0.9, damp=0.5)
+    dry = to_stereo(drone + riser_buf) + room + hats_st
+    wet = reverb(pad_st + theme_st + stabs, mix=0.28, rt=1.8, damp=0.35)
     return wrap_loop_tail(dry + wet + extra_st, BATTLE_LOOP)
 
 
@@ -308,14 +337,16 @@ def make_bgm_title():
         x = osc_sine(midi(root), 8.8) + 0.2 * osc_sine(midi(root) * 2, 8.8)
         mix_into(sub, x * env_ar(samples(8.8), 1.2, 1.6), i * 8.0, gain=0.30)
 
-    # 慢琶音脉动：每拍（1s）一颗和弦音软拨，[低,中,高,中] 循环——给氛围一个安静的心率
-    arp = silence(total)
+    # 慢琶音脉动：每拍（1s）一颗和弦音软拨，[低,中,高,中] 循环——给氛围一个安静的心率。
+    # 声像随音高左→右画弧（低音靠左、高音靠右，钢琴摆位惯例），是标题曲立体声宽度的主来源
+    arp = silence(total, stereo=True)
+    arp_pans = [-0.45, -0.15, 0.45, 0.15]
     for i, (_, notes) in enumerate(TITLE_CHORDS):
         order = [notes[0], notes[1], notes[3], notes[2]]
         for b in range(8):
             m = order[b % 4]
             pluck = (osc_sine(midi(m), 1.4) + 0.3 * osc_sine(midi(m) * 2, 1.4)) * env_exp(samples(1.4), 0.35)
-            mix_into(arp, pluck, i * 8.0 + b * 1.0, gain=0.10)
+            mix_into(arp, to_stereo(pluck, arp_pans[b % 4]), i * 8.0 + b * 1.0, gain=0.10)
 
     # 主题旋律 + 长回声（0.75s 乒乓）
     mel = silence(total)
@@ -324,15 +355,18 @@ def make_bgm_title():
     mel = lowpass(mel, 1800)
     mel_st = to_stereo(mel) + delay_echo(mel, 0.75, feedback=0.35, pingpong=True) * 0.6
 
-    # 冷钟点缀 + 风底
-    bells = silence(total)
-    for at, m in TITLE_BELLS:
-        mix_into(bells, bell_note(m, 3.0), at, gain=0.12)
-    bells_st = to_stereo(bells) + delay_echo(bells, 0.66, feedback=0.45, pingpong=True) * 0.7
+    # 冷钟点缀（左右交替落点）+ 风底；钟的乒乓回声喂单声道混和（pingpong 路径要求 mono 输入）
+    bells_mono = silence(total)
+    bells = silence(total, stereo=True)
+    for k, (at, m) in enumerate(TITLE_BELLS):
+        note = bell_note(m, 3.0)
+        mix_into(bells_mono, note, at, gain=0.12)
+        mix_into(bells, to_stereo(note, -0.4 if k % 2 == 0 else 0.4), at, gain=0.12)
+    bells_st = bells + delay_echo(bells_mono, 0.66, feedback=0.45, pingpong=True) * 0.7
     air = bandpass(white(total, rng), 500, 1600) * (0.6 + 0.4 * np.sin(2 * np.pi * t / TITLE_LOOP + 1.7))
     air_st = np.stack([air, np.roll(air, 977)], axis=1)
 
-    mix = pad_st + to_stereo(sub + arp) + mel_st + bells_st + air_st * 0.012
+    mix = pad_st + to_stereo(sub) + arp + mel_st + bells_st + air_st * 0.012
     mix = reverb(mix, mix=0.36, rt=2.8, damp=0.4)
     looped = wrap_loop_tail(mix, TITLE_LOOP)
     print(seam_report(looped, "bgm_title"))
@@ -385,16 +419,18 @@ def make_wave():
 
 
 def make_explosion():
-    # 拦截击毁：四层——低频下扫体 + 噪声爆膛（LP 下扫）+ 碎裂噼啪 + 50Hz 余鸣，轻微过载胶合。
+    # 拦截击毁：五层——起爆高频劈裂 + 低频下扫体 + 噪声爆膛（LP 从 6.5k 下扫，前段亮）+ 碎裂噼啪 + 50Hz 余鸣。
+    # 真实爆炸的第一毫秒是宽带冲击（很亮），之后才是低频轰鸣——没有高频起爆就是"敲桌子"。
     rng = np.random.default_rng(13)
     sec = 0.75
     n = samples(sec)
     t = np.arange(n) / RATE
+    crack = highpass(white(sec, rng), 2500) * env_exp(n, 0.014)
     body = osc_sine(38 + 120 * np.exp(-t * 16), sec) * env_exp(n, 0.13)
-    burst = lowpass_sweep(white(sec, rng), 2800 * np.exp(-t * 7) + 250) * env_exp(n, 0.16)
-    snap = bandpass(crackle(sec, rng, density_hz=70, tau=0.12), 1200, 5000) * env_exp(n, 0.2)
+    burst = lowpass_sweep(white(sec, rng), 6500 * np.exp(-t * 9) + 300) * env_exp(n, 0.16)
+    snap = bandpass(crackle(sec, rng, density_hz=70, tau=0.12), 1500, 7500) * env_exp(n, 0.2)
     hum = osc_sine(52, sec) * env_exp(n, 0.28)
-    x = softclip(0.9 * body + 0.55 * burst + 0.3 * snap + 0.12 * hum, drive=1.5)
+    x = softclip(0.6 * crack + 0.85 * body + 0.6 * burst + 0.5 * snap + 0.12 * hum, drive=1.4)
     out("sfx_explosion", x, SFX_RMS)
 
 
@@ -405,10 +441,11 @@ def make_detonate():
     n = samples(sec)
     t = np.arange(n) / RATE
     body = osc_sine(30 + 95 * np.exp(-t * 11), sec) * env_exp(n, 0.2)
-    burst = lowpass_sweep(white(sec, rng), 2000 * np.exp(-t * 6) + 160) * env_exp(n, 0.22)
-    snap = bandpass(crackle(sec, rng, density_hz=50, tau=0.18), 900, 4000) * env_exp(n, 0.3)
+    crack = highpass(white(sec, rng), 2000) * env_exp(n, 0.016)  # 起爆劈裂：比拦截爆炸略钝，但不能没有
+    burst = lowpass_sweep(white(sec, rng), 4500 * np.exp(-t * 7) + 200) * env_exp(n, 0.22)
+    snap = bandpass(crackle(sec, rng, density_hz=50, tau=0.18), 1000, 6000) * env_exp(n, 0.3)
     cavity = osc_sine(40, sec) * env_exp(n, 0.45)
-    x = softclip(1.0 * body + 0.5 * burst + 0.24 * snap + 0.18 * cavity, drive=1.7)
+    x = softclip(0.95 * body + 0.4 * crack + 0.55 * burst + 0.4 * snap + 0.18 * cavity, drive=1.6)
     out("sfx_detonate", x, SFX_RMS)
 
 
@@ -451,17 +488,19 @@ def make_retreat():
 
 
 def make_shot():
-    # 单发炮声（低射速段主角）：炮口爆膛 crack + 165→62Hz 体腔下扫 + 金属簧片瞬态 + 机械短尾。
+    # 单发炮声（低射速段主角）：炮口爆膛 crack + 165→62Hz 体腔下扫 + 高频 sizzle + 金属簧片瞬态 + 机械短尾。
     # 高射速段由 sfx_fire_loop 接棒（>15Hz 重复事件人耳听成连续音）——限流与交叉见 director/TurretView。
+    # crack/sizzle 占比刻意高：低频体腔给"分量"、高频劈裂给"清脆"，只有前者听感是闷响。
     rng = np.random.default_rng(16)
     sec = 0.25
     n = samples(sec)
     t = np.arange(n) / RATE
-    crack = highpass(white(sec, rng), 1500) * env_exp(n, 0.009)
+    crack = highpass(white(sec, rng), 2200) * env_exp(n, 0.012)
+    sizz = bandpass(white(sec, rng), 3500, 9500) * env_exp(n, 0.03)
     body = osc_sine(62 + 103 * np.exp(-t * 20), sec) * env_exp(n, 0.055)
     ring = osc_sine(1400, sec) * env_exp(n, 0.014)
     mech = lowpass(white(sec, rng), 500) * env_exp(n, 0.05)
-    x = softclip(0.5 * crack + 0.95 * body + 0.12 * ring + 0.2 * mech, drive=1.4)
+    x = softclip(0.85 * crack + 0.35 * sizz + 0.75 * body + 0.18 * ring + 0.15 * mech, drive=1.3)
     out("sfx_shot", x, SFX_RMS)
 
 
@@ -488,28 +527,33 @@ def make_fire_loop():
     t = np.arange(n) / RATE
     buzz = lowpass(np.tile(osc_saw(52.0, loop), 2), 750)[n:]
     sub = osc_sine(26.0, loop)
-    roar = bandpass(white(loop + 0.56, rng), 130, 950)[samples(0.5):]
+    roar = bandpass(white(loop + 0.56, rng), 130, 1400)[samples(0.5):]
     roar = loop_crossfade(roar, 0.06)[:n]
     rattle = bandpass(white(loop + 0.56, rng), 1800, 3600)[samples(0.5):]
     rattle = loop_crossfade(rattle, 0.06)[:n]
+    hiss = bandpass(white(loop + 0.56, rng), 3600, 8000)[samples(0.5):]  # 火焰高频嘶声：没有它是闷吼
+    hiss = loop_crossfade(hiss, 0.06)[:n]
     am = 0.72 + 0.28 * np.sin(2 * np.pi * 13.0 * t)
-    x = (0.6 * buzz + 0.25 * sub + 0.5 * roar + 0.08 * rattle) * am
+    x = (0.6 * buzz + 0.25 * sub + 0.5 * roar + 0.14 * rattle + 0.07 * hiss) * am
     print(seam_report(x, "sfx_fire_loop"))
     out("sfx_fire_loop", x, SFX_RMS)
 
 
 def make_servo_loop():
     # 炮塔回转伺服循环（1s 无缝）：92Hz 电机基波 + 非谐 196/365Hz 部分音（整数频率=整周期无接缝，
-    # 比例≈2.13×/3.97× 保留"真电机不完美谐波"观感）+ 13Hz 齿轮纹波 + 3Hz 慢晃 + 电刷噪声（环形淡接）。
+    # 比例≈2.13×/3.97× 保留"真电机不完美谐波"观感）+ 736/1472Hz 齿轮啮合啸声 + 13Hz 齿轮纹波
+    # + 3Hz 慢晃 + 电刷噪声（环形淡接）。啸声层是可听性的关键：92Hz 基波在等响度曲线上天然"显小声"，
+    # 中高频啸声让伺服音在混音里立得住，且随游戏侧 pitch 调制（0.8~1.4×）扫出"电机变速"感。
     rng = np.random.default_rng(19)
     loop = 1.0
     n = samples(loop)
     t = np.arange(n) / RATE
     hum = (osc_sine(92, loop) + 0.5 * osc_sine(196, loop) + 0.2 * osc_sine(365, loop))
+    whine = (osc_sine(736, loop) + 0.5 * osc_sine(1472, loop)) * (0.8 + 0.2 * np.sin(2 * np.pi * 13 * t))
     ripple = (0.72 + 0.28 * np.sin(2 * np.pi * 13 * t)) * (0.9 + 0.1 * np.sin(2 * np.pi * 3 * t))
-    brush = lowpass(white(loop + 0.55, rng), 1300)[samples(0.5):]
+    brush = lowpass(white(loop + 0.55, rng), 2200)[samples(0.5):]
     brush = loop_crossfade(brush, 0.05)[:n]
-    x = 0.55 * hum * ripple + 0.12 * brush
+    x = 0.5 * hum * ripple + 0.16 * whine + 0.12 * brush
     print(seam_report(x, "sfx_servo_loop"))
     out("sfx_servo_loop", x, SFX_RMS)
 

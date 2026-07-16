@@ -127,6 +127,12 @@ namespace Game.Outpost.Battle
         // 战斗音效（clip 经资源系统在 SetupAsync 加载；播放走框架音效池 PlaySfx，随手丢弃返回值）。
         // 爆炸类按时间限流（千级击杀下逐发播只会糊成噪声墙、耗尽 voice）；受创重音天然由伤害聚合窗口节流。
         [Inject] private IAudioUtility _audio;
+
+        // 战场事件音效走 3D 位置播放（PlaySfxAt）：监听器在主相机 (0,0,-10)，声像随弹着点左右分布。
+        // minDistance 取监听器到场心距离量级——场内基本全音量、只留方位与轻微远近差；引擎默认 min=1
+        // 在这个机位下会把一切压到近乎无声（第一人称尺度的衰减曲线）。
+        private const float SfxMinDistance = 11f;
+        private const float SfxMaxDistance = 60f;
         private AudioClip _sfxExplosion;
         private AudioClip _sfxDetonate;
         private AudioClip _sfxRepair;
@@ -454,25 +460,28 @@ namespace Game.Outpost.Battle
         }
 
         // 爆炸类音效（拦截击毁 / 抵达自爆共用）：按时间限流（见 BoomSfxMinInterval）+ 随机音高防"机关枪同音"；
-        // 体量大的原型更低沉更响。击毁事件在弹着帧触发，直接播即与视觉爆点同帧。
-        private void PlayBoomSfx(int archetypeId)
+        // 体量大的原型更低沉更响。击毁事件在弹着帧触发，直接播即与视觉爆点同帧；
+        // 3D 位置播放让爆点方位可听（屏幕左侧炸响在左耳），与视觉爆光同点。
+        private void PlayBoomSfx(int archetypeId, Vector3 worldPos)
         {
             float now = Time.time;
             if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < BoomSfxMinInterval) return;
             _lastBoomSfxTime = now;
             float scale = EnemyVisuals.Get(_visuals, archetypeId).ExplosionScale;
             float pitch = Random.Range(0.92f, 1.12f) * (scale >= 0.8f ? 0.85f : 1.05f);
-            _audio.PlaySfx(_sfxExplosion, volume: Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f), pitch: pitch);
+            _audio.PlaySfxAt(_sfxExplosion, worldPos, volume: Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f), pitch: pitch,
+                minDistance: SfxMinDistance, maxDistance: SfxMaxDistance);
         }
 
         // 弹着「叮」（击中未击毁）：与击毁 boom 分开的轻量金属短鸣，在弹着帧直接播。
         // 音量恒定偏轻——它是"弹药落在装甲上"的质感层，不是逐发战果汇报；限流见 ImpactSfxMinInterval。
-        private void TryPlayImpactSfx()
+        private void TryPlayImpactSfx(Vector3 worldPos)
         {
             float now = Time.time;
             if (_lastImpactSfxTime >= 0f && now - _lastImpactSfxTime < ImpactSfxMinInterval) return;
             _lastImpactSfxTime = now;
-            _audio.PlaySfx(_sfxImpact, volume: 0.22f, pitch: Random.Range(0.9f, 1.15f));
+            _audio.PlaySfxAt(_sfxImpact, worldPos, volume: 0.22f, pitch: Random.Range(0.9f, 1.15f),
+                minDistance: SfxMinDistance, maxDistance: SfxMaxDistance);
         }
 
         // 弹着帧的敌人反应（事件位置 = 弹着点）：音效 / 爆点 / 白闪全部同帧同点——真弹道下音画对拍是事件时序的天然结果。
@@ -489,12 +498,12 @@ namespace Game.Outpost.Battle
                     _killFxBudget--;
                     SpawnKillExplosion(ToWorld(e.Position), e.ArchetypeId);
                 }
-                PlayBoomSfx(e.ArchetypeId);
+                PlayBoomSfx(e.ArchetypeId, ToWorld(e.Position));
             }
             else
             {
                 _swarm.OnFlash(e.EnemyId);
-                TryPlayImpactSfx();
+                TryPlayImpactSfx(ToWorld(e.Position));
                 if (_hitFxBudget > 0)
                 {
                     _hitFxBudget--;
@@ -508,11 +517,11 @@ namespace Game.Outpost.Battle
         {
             _swarm.OnRemoved(e.EnemyId); // 自爆也留残骸（模拟状态）——基地周界的积尸环即是"漏怪都从哪来"的可视化
             AccumulatePlayerDamage(e.Damage);
-            PlayBoomSfx(e.ArchetypeId);
+            var pos = ToWorld(e.Position);
+            PlayBoomSfx(e.ArchetypeId, pos);
 
             if (_killFxBudget <= 0) return;
             _killFxBudget--;
-            var pos = ToWorld(e.Position);
             var v = EnemyVisuals.Get(_visuals, e.ArchetypeId);
             var boom = v.Color * 2.7f;
             boom.a = 1f;
