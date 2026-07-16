@@ -131,3 +131,6 @@ Desktop.ini
 # Unity 崩溃报告与 Crashlytics 标识
 # sysinfo.txt
 # crashlytics-build.properties
+
+# Python 工具脚本的字节码缓存（Tools/*.py）
+__pycache__/

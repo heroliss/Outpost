@@ -2,159 +2,122 @@
 # 从项目根运行：python Tools/gen_outpost_expansion_audio.py
 # 产物落 Assets/Game/Outpost/ResExpansion/Audio/（扩展包收集器覆盖，跨包按文件名寻址）。
 #
-# 刻意与 Tools/gen_outpost_audio.py 相互独立：主脚本在 import 时即生成全部主包音频、且各音色共享同一
-# RNG 顺序（新音色只能往末尾追加）——扩展内容单独一个脚本、单独一个 seed，互不牵连。
+# 2026-07-16 随主脚本一并重写（DSP 引擎共用 Tools/outpost_audio_dsp.py——每资产独立 seed 后
+# 旧版"两脚本必须隔离 RNG"的顾虑不复存在，共享 DSP 代码不再互相牵连）。
 #
-# 音乐设计：与主战斗曲同一副小调骨架（Am→Em→Dm→Am，同一气质、切换不突兀），换一副「军用电台」的皮——
-# 失谐双振荡 drone（拍频更厚）+ 慢速行军底拍 + 每段一组莫尔斯风冷音标（"电台呼叫"）+ 低噪声静电底。
-# 循环无缝手法同主脚本：全部分量在段边界包络闭合。
-import math
-import os
-import random
-import struct
-import wave
+# 音乐设计：与主战斗曲同一骨架（100BPM · 48s · Am→Em→Dm→Am · 心跳律动），换一副「军用电台」的皮——
+# 失谐载波 drone（0.7Hz 拍频）+ 行军刷点 + 每段一组莫尔斯呼叫（窄带薄音色=电台质感）+ 静电噼啪底。
+import numpy as np
 
-RATE = 44100
+from outpost_audio_dsp import (
+    RATE, silence, mix_into, to_stereo, midi,
+    osc_sine, detuned_saw_stack,
+    env_ar, env_exp,
+    lowpass, bandpass,
+    delay_echo, reverb, chorus,
+    wrap_loop_tail, seam_report,
+    white, crackle, normalize, write_wav, samples,
+)
+
 OUT_DIR = "Assets/Game/Outpost/ResExpansion/Audio"
-os.makedirs(OUT_DIR, exist_ok=True)
 
-
-def write_wav(name, samples):
-    path = f"{OUT_DIR}/{name}.wav"
-    with wave.open(path, "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(RATE)
-        w.writeframes(b"".join(
-            struct.pack("<h", int(math.tanh(s) * 32767 * 0.98)) for s in samples))
-    print("written:", path, f"{len(samples) / RATE:.2f}s")
-
-
-def silence(seconds):
-    return [0.0] * int(RATE * seconds)
-
-
-def mix_into(dst, src, offset_sec):
-    ofs = int(RATE * offset_sec)
-    need = ofs + len(src) - len(dst)
-    if need > 0:
-        dst.extend([0.0] * need)
-    for i, s in enumerate(src):
-        dst[ofs + i] += s
-
-
-def tone(freq, seconds, gain=0.2, attack=0.01, release=0.05, shape="sine"):
-    n = int(RATE * seconds)
-    out = []
-    for i in range(n):
-        t = i / RATE
-        ph = 2 * math.pi * freq * t
-        if shape == "soft-saw":  # 前三阶谐波近似锯齿，比真锯齿柔和
-            v = (math.sin(ph) + math.sin(2 * ph) / 2 + math.sin(3 * ph) / 3) * 0.55
-        else:
-            v = math.sin(ph)
-        env = min(1.0, t / attack if attack > 0 else 1.0,
-                  (seconds - t) / release if release > 0 else 1.0)
-        out.append(gain * env * v)
-    return out
-
-
-def kick(freq_hi=90.0, freq_lo=48.0, seconds=0.14, gain=0.3):
-    # 低频行军底拍：短促下扫正弦（同主曲心跳的手法，节奏感更"步进"）。
-    n = int(RATE * seconds)
-    out = []
-    for i in range(n):
-        t = i / RATE
-        f = freq_hi + (freq_lo - freq_hi) * (t / seconds)
-        out.append(gain * (1 - i / n) ** 1.6 * math.sin(2 * math.pi * f * t))
-    return out
-
-
-def tick(seconds=0.04, gain=0.1):
-    # 弱拍军鼓刷感：极短低通噪声。
-    n = int(RATE * seconds)
-    out = []
-    acc = 0.0
-    for i in range(n):
-        acc += 0.45 * (random.uniform(-1, 1) - acc)
-        out.append(gain * acc * (1 - i / n) ** 2)
-    return out
-
-
-A1, E2, D2 = 55.0, 82.41, 73.42
-A2, E3, G3, A3, C4, D4, F3 = 110.0, 164.81, 196.0, 220.0, 261.63, 293.66, 174.61
-E5, G5 = 659.25, 783.99
-
-MINOR_PROG = [
-    ([A2, E3, A3, C4], A1),   # Am
-    ([E2 * 2, G3, E3], E2),   # Em
-    ([D4 / 2, A3, F3], D2),   # Dm
-    ([A2, E3, A3, C4], A1),   # Am 回归
+BPM = 100.0
+BEAT = 60.0 / BPM
+BAR = BEAT * 4
+LOOP = BAR * 20  # 48s，与主战斗曲同长同格——切换不突兀
+SECTIONS = [  # (根音 midi, 垫声位)；骨架同主曲
+    (33, None),
+    (40, [47, 52, 55]),
+    (38, [50, 53, 57]),
+    (33, [52, 57, 60]),
+    (33, None),
 ]
+MORSE_FREQS = [880.0, 988.0, 784.0, 880.0, None]  # 每段一组呼叫音标（薄、窄带）
 
 
-def detuned_drone(root, seconds, gain):
-    # 失谐双振荡：root 与 root+0.7Hz 叠加产生 ~0.7Hz 拍频——比单 drone 厚、有"载波"感。
-    n = int(RATE * seconds)
-    out = [0.0] * n
-    for f in (root, root + 0.7):
-        for i in range(n):
-            t = i / RATE
-            env = min(1.0, t / 0.3, (seconds - t) / 0.45)
-            v = (math.sin(2 * math.pi * f * t)
-                 + 0.5 * math.sin(2 * math.pi * 2 * f * t)
-                 + 0.33 * math.sin(2 * math.pi * 3 * f * t)) * 0.55
-            out[i] += gain * env * v * 0.5
-    return out
+def kick(f_hi=90.0, f_lo=44.0, sec=0.16, tau=0.09):
+    n = samples(sec)
+    t = np.arange(n) / RATE
+    f = f_lo + (f_hi - f_lo) * np.exp(-t * 22)
+    return osc_sine(f, sec) * env_exp(n, tau)
 
 
-def static_bed(seconds, gain=0.02):
-    # 电台静电底：低通噪声 + 1Hz 慢速幅度调制；段边界包络闭合保循环无缝。
-    n = int(RATE * seconds)
-    out = []
-    acc = 0.0
-    for i in range(n):
-        t = i / RATE
-        env = min(1.0, t / 0.4, (seconds - t) / 0.4)
-        am = 0.7 + 0.3 * math.sin(2 * math.pi * 1.0 * t)
-        acc += 0.12 * (random.uniform(-1, 1) - acc)
-        out.append(gain * env * am * acc)
-    return out
+def brush(sec, rng, tau=0.03):
+    """行军弱拍刷点：低通噪声极短衰减（军鼓刷感）。"""
+    return lowpass(white(sec, rng), 2200) * env_exp(samples(sec), tau)
 
 
-def morse(freq, offset, buf):
-    # 每段一组「电台呼叫」：短-短-长 三点冷音标，音量克制（点缀不抢戏）。
+def morse_call(freq, rng):
+    """一组「电台呼叫」短-短-长：窄带正弦 + 轻微静电颗粒，1.2kHz 附近的薄音色=收音机质感。"""
+    x = silence(0.8)
     for i, dur in enumerate((0.07, 0.07, 0.2)):
-        mix_into(buf, tone(freq, dur, gain=0.055, attack=0.004, release=0.04, shape="sine"),
-                 offset + i * 0.14)
+        n = samples(dur + 0.05)
+        tone_ = osc_sine(freq, dur + 0.05) * env_ar(n, 0.004, 0.05)
+        mix_into(x, tone_, i * 0.14, gain=0.8)
+    grain = bandpass(white(0.8, rng), freq * 0.7, freq * 1.5) * 0.06
+    return bandpass(x + grain * (np.abs(x) > 0.01), 500, 2600)  # 窄带化：只在响时混入颗粒
 
 
 def make_bgm_battle_alt():
-    seg = 2.0
-    pings = [E5, G5, E5, G5 / 2]
-    out = []
-    for idx, (chord, root) in enumerate(MINOR_PROG):
-        seg_buf = silence(seg)
-        # 失谐 drone 铺底（根音低八度）
-        mix_into(seg_buf, detuned_drone(root, seg, 0.075), 0.0)
-        # 和弦垫（很低的存在感，只为不空）
-        for k, f in enumerate(chord):
-            comp = tone(f, seg, gain=0.018, attack=1.0, release=1.2)
-            mix_into(seg_buf, comp, 0.0)
-        # 行军底拍：主拍每 1.0s + 0.5s 弱刷
-        tpos = 0.0
-        while tpos < seg - 0.2:
-            mix_into(seg_buf, kick(gain=0.26), tpos)
-            mix_into(seg_buf, tick(), tpos + 0.5)
-            tpos += 1.0
-        # 段中一组莫尔斯呼叫
-        morse(pings[idx], 0.9, seg_buf)
-        # 静电底
-        mix_into(seg_buf, static_bed(seg), 0.0)
-        out.extend(seg_buf[:int(RATE * seg)])  # morse 尾部不越段（越段会破坏循环边界闭合）
-        # 截断可能被 mix_into 撑长的缓冲，保证段长精确、循环点对齐
-    write_wav("bgm_battle_alt", out)
+    rng = np.random.default_rng(301)
+    total = LOOP + 5.0
+    n = samples(total)
+
+    # 失谐载波 drone：根音双振荡（+0.7Hz 拍频）+ 2 次谐波，LP 200——比主曲 drone 更"载波"
+    drone = silence(total)
+    for i, (root, _) in enumerate(SECTIONS):
+        seg_len = BAR * 4 + 1.2
+        f = midi(root)
+        x = np.zeros(samples(seg_len))
+        for df in (0.0, 0.7):
+            x += osc_sine(f + df, seg_len) + 0.4 * osc_sine((f + df) * 2, seg_len)
+        x = lowpass(x, 200) * env_ar(samples(seg_len), 1.2, 1.6)
+        mix_into(drone, x, i * BAR * 4, gain=0.30)
+
+    # 行军拍：主拍每小节 1、3 拍 + 2、4 拍弱刷——比主曲心跳更"步进"
+    beats = silence(total)
+    for bar in range(20):
+        at = bar * BAR
+        mix_into(beats, kick(), at, gain=0.55)
+        mix_into(beats, kick(f_hi=76, f_lo=42), at + 2 * BEAT, gain=0.34)
+        mix_into(beats, brush(0.06, rng), at + 1 * BEAT, gain=0.16)
+        mix_into(beats, brush(0.06, rng), at + 3 * BEAT, gain=0.20)
+    for k in range(8):  # 收束末小节滚奏引回循环头（同主曲）
+        mix_into(beats, kick(), 19 * BAR + k * BEAT / 2, gain=0.10 + 0.03 * k)
+
+    # 暗垫（同主曲声位，LP 更低=更远的电台氛围）
+    pad = silence(total)
+    for i, (_, notes) in enumerate(SECTIONS):
+        if notes is None:
+            continue
+        seg_len = BAR * 4 + 2.0
+        seg = silence(seg_len)
+        for m in notes:
+            x = detuned_saw_stack(midi(m), seg_len, voices=3, detune_cents=6, rng=rng)
+            mix_into(seg, x * env_ar(samples(seg_len), 2.2, 2.8), 0.0, gain=0.4)
+        mix_into(pad, lowpass(seg, 650), i * BAR * 4)
+    pad_st = chorus(to_stereo(pad), rate_hz=0.28, depth_ms=6.0, mix=0.35)
+
+    # 莫尔斯呼叫：每段第 2 小节一组 + 乒乓回声（电台回响）
+    calls = silence(total)
+    for i, f in enumerate(MORSE_FREQS):
+        if f is None:
+            continue
+        mix_into(calls, morse_call(f, rng), i * BAR * 4 + BAR, gain=0.11)
+    calls_st = to_stereo(calls) + delay_echo(calls, BEAT * 1.5, feedback=0.4, pingpong=True) * 0.55
+
+    # 静电底：低通噪声 1Hz 慢调制 + 稀疏噼啪颗粒——"频道没关"的持续存在感
+    t = np.arange(n) / RATE
+    static = lowpass(white(total, rng), 3000) * (0.65 + 0.35 * np.sin(2 * np.pi * t / (LOOP / 48)))
+    pops = bandpass(crackle(total, rng, density_hz=3.0, tau=1e9), 800, 4000)  # 密度恒定的偶发噼啪
+    static_st = np.stack([static, np.roll(static, 631)], axis=1) * 0.014 + to_stereo(pops) * 0.05
+
+    dry = to_stereo(drone + beats)
+    wet = reverb(pad_st + calls_st, mix=0.3, rt=1.8, damp=0.4)
+    looped = wrap_loop_tail(dry + wet + static_st, LOOP)
+    print(seam_report(looped, "bgm_battle_alt"))
+    write_wav(OUT_DIR, "bgm_battle_alt", normalize(looped, -24.5, peak_cap=0.7))
 
 
-random.seed(20260711)  # 噪声可复现：重跑脚本产物逐字节一致
-make_bgm_battle_alt()
+if __name__ == "__main__":
+    make_bgm_battle_alt()
