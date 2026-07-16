@@ -94,7 +94,7 @@
 
 ## 里程碑与已知偏离
 
-里程碑：M0 骨架闭环 → M1 战斗核心 + 视觉 → M2 波间三选一 → M3 存档 + 音频 + 本地化 + 设置 → M4 网络排行 → M5 构建收口 → **M6 DOTS 后端置换（已完成，切片收官）**。当前形态：**无限模式 + 托管永续 + 数千同屏 + 双语 + 全服排行 + Windows 玩家包端到端可发 + 双模拟后端**（热更 9 程序集 + 双资源包 + 扩展内容 CDN 下载见 [ADR-0029](../../../../docs/adr/0029-outpost-vertical-slice.md)；ECS 置换与对拍见 [ADR-0030](../../../../docs/adr/0030-outpost-ecs-battle-backend.md)）。战斗场景默认跑 `Ecs` 后端，`Reference` 保留为规格基线与对拍锚点——**设置窗内即可切换**（写 `BattlePrefsModel`、下一局生效、随设置存档持久），HUD 性能行随时读数。
+里程碑：M0 骨架闭环 → M1 战斗核心 + 视觉 → M2 波间三选一 → M3 存档 + 音频 + 本地化 + 设置 → M4 网络排行 → M5 构建收口 → M6 DOTS 后端置换（13 模块整合验收，切片主线收官）→ M7 真弹道 + 残骸泥地（把后端差距推进"手感"量级）→ **M8 残骸推挤入模拟（差距随战局拉大，当前形态）**。当前形态：**无限模式 + 托管永续 + 数千同屏 + 真弹道扫掠碰撞 + 残骸泥地推挤 + 双语 + 全服排行 + Windows 玩家包端到端可发 + 双模拟后端**（热更 9 程序集 + 双资源包 + 扩展内容 CDN 下载见 [ADR-0029](../../../../docs/adr/0029-outpost-vertical-slice.md)；ECS 置换与对拍见 [ADR-0030](../../../../docs/adr/0030-outpost-ecs-battle-backend.md)；真弹道与泥地见 [ADR-0031](../../../../docs/adr/0031-outpost-real-projectiles-wreck-interaction.md)；推挤入模拟见 [ADR-0032](../../../../docs/adr/0032-outpost-wreck-entities-sim-push.md)）。战斗场景默认跑 `Ecs` 后端，`Reference` 保留为规格基线与对拍锚点——**设置窗内即可切换**（写 `BattlePrefsModel`、下一局生效、随设置存档持久），HUD 性能行随时读数。
 
 已知偏离与接缝观察（诚实记录）：
 
