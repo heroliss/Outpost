@@ -3,7 +3,7 @@
     "playerAttack": 14,
     "playerMaxAttack": 25,
     "playerAttackInterval": 0.3,
-    "playerMinAttackInterval": 0.004,
+    "playerMinAttackInterval": 0,
     "playerRange": 7,
     "playerRegen": 2,
     "playerMaxRegen": 10,

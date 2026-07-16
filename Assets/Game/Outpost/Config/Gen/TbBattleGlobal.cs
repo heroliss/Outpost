@@ -47,7 +47,7 @@ public partial class TbBattleGlobal
     /// </summary>
      public float PlayerAttackInterval => _data.PlayerAttackInterval;
     /// <summary>
-    /// 攻击间隔下限（≤0=仅防除零）。玩家全部成长封顶是永续稳态的前提；0.004≈每分钟一万五千发，后期仍是火墙
+    /// 攻击间隔下限（≤0=仅防除零：内核兜底 0.0008s + 单帧 MaxShotsPerTick=64，机器负载成为自然上限）。射速是刻意留的唯一无界成长轴（伤害/回血/血量皆封顶）
     /// </summary>
      public float PlayerMinAttackInterval => _data.PlayerMinAttackInterval;
     /// <summary>

@@ -31,6 +31,20 @@
 # - 受创重音（sfx_detonate）与拦截空爆拉开性格：受创=沉/暗/装甲应力呻吟，空爆=亮劈裂/散/轰隆尾。
 # - BGM 低频回收：总线一阶低架削 ~3.5dB（RMS 归一自动把能量还给中高频，不改编曲）。
 #
+# 2026-07-16 五轮（用户要求"单发与连发听感一致、物理拟真低速到高速的连发"）：
+# - 火墙从单循环换成**多档同源烘焙**（赛车引擎音按 RPM 分档采样的同一范式）：
+#   抽出共享的出膛瞬态生成器 shot_transient——单发 sfx_shot 与五档连发循环（16/32/64/128/256
+#   发/秒）字面共享同一配方，音色 DNA 一致；运行时按真实射速选相邻两档交叉淡变 + 档内小幅变速
+#   精确对齐射速（TurretView.SetFireWall）。
+# - 物理依据：速射炮的音色不随射速变，变的只是重复率——低于 ~15 发/秒是离散炮响，越过 20~30
+#   发/秒脉冲串融合成有音高的连续音（基频=射速；密集阵 75 发/秒的"BRRRT"即 75Hz 蜂鸣）。
+#   单循环宽域变速做不到（重采样把音色一起搬走）；各档原生射速烘焙让尾巴叠加、谐波融合在
+#   离线求和时物理发生，档内 ±1 档带宽的变速音色形变可忽略。
+# - 每发用**全长**瞬态（含完整轰鸣尾）直接求和，不做任何压尾：脉冲串的长期平均频谱=单发频谱
+#   ×梳状采样，质心天然跨档不变（与单发同族）；高射速下尾巴 30+ 层叠加出的怒吼底、调制深度
+#   随射速变浅（离散→融合）都是物理结果，不是调出来的。首版曾"压尾模拟掩蔽"——错：掩蔽是
+#   感知现象，能量物理上仍在，压尾等于删掉住在长尾里的低频体量（实测质心飙到 6.7kHz）。
+#
 # 每个资产独立 RNG seed —— 音色可任意增删改序互不影响。战斗曲构建器 build_battle_track 被
 # gen_outpost_expansion_audio.py 复用（radio=True 换"军用电台"皮），保证两首战斗曲同一能量骨架。
 import numpy as np
@@ -509,13 +523,12 @@ def make_retreat():
     out("sfx_retreat", x, SFX_RMS)
 
 
-def make_shot():
-    # 单发炮声（低射速段主角）：出膛 crack + 高频 sizzle + 低频冲击体（170→45Hz 下扫）
-    # + 200~900Hz 报告层 + 低通轰鸣尾。高射速段由 sfx_fire_loop 接棒——限流与交叉见 director/TurretView。
-    # "厚重感"主要住在报告层（等响度曲线的敏感区，胸腔感）和轰鸣尾（炮声在开阔地的余韵）；
-    # 只有低频体腔+短瞬态就是干瘪的"砰"（鞭炮），crack/sizzle 保清脆、报告层+尾巴给分量。
-    rng = np.random.default_rng(16)
-    sec = 0.5
+def shot_transient(rng, sec=0.5):
+    """出膛瞬态——单发 sfx_shot 与火墙各档连发循环共用的同源配方（"单发与连发听感一致"的根基）。
+    分层：出膛 crack + 高频 sizzle + 低频冲击体（170→45Hz 下扫）+ 200~900Hz 报告层 + 低通轰鸣尾。
+    "厚重感"主要住在报告层（等响度曲线的敏感区，胸腔感）和轰鸣尾（炮声在开阔地的余韵）；
+    只有低频体腔+短瞬态就是干瘪的"砰"（鞭炮），crack/sizzle 保清脆、报告层+尾巴给分量。
+    连发烘焙也用全长版直接求和（不压尾）：低频体量住在长尾里，删尾即变亮变薄（见文件头五轮注）。"""
     n = samples(sec)
     t = np.arange(n) / RATE
     crack = highpass(white(sec, rng), 2200) * env_exp(n, 0.012)
@@ -525,8 +538,13 @@ def make_shot():
     boom_tail = lowpass(white(sec, rng), 500) * env_exp(n, 0.13)
     # 配比原则：crack/sizzle 保"清脆"（质心目标 ~1000Hz，别掉回 3 位数变闷响），
     # body/punch/tail 给"出膛分量"（胸腔感+余韵）——两头都要，偏哪头都会收到试听反馈。
-    x = softclip(0.78 * crack + 0.35 * sizz + 0.78 * body + 0.7 * punch + 0.3 * boom_tail, drive=1.4)
-    out("sfx_shot", x, SFX_RMS)
+    return softclip(0.78 * crack + 0.35 * sizz + 0.78 * body + 0.7 * punch + 0.3 * boom_tail, drive=1.4)
+
+
+def make_shot():
+    # 单发炮声（低射速段主角）：同源瞬态的全长版（0.5s 完整轰鸣尾）。
+    # 高射速段由 sfx_fire_* 档位组接棒——接棒带与选档见 director/TurretView。
+    out("sfx_shot", shot_transient(np.random.default_rng(16), 0.5), SFX_RMS)
 
 
 def make_impact():
@@ -542,35 +560,63 @@ def make_impact():
     out("sfx_impact", x, SFX_RMS)
 
 
-def make_fire_loop():
-    # 火墙循环（2s 无缝）：25 发/秒的连发脉冲串（每发=微型炮响：低频 thump + 中频爆膛 + 高频 snap，
-    # 逐发增益微随机防"缝纫机"）+ 宽带怒吼/嘶声底床。运行时 TurretView 随热度调 volume/pitch，
-    # pitch 0.85~1.3 把发数扫到 21~32 发/秒（读成"转速拉起"）。
-    # 为什么是脉冲串不是轰鸣：同 RMS 下稳态噪声的听感远小于瞬态串（人耳对瞬态敏感）——旧版纯
-    # "炉膛轰鸣"是"连发听着反而比单发小"的主因；机炮连发本来就是密集炮串，瞬态密度即响度。
-    # 循环闭合：整 50 发/圈、脉冲尾巴经 wrap_loop_tail 叠回头部（接缝落在脉冲网格上天然被掩蔽）；
-    # 噪声底床单独环形淡接。
-    rng = np.random.default_rng(18)
+# 火墙档位组的原生射速（发/秒）：2 的幂间隔——相邻档在 log 域等距，运行时 log 三角权重
+# 交叉淡变时任意射速恰好落在两档之内（TurretView.SetFireWall 与此表必须一致）。
+# 覆盖 8~256 发/秒；8 发/秒以下是逐发单响 sfx_shot 的地界（物理上就是离散炮响）。
+FIRE_GEAR_RATES = (16.0, 32.0, 64.0, 128.0, 256.0)
+
+
+def make_fire_gears():
+    # 火墙档位组（各 2s 无缝）：每档在**原生射速**下烘焙的连发脉冲串，逐发就是全长 shot_transient
+    # ——档位循环字面上=「每秒 N 发 sfx_shot 的预渲染」，与单发层的接棒天然同音色；
+    # 高档的尾巴 30+ 层跨发叠加出怒吼底、脉冲融合成蜂鸣（基频=射速）都在求和时物理发生
+    # （64 发/秒以上的"BRRRT"正是密集阵/加特林的真实声学）。
+    # 融合区（≥64 发/秒）用**冻结波形**：真炮每发的压力波近乎相同，脉冲串因此相干重复——能量
+    # 聚在射速的谐波梳上，这正是蜂鸣音高的来源。逐发全新白噪会把"发间差异"夸大成完全不相干的
+    # 噪声：宽带 crack 层（占白噪功率 91%）功率随发数线性堆积，高射速下堆成嘶声地毯、抹掉谐波
+    # （实测质心从 900 飙到 7.3kHz）。离散区（≤32 发/秒）相反：逐发可分辨，波形全新 + 定时微
+    # 抖动（±0.8% 周期）才不是"缝纫机"；此时 crack 重叠数 <1，不相干堆积可忽略。
+    # 为什么是脉冲串不是稳态轰鸣：同 RMS 下稳态噪声的听感远小于瞬态串（人耳对瞬态敏感）——
+    # 曾经的"炉膛轰鸣"版是"连发听着反而比单发小"的主因；瞬态密度即响度。
+    # 循环闭合：整 N 发/圈、首发钉在 0（接缝落在脉冲网格上）、尾巴经 wrap_loop_tail 叠回头部。
+    # 融合档补「燃气怒吼底床」：周期脉冲串的频谱物理上不存在基频以下的能量（梳状谱无低梳齿），
+    # 单发 90% 的能量住在 200Hz 以下，故纯相干求和在 256 发/秒只剩 crack 高频梳齿（又亮又薄）。
+    # 真实高速连发的低频来自**不锁相**成分：枪口燃气射流的湍流怒吼 + 每发反射路径各异的环境混响
+    # ——它们填满梳齿之间与基频以下。底床用与单发同带的低频噪声（boom/punch 频带），能量随
+    # 射速增长（怒吼功率 ∝ 发数）；离散档不加（单发自带的轰鸣尾就是它的"混响"）。
     loop = 2.0
-    rep = 25.0
-    n = samples(loop)
-    imp = silence(loop + 0.3)
-    for i in range(int(loop * rep)):
-        dur = 0.12
-        nn = samples(dur)
-        tt = np.arange(nn) / RATE
-        thump = osc_sine(65 + 150 * np.exp(-tt * 40), dur) * env_exp(nn, 0.02)
-        burst = bandpass(white(dur, rng), 250, 3200) * env_exp(nn, 0.011)
-        snap = highpass(white(dur, rng), 3200) * env_exp(nn, 0.005)
-        mix_into(imp, 0.9 * thump + 0.65 * burst + 0.3 * snap, i / rep, gain=0.9 + 0.2 * rng.random())
-    imp = wrap_loop_tail(imp, loop)
-    roar = bandpass(white(loop + 0.56, rng), 130, 1400)[samples(0.5):]
-    roar = loop_crossfade(roar, 0.06)[:n]
-    hiss = bandpass(white(loop + 0.56, rng), 3600, 9000)[samples(0.5):]  # 火焰高频嘶声：没有它是闷吼
-    hiss = loop_crossfade(hiss, 0.06)[:n]
-    x = softclip(imp + 0.28 * roar + 0.06 * hiss, drive=1.3)
-    print(seam_report(x, "sfx_fire_loop"))
-    out("sfx_fire_loop", x, SFX_RMS)
+    shot_len = 0.5
+    for rate in FIRE_GEAR_RATES:
+        rng = np.random.default_rng(20 + int(rate))
+        period = 1.0 / rate
+        fused = rate >= 64.0
+        frozen = shot_transient(rng, shot_len) if fused else None
+        imp = silence(loop + shot_len + 0.1)
+        for i in range(int(loop * rate)):
+            wave_i = frozen if fused else shot_transient(rng, shot_len)
+            jitter = 0.0 if fused or i == 0 else (rng.random() - 0.5) * 0.016 * period
+            mix_into(imp, wave_i, i * period + jitter, gain=0.9 + 0.2 * rng.random())
+        x = wrap_loop_tail(imp, loop)
+        if fused:
+            n = samples(loop)
+            bed = 0.9 * lowpass(white(loop + 0.56, rng), 450) + 0.45 * bandpass(white(loop + 0.56, rng), 200, 900)
+            bed = loop_crossfade(bed[samples(0.5):], 0.06)[:n]
+            beta = 0.55 * np.sqrt(rate / 64.0)  # 底床/脉冲串的 RMS 比：随射速 ∝√发数 增长
+            x = x + bed * (beta * np.sqrt((x ** 2).mean()) / np.sqrt((bed ** 2).mean()))
+            # 最高档梳齿彩票修正：256Hz 基频以上只剩 crack 高频梳齿（低频层的能量全被基频以下
+            # 对消吃掉），质心飙到 3 倍家族值——一阶高架削拉回同族亮度，档间交叉淡变才不突变。
+            # 亮度随射速温和递升是保留的（RPM 上行的锋利感是有效反馈），削的是"电钻嘶鸣"级偏亮。
+            if rate >= 256.0:
+                x = 0.45 * x + 0.55 * lowpass(x, 2000, order=1)
+        name = f"sfx_fire_{int(rate):03d}"
+        print(seam_report(x, name))
+        # 响度随射速的增长烘进资产（+1.25dB/档，全组 +5dB）——刻意偏离"全 SFX 同 RMS"契约：
+        # ① 物理是功率 ∝ 发数（每翻倍 +3dB，全给 +12dB 太猛，压半）；② 融合档调制变浅，同 RMS
+        # 下听感更小（"稳态噪声 vs 瞬态串"教训的跨档版），热 RMS 是感知补偿；③ 运行时
+        # AudioSource.volume 上限 1.0，火墙已顶着 0.9 播，增长没法只靠运行时标量给（试听实测
+        # 全放运行时导致"高射速反而变小"的中段音量谷）。峰值实测 256 档 0.82 < 0.85 cap。
+        gear_db = 1.25 * list(FIRE_GEAR_RATES).index(rate)
+        out(name, x, SFX_RMS + gear_db)
 
 
 def make_servo_loop():
@@ -605,5 +651,5 @@ if __name__ == "__main__":
     make_retreat()
     make_shot()
     make_impact()
-    make_fire_loop()
+    make_fire_gears()
     make_servo_loop()

@@ -66,7 +66,7 @@
         <var name="playerAttack" type="float" comment="玩家单次攻击伤害（无限模式起手刻意压低，靠升级成长）"/>
         <var name="playerMaxAttack" type="float" comment="攻击伤害升级上限（≤0=不封顶）。封顶后敌人不再被秒杀，火力压力交给无上限的射速升级"/>
         <var name="playerAttackInterval" type="float" comment="玩家攻击间隔（秒；起手偏慢）"/>
-        <var name="playerMinAttackInterval" type="float" comment="攻击间隔下限（≤0=仅防除零）。玩家全部成长封顶是永续稳态的前提；0.004≈每分钟一万五千发，后期仍是火墙"/>
+        <var name="playerMinAttackInterval" type="float" comment="攻击间隔下限（≤0=仅防除零：内核兜底 0.0008s + 单帧 MaxShotsPerTick=64，机器负载成为自然上限）。射速是刻意留的唯一无界成长轴（伤害/回血/血量皆封顶）"/>
         <var name="playerRange" type="float" comment="玩家索敌半径（起手偏短）"/>
         <var name="playerRegen" type="float" comment="玩家每秒回血"/>
         <var name="playerMaxRegen" type="float" comment="每秒回血升级上限（≤0=不封顶）。同为平台期稳态服务"/>

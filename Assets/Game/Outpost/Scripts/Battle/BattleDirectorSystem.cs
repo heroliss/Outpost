@@ -156,12 +156,18 @@ namespace Game.Outpost.Battle
         private const float ImpactSfxMinInterval = 0.07f;
         private float _lastImpactSfxTime = -1f;
 
-        // 开火音分层（射速跨三个数量级 2→250 发/秒的表达方案）：
-        //   低射速 = 逐发单响 sfx_shot（听得清每一炮）；高射速 = 火墙循环轰鸣（TurretView 的 AudioSource 层）。
-        //   人耳对 >~15Hz 的重复事件听成连续音——单发层设最小重触发间隔（超过就丢发不丢听感），
-        //   并随热度让位（音量渐弱、热度近满时归零），循环层则随热度平方淡入，两层在中段交叉过渡。
+        // 开火音分层（射速跨三个数量级 2→250 发/秒的物理连续体表达）：
+        //   低射速 = 逐发单响 sfx_shot（物理上就是离散炮响，听得清每一炮）；高射速 = 火墙档位组
+        //   （TurretView 的 AudioSource 层：同一出膛瞬态在 16~256 发/秒五档原生射速下烘焙，按实测
+        //   射速选相邻两档交叉淡变 + 档内变速对齐——离散炮响→融合蜂鸣的演化连续可听，蜂鸣基频=射速）。
+        //   单发层设最小重触发间隔（超过就丢发不丢听感），随射速沿接棒带线性让位给档位组
+        //   （带定义在 TurretView.HandoverBlend，两侧共用一条曲线，中段合计不塌陷）。
         private const float ShotSfxMinInterval = 0.08f;  // 单发层重触发下限（≈12 发/秒以上开始合并）
         private float _lastShotSfxTime = -1f;
+
+        // 火墙档位组的原生射速（发/秒）：与 Tools/gen_outpost_audio.py 的 FIRE_GEAR_RATES 一一对应
+        // （资产名 sfx_fire_{rate:000}）。2 的幂间隔 = log 域等距，任意射速恰落相邻两档之内。
+        private static readonly float[] FireGearRates = { 16f, 32f, 64f, 128f, 256f };
 
         // 表现色板（敌人本体色来自配置表的表现列，这里只留玩家侧的固定色）。
         private static readonly Color PlayerHitColor = new(1f, 0.30f, 0.24f);
@@ -181,6 +187,9 @@ namespace Game.Outpost.Battle
         private float _fireHeat;                          // 当前火力热度
         private float _lastFireTime = -1f;                // 上次 TurretFired 的时刻（Time.time；-1 = 从未击发）
         private float _fireInterval = 1f;                 // 最近两发的间隔（秒）——越小 = 射速越高
+        private float _fireRate;                          // 平滑后的实测射速（发/秒）——驱动火墙档位组与单发层接棒
+        private int _shotsThisFrame;                      // 本帧击发数（帧内多发时事件时间戳同帧全相等，见 UpdateFireHeat）
+        private bool _wasFiring;                          // 上帧是否在持续开火（收火余韵的边沿检测）
 
         // 模拟耗时采样（性能 HUD 用）：Stopwatch 计每帧 Tick 耗时、指数平滑防抖。
         private float _simTickMs;
@@ -240,7 +249,10 @@ namespace Game.Outpost.Battle
             _sfxRetreat = await Bag.Load<AudioClip>("sfx_retreat");
             _sfxShot = await Bag.Load<AudioClip>("sfx_shot");
             _sfxImpact = await Bag.Load<AudioClip>("sfx_impact");
-            _turret.InitFireLoop(await Bag.Load<AudioClip>("sfx_fire_loop"));
+            var gearClips = new AudioClip[FireGearRates.Length];
+            for (int i = 0; i < FireGearRates.Length; i++)
+                gearClips[i] = await Bag.Load<AudioClip>($"sfx_fire_{(int)FireGearRates[i]:000}");
+            _turret.InitFireGears(gearClips, FireGearRates);
             _turret.InitServoLoop(await Bag.Load<AudioClip>("sfx_servo_loop"));
             var setup = BattleSetupFactory.Build(_cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
@@ -419,10 +431,12 @@ namespace Game.Outpost.Battle
         // 弹着反应在 OnEnemyHit——真弹道下击发与弹着是两个时刻）。高射速下闪光每帧限量，超预算只记节奏。
         private void OnTurretFired(TurretFiredEvent e)
         {
-            // 记录击发节奏（超 FX 预算也照记，让热度反映真实射速）：与上一发的间隔喂给火力热度。
+            // 记录击发节奏（超 FX 预算也照记，让热度/射速反映真实击发）：与上一发的间隔喂给火力热度。
+            // 帧内多发时同帧时间戳全相等（间隔记成 0）——由 UpdateFireHeat 用 dt/发数还原真实间隔。
             float now = Time.time;
             if (_lastFireTime >= 0f) _fireInterval = now - _lastFireTime;
             _lastFireTime = now;
+            _shotsThisFrame++;
 
             TryPlayShotSfx(now); // 单发层不占视觉 FX 预算（有自己的重触发限流）
 
@@ -432,34 +446,51 @@ namespace Game.Outpost.Battle
             SpawnPulse(WithZ(_turret.MuzzleWorldPos, DebrisZ), MuzzleColor, 0.15f, 0.55f, 0.12f);
         }
 
-        // 开火音单发层：低射速逐发清脆单响，射速升高后（热度上来）音量渐让位给循环连发层、热度满时归零。
+        // 开火音单发层：低射速逐发清脆单响（物理上就是离散炮响），射速升高后沿接棒带线性让位给
+        // 火墙档位组——带定义在 TurretView.HandoverBlend，两侧共用一条曲线，中段合计不塌陷。
         // 最小重触发间隔丢掉超密击发——12 发/秒以上人耳已听成连串，丢发不丢听感、也不打爆 voice。
-        // 让位斜率与循环层（TurretView：heat²×0.9）配对：单发线性退、循环平方进，中段两层合计不塌陷
-        // ——旧版单发 0.87 热度就归零 + 循环上限仅 0.55，交叉点是个音量谷（"连发反而比单发小"）。
         private void TryPlayShotSfx(float now)
         {
             if (_lastShotSfxTime >= 0f && now - _lastShotSfxTime < ShotSfxMinInterval) return;
-            float volume = 0.62f * Mathf.Clamp01(1f - _fireHeat);
+            float volume = 0.62f * (1f - TurretView.HandoverBlend(_fireRate));
             if (volume <= 0.01f) return;
             _lastShotSfxTime = now;
             _audio.PlaySfx(_sfxShot, volume: volume, pitch: Random.Range(0.94f, 1.08f));
         }
 
-        // 表现层自算「火力热度」(0..1)：从 TurretFired 击发节奏推断当前射速——密集(火墙)→热度趋 1、稀疏(点射)→趋 0、停火→归零。
+        // 表现层自算「火力热度」(0..1) 与「实测射速」(发/秒)：都从 TurretFired 击发节奏推断。
+        // 热度只剩视觉职责（核心辉光）；声音（火墙档位组 + 单发接棒）走真实射速——物理连续体的驱动量。
         private void UpdateFireHeat(float dt)
         {
-            float target;
-            if (_lastFireTime < 0f || Time.time - _lastFireTime > FireIdleTimeout)
-                target = 0f; // 停火：热度冷却归零
-            else
-                target = Mathf.Clamp01(Mathf.InverseLerp(HeatIntervalCold, HeatIntervalHot, _fireInterval)); // 间隔越小越热
+            // 帧内多发还原：同帧击发的事件时间戳全相等（间隔记成 0），真实间隔 = dt / 发数。
+            // 射速超过帧率后这是唯一正确的间隔来源；单发/低射速时保留事件间实测值。
+            if (_shotsThisFrame >= 2 && dt > 0f) _fireInterval = dt / _shotsThisFrame;
+            _shotsThisFrame = 0;
+
+            bool firing = _lastFireTime >= 0f && Time.time - _lastFireTime <= FireIdleTimeout;
+            float target = firing
+                ? Mathf.Clamp01(Mathf.InverseLerp(HeatIntervalCold, HeatIntervalHot, _fireInterval)) // 间隔越小越热
+                : 0f; // 停火：热度冷却归零
             float speed = target > _fireHeat ? HeatLerpUp : HeatLerpDown;
             _fireHeat = Mathf.MoveTowards(_fireHeat, target, speed * dt);
             _turret.SetSpin(_fireHeat); // 核心亮度：读作"炮管火力拉满/收拢"
 
-            // 火墙循环底噪随热度调制。挂对象的 AudioSource 不归框架分组音量管——主 × 音效组在这里手动乘回，
+            // 平滑射速：上升快下降稍缓（与热度同性格）；指数趋近让档间选档/变速连续滑移无跳变。
+            // 分母下限 0.25ms（4000 发/秒）≈ 内核结构上限（MaxShotsPerTick=64 × 帧率）再留余量——
+            // 射速升级无封顶（配置 minAttackInterval≤0），追踪要跟到底，音频侧的表达饱和在 TurretView。
+            float rateTarget = firing ? 1f / Mathf.Max(_fireInterval, 0.00025f) : 0f;
+            float k = rateTarget > _fireRate ? 12f : 5f;
+            _fireRate = Mathf.Lerp(_fireRate, rateTarget, 1f - Mathf.Exp(-k * dt));
+
+            // 收火余韵：高速连发骤停时补一发全长单响——火墙是"收住"不是"掐断"（真实连发骤停时，
+            // 最后一发不再被后续弹掩蔽的完整轰鸣尾本来就会突然可闻）。
+            if (_wasFiring && !firing && _fireRate > 25f)
+                _audio.PlaySfx(_sfxShot, volume: 0.42f, pitch: 0.95f);
+            _wasFiring = firing;
+
+            // 火墙档位组随实测射速调制。挂对象的 AudioSource 不归框架分组音量管——主 × 音效组在这里手动乘回，
             // 设置页滑条照样管得住它（引擎组件跨层 + 框架分组音量的桥接就这一行）。
-            _turret.SetFireLoopLevel(_fireHeat, _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx));
+            _turret.SetFireWall(_fireRate, _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx));
         }
 
         // 爆炸类音效（拦截击毁 / 抵达自爆共用）：按时间限流（见 BoomSfxMinInterval）+ 随机音高防"机关枪同音"；
