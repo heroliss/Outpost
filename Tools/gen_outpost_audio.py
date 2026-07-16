@@ -52,9 +52,11 @@
 # - 新增战场轰鸣底床 sfx_rumble：海量击杀融成的连续怒吼，运行时音量跟随击杀率、位置滑向
 #   击杀能量声心。与火墙档位组是同一物理故事的正反面：炮口串相干（同一门炮锁相重复→梳状谱
 #   蜂鸣，须分档烘焙），战场爆炸不相干（各自独立的时刻/位置/反射路径→无音高的连续怒吼）。
-#   合成用**噪声塑形**而非瞬态叠加（第四轮试听定案，详见 make_kill_rumble）：大量随机冲击的
-#   极限是滤波噪声（中心极限定理），逐记叠加无论多密都残留可辨的低频"咚咚"，稳态噪声塑形才
-#   从构造上无离散起音。与 sfx_explosion 的同源关系是"频谱包络一致"而非"复用逐字节配方"。
+#   合成用**分层塑形**而非瞬态叠加（第四~五轮试听定案，详见 make_kill_rumble）：逐记爆炸叠加
+#   无论多密都残留可辨的低频"咚"（冲击体是瞬时起音，低通滤不掉时域起音）；但纯噪声化又把爆炸
+#   的性格/内容一起杀了（像风噪不像炮火）。正解按频段分工——低频=平滑噪声（无咚的重量床）、
+#   中频=翻腾调制噪声+短尾噼啪颗粒（爆炸群的"翻滚"与 DNA，连续不离散）、高频=极稀疏远处 pop。
+#   "消除离散"与"保留性格"分频段各自处理，与 sfx_explosion 同源关系是"频段性格一致"。
 #
 # 每个资产独立 RNG seed —— 音色可任意增删改序互不影响。战斗曲构建器 build_battle_track 被
 # gen_outpost_expansion_audio.py 复用（radio=True 换"军用电台"皮），保证两首战斗曲同一能量骨架。
@@ -492,31 +494,43 @@ def make_kill_rumble():
     # （试听反馈"声音不大但清晰可闻"正是瞬态可探测性的特征，音量旋钮修不掉）。换噪声塑形后
     # 低频起音降到 0.27（低于稳态地板=构造上无离散起音），"咚"从根上消除。
     #
-    # 频谱照 explosion_transient 的包络塑形（同源关系从"逐字节复用配方"变为"频谱包络一致"）：
-    # 低频体（sub<160 + <700 二阶，占 ~52%=怒吼的分量）+ 可闻中频（700~3500，占 ~41%=等
-    # 响度敏感区，火墙盖不住的地界）+ 极少高频（>4k <2% 防嘶声地毯，五轮教训）。慢起伏（三个
-    # 不相干低频正弦，0.4~1.1Hz）给"战场的呼吸"活性——远低于离散事件率，读作战况涌动而非爆炸。
-    # 顶上撒一层纯高频远处碎片（2~6k 密集 crackle，无低频体故不落进"咚"区）留"爆炸"性格。
-    # RMS 提到 SFX_RMS+1.5：融合区离散合爆已全额让位（游戏侧 KillFusionBlend→音量归零），
-    # 底床是屠杀的唯一表达，"响"必须住在它身上（响度住资产的教训同五轮火墙 RMS 递增）。
+    # 第五轮试听（"怒吼听不出内容、不像爆炸；反而单个击毁的咚咚很明显"）：纯噪声塑形消掉了"咚"，
+    # 却把爆炸的**性格/内容**一起扔了——听着像风噪不像炮火，且太弱盖不住波次间隙的裸合爆。
+    # 病根：把"低频体（咚的地界）"和"中频翻腾+噼啪（性格的地界）"一锅噪声化了。正解是分层——
+    # ① 低频重量床：平滑噪声（sub<160 + <500 二阶），无瞬时起音故无"咚"，给怒吼的分量与胸腔感；
+    # ② 中频翻腾 churn：带通噪声(300~1500) × 快速不规则包络（lowpass 白噪当 AM，~5Hz）——爆炸群
+    #    此起彼伏的"翻滚"能量，是"大量爆炸"最核心的听感内容，且是连续调制不是离散起音；
+    # ③ 中频噼啪颗粒 crk：短尾 crackle(600~3200 带通) = 无数迷你爆炸，密集到数不出单粒、却带
+    #    "爆炸 DNA"（与 sfx_explosion 的 debris 层同频段同性格，一脉相承的落点）；
+    # ④ 极少远处高频 pop（3~6k 稀疏 crackle）留"远方零星炸点"，严控防嘶声地毯（五轮教训）。
+    # 慢起伏 LFO 保留当"战场呼吸"。实测：低频起音 0.39（贴稳态地板=无咚）、质心 1375Hz（爆炸低频
+    # 体家族，非嘶声）、>4k≈0。RMS 提到 SFX_RMS+2.5：怒吼要在满屏火墙下立得住（融合区合爆已全额
+    # 让位，底床是屠杀唯一表达）。教训延续第四轮：先前为杀"咚"过度噪声化，把有效内容也杀了——
+    # "消除离散"与"保留性格"要分频段各自处理，不是全频段一刀切。
     rng = np.random.default_rng(23)
     loop = 4.0
-    ext = loop + 0.6
+    ext = loop + 1.3
     ne = samples(ext)
     n = samples(loop)
     t = np.arange(ne) / RATE
+    # ① 低频重量床（平滑噪声，无咚）
     sub = 0.9 * lowpass(white(ext, rng), 160, order=2)
-    low = lowpass(white(ext, rng), 700, order=2)
-    mid = 0.20 * bandpass(white(ext, rng), 700, 3500)
-    lfo = 0.81 + 0.06 * np.sin(2 * np.pi * 0.4 * t) + 0.07 * np.sin(2 * np.pi * 0.7 * t + 1.7) + 0.06 * np.sin(2 * np.pi * 1.1 * t + 3.9)
-    roar = (sub + low + mid) * lfo
-    debris = bandpass(crackle(ext, rng, density_hz=140, tau=0.05), 2000, 6000)
+    low = lowpass(white(ext, rng), 500, order=2)
+    slow = 0.81 + 0.06 * np.sin(2 * np.pi * 0.4 * t) + 0.07 * np.sin(2 * np.pi * 0.7 * t + 1.7) + 0.06 * np.sin(2 * np.pi * 1.1 * t + 3.9)
+    floor = (sub + low) * slow
+    # ② 中频翻腾（带通噪声 × ~5Hz 不规则 AM）
+    churn_am = np.clip(1.0 + lowpass(white(ext, rng), 7), 0.2, 1.5)
+    churn = 0.35 * bandpass(white(ext, rng), 300, 1500) * churn_am
+    # ③ 中频噼啪颗粒（爆炸 DNA，与 explosion debris 同频段）
+    crk = 0.34 * bandpass(crackle(ext, rng, density_hz=220, tau=0.055), 600, 3200)
+    # ④ 极少远处高频 pop（稀疏，防嘶声）
+    hi = 0.11 * bandpass(crackle(ext, rng, density_hz=25, tau=0.04), 3000, 6000)
     # 取中段避开起始瞬态，喂正好 n+fade 长给 loop_crossfade（其无缝边界在 len-fade 处，多切会破坏）。
     fade = samples(0.08)
-    seg = (roar + 0.06 * debris)[samples(0.3): samples(0.3) + n + fade]
+    seg = (floor + churn + crk + hi)[samples(0.5): samples(0.5) + n + fade]
     x = loop_crossfade(seg, 0.08)
     print(seam_report(x, "sfx_rumble"))
-    out("sfx_rumble", x, SFX_RMS + 1.5)
+    out("sfx_rumble", x, SFX_RMS + 2.5)
 
 
 def make_detonate():
