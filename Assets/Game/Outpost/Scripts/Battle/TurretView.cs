@@ -169,7 +169,9 @@ namespace Game.Outpost.Battle
             // 384 以上交给视觉密度与掉帧表达"更快"。
             rate = Mathf.Min(rate, 384f);
             float blend = HandoverBlend(rate);
-            float loud = 0.8f + 0.1f * Mathf.Clamp01(Mathf.Log(Mathf.Max(rate, 1f) / 16f, 2f) / 4f);
+            // 0.72→0.82：响度增长主体已烘进资产 RMS（+1.25dB/档），这里只做小幅缓升；上限从 0.9
+            // 回收 ~1dB（试听反馈高射速的火墙偏大，压过了击杀声场），给合爆/底床让出头顶空间。
+            float loud = 0.72f + 0.1f * Mathf.Clamp01(Mathf.Log(Mathf.Max(rate, 1f) / 16f, 2f) / 4f);
             for (int i = 0; i < _fireGears.Length; i++)
             {
                 var src = _fireGears[i];
