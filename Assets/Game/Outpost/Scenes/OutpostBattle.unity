@@ -2819,7 +2819,6 @@ MonoBehaviour:
   _shader: {fileID: 4800000, guid: cc4ffd4e220327a41ae597e8025a2eb4, type: 3}
   _popDuration: 0.18
   _flashDuration: 0.12
-  _wreckCap: 30000
 --- !u!1 &1392302436
 GameObject:
   m_ObjectHideFlags: 0

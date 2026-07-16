@@ -45,6 +45,17 @@
 #   随射速变浅（离散→融合）都是物理结果，不是调出来的。首版曾"压尾模拟掩蔽"——错：掩蔽是
 #   感知现象，能量物理上仍在，压尾等于删掉住在长尾里的低频体量（实测质心飙到 6.7kHz）。
 #
+# 2026-07-16 六轮（用户反馈"大量敌人被摧毁音效却很少"）：
+# - 爆炸限流从"超额丢弃"改成"方位聚合"（游戏侧 BattleDirectorSystem）：放行速率不变
+#   （~9 声/秒、voice 预算不动），但每声代表其方位扇区自上次以来的全部击杀——音量=能量和
+#   开方（不相干声源功率相加）、聚合越大音高越沉；没有击杀再被静默吞掉。
+# - 新增战场轰鸣底床 sfx_rumble：空爆瞬态（与 sfx_explosion 同源，配方抽出 explosion_transient）
+#   在随机时刻不相干叠加成循环，运行时音量跟随击杀率、位置滑向击杀能量声心。与火墙档位组是
+#   同一物理故事的正反面：炮口串相干（同一门炮锁相重复→梳状谱蜂鸣，须分档烘焙），战场爆炸
+#   不相干（各自独立的时刻/位置/反射路径→无音高的连续怒吼，一条循环 × 音量跟随即可）。
+#   整体一阶低通回收高频——几十层宽带 crack 不相干堆积会成嘶声地毯（五轮教训的爆炸版），
+#   且"远方的战场轰鸣"经空气吸收本就没高频。
+#
 # 每个资产独立 RNG seed —— 音色可任意增删改序互不影响。战斗曲构建器 build_battle_track 被
 # gen_outpost_expansion_audio.py 复用（radio=True 换"军用电台"皮），保证两首战斗曲同一能量骨架。
 import numpy as np
@@ -447,12 +458,12 @@ def make_wave():
     out("sfx_wave", x, SFX_RMS)
 
 
-def make_explosion():
-    # 拦截击毁（导弹空爆）：起爆劈裂 + 低频冲击体 + 爆膛下扫 + 轰隆余韵（低通噪声慢衰减）+ 碎片噼啪，
-    # 整体过短混响并回单声道（3D 位置播放要求 mono）。爆炸与"敲击"的听感区别一半在衰减尾巴：
-    # 前 20ms 宽带冲击给"炸"、之后 0.5s+ 的低频轰隆给"爆炸的体量"——没有尾巴就是敲铁皮。
-    rng = np.random.default_rng(13)
-    sec = 1.15
+def explosion_transient(rng, sec=1.15):
+    """空爆瞬态——单发拦截爆炸 sfx_explosion 与战场轰鸣底床 sfx_rumble 共用的同源配方
+    （同 shot_transient 之于火墙档位组：单点与群体听感一致的根基）。
+    分层：起爆劈裂 + 低频冲击体（165→30Hz 下扫）+ 爆膛下扫 + 轰隆余韵（低通噪声慢衰减）+ 碎片噼啪。
+    爆炸与"敲击"的听感区别一半在衰减尾巴：前 20ms 宽带冲击给"炸"、之后 0.5s+ 的低频轰隆给
+    "爆炸的体量"——没有尾巴就是敲铁皮。"""
     n = samples(sec)
     t = np.arange(n) / RATE
     crack = highpass(white(sec, rng), 2500) * env_exp(n, 0.012)
@@ -460,9 +471,32 @@ def make_explosion():
     burst = lowpass_sweep(white(sec, rng), 7000 * np.exp(-t * 8) + 250) * env_exp(n, 0.11)
     rumble = lowpass(white(sec, rng), 380) * env_exp(n, 0.4)
     debris = bandpass(crackle(sec, rng, density_hz=45, tau=0.28), 1200, 6500) * env_exp(n, 0.32)
-    x = softclip(0.55 * crack + 0.9 * body + 0.6 * burst + 0.55 * rumble + 0.4 * debris, drive=1.5)
-    x = reverb(x, mix=0.16, rt=1.0, damp=0.5).mean(axis=1)
+    return softclip(0.55 * crack + 0.9 * body + 0.6 * burst + 0.55 * rumble + 0.4 * debris, drive=1.5)
+
+
+def make_explosion():
+    # 拦截击毁（导弹空爆）：同源瞬态过短混响并回单声道（3D 位置播放要求 mono）。
+    x = reverb(explosion_transient(np.random.default_rng(13)), mix=0.16, rt=1.0, damp=0.5).mean(axis=1)
     out("sfx_explosion", x, SFX_RMS)
+
+
+def make_kill_rumble():
+    # 战场轰鸣底床（4s 无缝循环）：海量击杀的质感层——每秒 ~22 记全长空爆瞬态在**随机时刻**
+    # 不相干叠加。与火墙档位组是同一物理故事的反面：这里逐记全新随机 + 随机定时（火墙融合档的
+    # "冻结波形 + 脉冲网格"在这里反而是错的——各次爆炸本就互不相干），叠加没有"基频=速率"，
+    # 密度只影响调制深度（>20 记/秒已基本融合成稳态怒吼），故不需要档位组，运行时纯靠音量
+    # 跟随击杀率（BattleDirectorSystem.UpdateKillAudio）。
+    # 一阶低通 1.4k 回收高频：几十层宽带 crack 不相干堆积成嘶声地毯（五轮教训的爆炸版），
+    # 怒吼的听感主体在低中频；一阶斜率保留部分 debris 噼啪当"远处炸点"纹理。
+    # RMS 刻意压在 SFX_RMS-2：它是垫在合爆 boom 之下的底床，不该盖过瞬态层（瞬态才是"炸"）。
+    rng = np.random.default_rng(23)
+    loop = 4.0
+    imp = silence(loop + 1.3)
+    for _ in range(int(loop * 22)):
+        mix_into(imp, explosion_transient(rng), rng.random() * loop, gain=0.4 + 0.6 * rng.random())
+    x = wrap_loop_tail(lowpass(imp, 1400, order=1), loop)
+    print(seam_report(x, "sfx_rumble"))
+    out("sfx_rumble", x, SFX_RMS - 2.0)
 
 
 def make_detonate():
@@ -645,6 +679,7 @@ if __name__ == "__main__":
     make_upgrade()
     make_wave()
     make_explosion()
+    make_kill_rumble()
     make_detonate()
     make_repair()
     make_defeat()

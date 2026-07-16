@@ -146,10 +146,34 @@ namespace Game.Outpost.Battle
         // 爆炸音限流按时间、不按帧："每帧 1 发"在编辑器高帧率（100~300fps）下就是每秒上百发，
         // 1.15s 的爆炸尾巴叠出几十个并发 voice、冲破 Unity 32 实声道上限——超出的被引擎虚化（静音），
         // 最安静的单发炮响 / 弹着叮播到一半被掐（2026-07-10 用户反馈"音效像被截断"的真凶）。
-        // ~9 发/秒 × 1.15s 尾巴 ≈ 峰值 10 个并发爆炸 voice，全场加总仍离虚化线有余量；
-        // 密集击杀时更少但每发更有体量的爆炸，也比"机关枪式 boom"更像战场。
+        // ~9 发/秒 × 1.15s 尾巴 ≈ 峰值 10 个并发爆炸 voice，全场加总仍离虚化线有余量。
+        //
+        // 限流不再"丢弃"超额击杀，而是**方位聚合**：冷却中的击杀按方位扇区记账（能量 = 单爆
+        // 音量的平方，不相干声源功率相加的物理），冷却一过放行能量最大的扇区一声"合爆"——
+        // 音量 = 能量和开方、聚合越大音高越沉。单杀时数值上完全退化为逐发直播（音量/音高/时机
+        // 与聚合前一致）；海量击杀时 boom 变响变沉而不是变多，方位与不均匀性保留（左边打得凶
+        // 左边就炸得响，两线作战 boom 在两个方向交替）。voice 预算与纯丢弃版完全相同。
         private const float BoomSfxMinInterval = 0.11f;
+        private const int BoomSectorCount = 8;       // 方位扇区数（45°/扇区）：粗到省、细到"左前/右后"可辨
+        private const float BoomEnergyDecay = 0.35f; // 未放行能量的指数衰减时间常数（秒）——猝发止息后尾焰 boom 渐弱渐停
         private float _lastBoomSfxTime = -1f;
+        private readonly float[] _boomEnergy = new float[BoomSectorCount];     // Σ(单爆音量)²
+        private readonly Vector3[] _boomPosSum = new Vector3[BoomSectorCount]; // 能量加权位置和（÷能量=扇区声心）
+        private readonly float[] _boomMaxScale = new float[BoomSectorCount];   // 本扇区最大体型（定合爆的 pitch 性格）
+
+        // 战场轰鸣底床：击杀率越过合爆表达上限（音量在 ~35 杀/秒饱和）后的群体质感层——
+        // 与 sfx_explosion 同源烘焙的无音高怒吼循环，音量跟随平滑击杀率、位置滑向击杀能量声心
+        // （屠杀集中在哪边，轰鸣就从哪边来）。与火墙档位组是同一物理故事的反面：炮口串相干
+        // （锁相重复→蜂鸣，须分档），战场爆炸不相干（独立时刻/位置→无音高怒吼，一条循环即可）。
+        // 持续 3D 循环源按规则挂 AudioSource 组件（PlaySfxAt 只管一次性），随本系统节点生灭。
+        private AudioSource _killRumble;
+        private float _killRate;            // 平滑击杀率（杀/秒）
+        private int _killsThisFrame;
+        private Vector3 _killCentroid;      // 平滑的击杀能量声心（底床音源位置）
+        private Vector3 _centroidNum;       // 能量加权位置累计（指数衰减窗）
+        private float _centroidDen;
+        private const float RumbleRateFloor = 8f;   // 低于此击杀率底床全静（合爆层足够表达）
+        private const float RumbleRateFull = 240f;  // 到此击杀率底床满量（log 域映射 + 开方，低段先给存在感）
 
         // 弹着「叮」（击中未击毁）的重触发限流：高射速下弹着逐帧都有，限到 ~14 发/秒当质感纹理、不当逐发汇报。
         // 弹着音效直接在 EnemyHit 帧播放——事件本就在弹着帧触发（真弹道），音画天然同拍，无需任何延迟机制。
@@ -254,6 +278,21 @@ namespace Game.Outpost.Battle
                 gearClips[i] = await Bag.Load<AudioClip>($"sfx_fire_{(int)FireGearRates[i]:000}");
             _turret.InitFireGears(gearClips, FireGearRates);
             _turret.InitServoLoop(await Bag.Load<AudioClip>("sfx_servo_loop"));
+
+            // 战场轰鸣底床：持续 3D 循环源挂 AudioSource 组件（PlaySfxAt 只管一次性位置音效），
+            // 子节点随本系统 GameObject / 战斗场景一起销毁。音量由 UpdateKillAudio 逐帧调制，起点全静。
+            var rumbleClip = await Bag.Load<AudioClip>("sfx_rumble");
+            var rumbleGo = new GameObject("KillRumbleBed");
+            rumbleGo.transform.SetParent(transform, false);
+            _killRumble = rumbleGo.AddComponent<AudioSource>();
+            _killRumble.clip = rumbleClip;
+            _killRumble.loop = true;
+            _killRumble.playOnAwake = false;
+            _killRumble.spatialBlend = 1f;
+            _killRumble.minDistance = SfxMinDistance;
+            _killRumble.maxDistance = SfxMaxDistance;
+            _killRumble.dopplerLevel = 0f; // 声心是统计量不是真物体——位置滑动不该产生多普勒滑音
+            _killRumble.volume = 0f;
             var setup = BattleSetupFactory.Build(_cfg, _seed != 0 ? _seed : System.Environment.TickCount);
 
             // 后端偏好开局采样一次（设置窗改动下一局生效）：模拟是一次性实例，不做局中热切（状态迁移不值得，ADR-0030）。
@@ -347,12 +386,17 @@ namespace Game.Outpost.Battle
 
         private void Update()
         {
+            // [Inject] 在 Awake 完成，Play 中恒非空；空 = 本脚本在非 Play 环境被 tick（编辑器工具脚本化
+            // 打开战斗场景时 MCP 桥等会泵播放循环），此时任何服务都不可用——整帧安全空过。
+            if (_audio == null) return;
+
             float dt = Time.deltaTime;
             _hitFxBudget = HitFxPerFrame;   // 每帧刷新演出预算（超出即降级，见各 On* 事件）
             _killFxBudget = KillFxPerFrame;
             _spawnFxBudget = SpawnFxPerFrame;
             AdvanceEffects();
             UpdateFireHeat(dt); // 表现层火力热度：驱动炮塔辉光（与 sim 解耦、纯 cosmetic，停火即冷却）
+            UpdateKillAudio(dt); // 击杀声聚合放行 + 轰鸣底床调制（无条件跑：终局/波间也要把余韵收干净）
             if (!_ready || _sim == null) return;
 
             if (_ending)
@@ -493,18 +537,102 @@ namespace Game.Outpost.Battle
             _turret.SetFireWall(_fireRate, _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx));
         }
 
-        // 爆炸类音效（拦截击毁 / 抵达自爆共用）：按时间限流（见 BoomSfxMinInterval）+ 随机音高防"机关枪同音"；
-        // 体量大的原型更低沉更响。击毁事件在弹着帧触发，直接播即与视觉爆点同帧；
-        // 3D 位置播放让爆点方位可听（屏幕左侧炸响在左耳），与视觉爆光同点。
-        private void PlayBoomSfx(int archetypeId, Vector3 worldPos)
+        // 击杀爆炸声入口（拦截击毁 / 抵达自爆共用）：先按方位扇区记账，冷却已过立即尝试放行——
+        // 低击杀率下与"直接播"零差异（同帧同点，与视觉爆点同拍）；冷却中的击杀合入扇区能量，
+        // 由 UpdateKillAudio 逐帧放行合爆。没有击杀被静默丢弃——只是被合并进更响的那一声。
+        private void QueueBoom(int archetypeId, Vector3 worldPos)
         {
-            float now = Time.time;
-            if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < BoomSfxMinInterval) return;
-            _lastBoomSfxTime = now;
+            _killsThisFrame++;
             float scale = EnemyVisuals.Get(_visuals, archetypeId).ExplosionScale;
-            float pitch = Random.Range(0.92f, 1.12f) * (scale >= 0.8f ? 0.85f : 1.05f);
-            _audio.PlaySfxAt(_sfxExplosion, worldPos, volume: Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f), pitch: pitch,
+            float v = Mathf.Clamp(0.35f + 0.3f * scale, 0.35f, 0.8f); // 单爆音量（聚合退化态与老公式一致）
+            float e = v * v;                                          // 声能进功率域（不相干声源功率相加）
+            int s = SectorOf(worldPos);
+            _boomEnergy[s] += e;
+            _boomPosSum[s] += worldPos * e;
+            if (scale > _boomMaxScale[s]) _boomMaxScale[s] = scale;
+            _centroidNum += worldPos * e; // 底床声心的能量加权累计（跨扇区，见 UpdateKillAudio）
+            _centroidDen += e;
+            TryFlushBoom(Time.time);
+        }
+
+        // 世界坐标 → 方位扇区（基地在原点，方位角均分 8 扇区）。
+        private static int SectorOf(Vector3 p)
+        {
+            int s = (int)((Mathf.Atan2(p.y, p.x) + Mathf.PI) / (2f * Mathf.PI) * BoomSectorCount);
+            return Mathf.Clamp(s, 0, BoomSectorCount - 1); // Atan2 上界 +π 会算出 BoomSectorCount，收回末扇区
+        }
+
+        // 冷却已过且有存量能量 → 放行能量最大的扇区一声合爆（位置=扇区能量声心）。
+        // 音量=√能量：单杀退化为原音量；音量在 ~4 只炮灰/窗口处触顶，之后靠音高下沉与底床继续表达。
+        private void TryFlushBoom(float now)
+        {
+            if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < BoomSfxMinInterval) return;
+            int best = -1;
+            float bestE = 0.004f; // 衰减到不值一声 boom 的残余能量直接留给清零，不占放行冷却
+            for (int i = 0; i < BoomSectorCount; i++)
+                if (_boomEnergy[i] > bestE) { best = i; bestE = _boomEnergy[i]; }
+            if (best < 0) return;
+            _lastBoomSfxTime = now;
+
+            Vector3 pos = _boomPosSum[best] / bestE;
+            float volume = Mathf.Min(Mathf.Sqrt(bestE), 0.95f);
+            float pitch = Random.Range(0.92f, 1.12f) * (_boomMaxScale[best] >= 0.8f ? 0.85f : 1.05f);
+            pitch *= 1f - 0.12f * Mathf.Clamp01((bestE - 0.5f) / 2f); // 聚合体量→音高下沉（音量触顶后的延伸表达）
+            _audio.PlaySfxAt(_sfxExplosion, pos, volume: volume, pitch: pitch,
                 minDistance: SfxMinDistance, maxDistance: SfxMaxDistance);
+
+            _boomEnergy[best] = 0f;
+            _boomPosSum[best] = Vector3.zero;
+            _boomMaxScale[best] = 0f;
+        }
+
+        // 击杀声聚合与轰鸣底床的每帧推进：衰减未放行能量、试放行合爆、平滑击杀率与能量声心、
+        // 调制底床（音量随击杀率、位置滑向声心）。在 Update 里无条件调用（含终局/波间），
+        // 让猝发止息后的尾焰 boom 与底床余韵自然收干净。
+        private void UpdateKillAudio(float dt)
+        {
+            float decay = Mathf.Exp(-dt / BoomEnergyDecay);
+            for (int i = 0; i < BoomSectorCount; i++)
+            {
+                _boomEnergy[i] *= decay;
+                _boomPosSum[i] *= decay;
+                if (_boomEnergy[i] < 1e-4f)
+                {
+                    _boomEnergy[i] = 0f;
+                    _boomPosSum[i] = Vector3.zero;
+                    _boomMaxScale[i] = 0f; // 能量清零时体型一并清，防陈旧体型污染下一轮猝发的 pitch 性格
+                }
+            }
+            TryFlushBoom(Time.time);
+
+            // 平滑击杀率：上升快下降缓——轰鸣的余韵比爆发慢半拍，读作战场回响而不是开关。
+            float inst = dt > 0f ? _killsThisFrame / dt : 0f;
+            _killsThisFrame = 0;
+            float k = inst > _killRate ? 6f : 2.5f;
+            _killRate = Mathf.Lerp(_killRate, inst, 1f - Mathf.Exp(-k * dt));
+
+            // 击杀能量声心（指数衰减窗的加权平均）：无新击杀时分子分母同速衰减、声心冻在原地。
+            float cdecay = Mathf.Exp(-dt / 0.6f);
+            _centroidNum *= cdecay;
+            _centroidDen *= cdecay;
+            if (_centroidDen > 1e-3f)
+                _killCentroid = Vector3.Lerp(_killCentroid, _centroidNum / _centroidDen, 1f - Mathf.Exp(-4f * dt));
+
+            if (_killRumble == null) return; // SetupAsync 完成前无底床（clip 未载）
+            _killRumble.transform.position = _killCentroid;
+            // 音量曲线：log 域 8→240 杀/秒映射 0→1 再开方（低段先给存在感、高段留增长空间）。
+            // 挂组件的 AudioSource 不归框架分组音量管——主 × 音效组手动乘回（同火墙的桥接）。
+            float gain = Mathf.Clamp01(Mathf.Log(Mathf.Max(_killRate, 1f) / RumbleRateFloor, 2f)
+                         / Mathf.Log(RumbleRateFull / RumbleRateFloor, 2f));
+            float vol = 0.95f * Mathf.Sqrt(gain) * _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx);
+            if (vol <= 0.005f)
+            {
+                if (_killRumble.isPlaying) _killRumble.Pause();
+                return;
+            }
+            if (!_killRumble.isPlaying) _killRumble.UnPause();
+            if (!_killRumble.isPlaying) _killRumble.Play();
+            _killRumble.volume = vol;
         }
 
         // 弹着「叮」（击中未击毁）：与击毁 boom 分开的轻量金属短鸣，在弹着帧直接播。
@@ -532,7 +660,7 @@ namespace Game.Outpost.Battle
                     _killFxBudget--;
                     SpawnKillExplosion(ToWorld(e.Position), e.ArchetypeId);
                 }
-                PlayBoomSfx(e.ArchetypeId, ToWorld(e.Position));
+                QueueBoom(e.ArchetypeId, ToWorld(e.Position));
             }
             else
             {
@@ -552,7 +680,7 @@ namespace Game.Outpost.Battle
             _swarm.OnRemoved(e.EnemyId); // 自爆也留残骸（模拟状态）——基地周界的积尸环即是"漏怪都从哪来"的可视化
             AccumulatePlayerDamage(e.Damage);
             var pos = ToWorld(e.Position);
-            PlayBoomSfx(e.ArchetypeId, pos);
+            QueueBoom(e.ArchetypeId, pos);
 
             if (_killFxBudget <= 0) return;
             _killFxBudget--;
