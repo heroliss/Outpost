@@ -153,7 +153,11 @@ namespace Game.Outpost.Battle
         // 音量 = 能量和开方、聚合越大音高越沉。单杀时数值上完全退化为逐发直播（音量/音高/时机
         // 与聚合前一致）；海量击杀时 boom 变响变沉而不是变多，方位与不均匀性保留（左边打得凶
         // 左边就炸得响，两线作战 boom 在两个方向交替）。voice 预算与纯丢弃版完全相同。
+        // 放行冷却随击杀率收缩（0.11→0.07s，≈9→14 声/秒）：屠杀规模的"密度轴"表达——音量在
+        // ~4 只/窗口就触顶，之后还得靠更密的节奏往上走（试听反馈"20 波后还是稀疏咚咚咚"的三因之一）。
+        // 上限 14 声/秒 × 1.15s 尾巴 ≈ 16 并发爆炸 voice，连同火墙/底床/杂项 ~25，仍离 32 虚化线有余量。
         private const float BoomSfxMinInterval = 0.11f;
+        private const float BoomSfxMinIntervalDense = 0.07f;
         private const int BoomSectorCount = 8;       // 方位扇区数（45°/扇区）：粗到省、细到"左前/右后"可辨
         private const float BoomEnergyDecay = 0.35f; // 未放行能量的指数衰减时间常数（秒）——猝发止息后尾焰 boom 渐弱渐停
         private float _lastBoomSfxTime = -1f;
@@ -173,7 +177,8 @@ namespace Game.Outpost.Battle
         private Vector3 _centroidNum;       // 能量加权位置累计（指数衰减窗）
         private float _centroidDen;
         private const float RumbleRateFloor = 8f;   // 低于此击杀率底床全静（合爆层足够表达）
-        private const float RumbleRateFull = 240f;  // 到此击杀率底床满量（log 域映射 + 开方，低段先给存在感）
+        private const float RumbleRateFull = 120f;  // 到此击杀率底床满量（log 域映射 + 开方，低段先给存在感）——
+                                                    // 实测 20 波已 450+ 杀/秒，240 满量让中期波次白白欠表达
 
         // 弹着「叮」（击中未击毁）的重触发限流：高射速下弹着逐帧都有，限到 ~14 发/秒当质感纹理、不当逐发汇报。
         // 弹着音效直接在 EnemyHit 帧播放——事件本就在弹着帧触发（真弹道），音画天然同拍，无需任何延迟机制。
@@ -288,7 +293,9 @@ namespace Game.Outpost.Battle
             _killRumble.clip = rumbleClip;
             _killRumble.loop = true;
             _killRumble.playOnAwake = false;
-            _killRumble.spatialBlend = 1f;
+            // 0.6 而非全 3D：轰鸣是全场爆炸的统计和（扩散场），不是点源——2D 成分保证存在感不被
+            // 距离衰减吃掉（试听反馈底床被埋的三因之一），3D 成分保留"屠杀在哪边"的方位偏置。
+            _killRumble.spatialBlend = 0.6f;
             _killRumble.minDistance = SfxMinDistance;
             _killRumble.maxDistance = SfxMaxDistance;
             _killRumble.dopplerLevel = 0f; // 声心是统计量不是真物体——位置滑动不该产生多普勒滑音
@@ -566,7 +573,9 @@ namespace Game.Outpost.Battle
         // 音量=√能量：单杀退化为原音量；音量在 ~4 只炮灰/窗口处触顶，之后靠音高下沉与底床继续表达。
         private void TryFlushBoom(float now)
         {
-            if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < BoomSfxMinInterval) return;
+            // 冷却随击杀率线性收缩（20→150 杀/秒映射 0.11→0.07s）：屠杀越大 boom 越密，密度轴随规模走。
+            float interval = Mathf.Lerp(BoomSfxMinInterval, BoomSfxMinIntervalDense, Mathf.Clamp01((_killRate - 20f) / 130f));
+            if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < interval) return;
             int best = -1;
             float bestE = 0.004f; // 衰减到不值一声 boom 的残余能量直接留给清零，不占放行冷却
             for (int i = 0; i < BoomSectorCount; i++)

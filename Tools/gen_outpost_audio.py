@@ -486,17 +486,23 @@ def make_kill_rumble():
     # "冻结波形 + 脉冲网格"在这里反而是错的——各次爆炸本就互不相干），叠加没有"基频=速率"，
     # 密度只影响调制深度（>20 记/秒已基本融合成稳态怒吼），故不需要档位组，运行时纯靠音量
     # 跟随击杀率（BattleDirectorSystem.UpdateKillAudio）。
-    # 一阶低通 1.4k 回收高频：几十层宽带 crack 不相干堆积成嘶声地毯（五轮教训的爆炸版），
-    # 怒吼的听感主体在低中频；一阶斜率保留部分 debris 噼啪当"远处炸点"纹理。
-    # RMS 刻意压在 SFX_RMS-2：它是垫在合爆 boom 之下的底床，不该盖过瞬态层（瞬态才是"炸"）。
+    # 频谱塑形分两带：暗色怒吼体（一阶低通 1k）+ 中频噼啪纹理带（700~3500 带通）。首版只留
+    # 一阶低通 1.4k——99% 能量落在 400Hz 以下，物理上"远方轰鸣"没错，但试听反馈证明它在真实
+    # 混音里不可闻：火墙是 -13.5dBFS 资产、2D 满音量的持续蜂鸣，底床在可闻频段比它低 ~10dB，
+    # 等于不存在。中频带是"远处炸点此起彼伏"的可闻载体（等响度曲线的敏感区），仍严切 >4k 防
+    # 嘶声地毯（五轮教训的爆炸版）。
+    # RMS 压在 SFX_RMS-0.5：仍略让合爆 boom（瞬态才是"炸"），但不能再让出 2dB——那正是被埋的量。
     rng = np.random.default_rng(23)
     loop = 4.0
     imp = silence(loop + 1.3)
     for _ in range(int(loop * 22)):
         mix_into(imp, explosion_transient(rng), rng.random() * loop, gain=0.4 + 0.6 * rng.random())
-    x = wrap_loop_tail(lowpass(imp, 1400, order=1), loop)
+    # 中频带 3×：瞬态源 96% 功率住在 400Hz 以下，带通取出的中频绝对量极小，小增益等于没加
+    #（首调 0.5× 实测占比纹丝不动）；3× 后中频 ~10% 功率——占比小但落在等响度敏感区，听感上立得住。
+    x = lowpass(imp, 1000, order=1) + 3.0 * bandpass(imp, 700, 3500)
+    x = wrap_loop_tail(x, loop)
     print(seam_report(x, "sfx_rumble"))
-    out("sfx_rumble", x, SFX_RMS - 2.0)
+    out("sfx_rumble", x, SFX_RMS - 0.5)
 
 
 def make_detonate():
