@@ -153,13 +153,12 @@ namespace Game.Outpost.Battle
         // 音量 = 能量和开方、聚合越大音高越沉。单杀时数值上完全退化为逐发直播（音量/音高/时机
         // 与聚合前一致）；海量击杀时 boom 变响变沉而不是变多，方位与不均匀性保留（左边打得凶
         // 左边就炸得响，两线作战 boom 在两个方向交替）。voice 预算与纯丢弃版完全相同。
-        // 放行冷却随击杀率收缩（0.11→0.07s，≈9→14 声/秒）：屠杀规模的"密度轴"表达——音量在
-        // ~4 只/窗口就触顶，之后还得靠更密的节奏往上走（试听反馈"20 波后还是稀疏咚咚咚"的三因之一）。
-        // 上限 14 声/秒 × 1.15s 尾巴 ≈ 16 并发爆炸 voice，连同火墙/底床/杂项 ~25，仍离 32 虚化线有余量。
+        // 放行间隔带 ± 随机抖动（_nextBoomGap）：固定节拍的合爆是"鼓机"，真实弹幕的近旁重响
+        // 间隔不规则——抖动让残余合爆读作"偶发重音"而不是节拍器。
         private const float BoomSfxMinInterval = 0.11f;
-        private const float BoomSfxMinIntervalDense = 0.07f;
         private const int BoomSectorCount = 8;       // 方位扇区数（45°/扇区）：粗到省、细到"左前/右后"可辨
         private const float BoomEnergyDecay = 0.35f; // 未放行能量的指数衰减时间常数（秒）——猝发止息后尾焰 boom 渐弱渐停
+        private float _nextBoomGap = BoomSfxMinInterval; // 本轮放行后的下次间隔（带抖动，每次放行重掷）
         private float _lastBoomSfxTime = -1f;
         private readonly float[] _boomEnergy = new float[BoomSectorCount];     // Σ(单爆音量)²
         private readonly Vector3[] _boomPosSum = new Vector3[BoomSectorCount]; // 能量加权位置和（÷能量=扇区声心）
@@ -569,22 +568,27 @@ namespace Game.Outpost.Battle
             return Mathf.Clamp(s, 0, BoomSectorCount - 1); // Atan2 上界 +π 会算出 BoomSectorCount，收回末扇区
         }
 
+        // 击杀侧接棒带（合爆 → 轰鸣底床），与单发 → 火墙的 HandoverBlend 同构：越过融合阈值后，
+        // 离散合爆让位给连续怒吼，只留衰减后的重响当不规则重音。物理依据同五轮：450 杀/秒时单爆
+        // 间隔 2ms，人耳不可能听到清晰"砰砰"——弹幕的听感结构是怒吼主体 + 偶发近旁重响。
+        // 25 杀/秒以下 blend=0（离散炮响就是正确听感），100 杀/秒以上满接棒。
+        private float KillFusionBlend() => Mathf.Clamp01((_killRate - 25f) / 75f);
+
         // 冷却已过且有存量能量 → 放行能量最大的扇区一声合爆（位置=扇区能量声心）。
-        // 音量=√能量：单杀退化为原音量；音量在 ~4 只炮灰/窗口处触顶，之后靠音高下沉与底床继续表达。
+        // 音量=√能量（单杀退化为原音量）× 接棒衰减（融合区合爆退居重音，底床是主体）。
         private void TryFlushBoom(float now)
         {
-            // 冷却随击杀率线性收缩（20→150 杀/秒映射 0.11→0.07s）：屠杀越大 boom 越密，密度轴随规模走。
-            float interval = Mathf.Lerp(BoomSfxMinInterval, BoomSfxMinIntervalDense, Mathf.Clamp01((_killRate - 20f) / 130f));
-            if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < interval) return;
+            if (_lastBoomSfxTime >= 0f && now - _lastBoomSfxTime < _nextBoomGap) return;
             int best = -1;
             float bestE = 0.004f; // 衰减到不值一声 boom 的残余能量直接留给清零，不占放行冷却
             for (int i = 0; i < BoomSectorCount; i++)
                 if (_boomEnergy[i] > bestE) { best = i; bestE = _boomEnergy[i]; }
             if (best < 0) return;
             _lastBoomSfxTime = now;
+            _nextBoomGap = BoomSfxMinInterval * Random.Range(0.85f, 1.45f); // 重掷抖动，防节拍器
 
             Vector3 pos = _boomPosSum[best] / bestE;
-            float volume = Mathf.Min(Mathf.Sqrt(bestE), 0.95f);
+            float volume = Mathf.Min(Mathf.Sqrt(bestE), 0.95f) * (1f - 0.75f * KillFusionBlend());
             float pitch = Random.Range(0.92f, 1.12f) * (_boomMaxScale[best] >= 0.8f ? 0.85f : 1.05f);
             pitch *= 1f - 0.12f * Mathf.Clamp01((bestE - 0.5f) / 2f); // 聚合体量→音高下沉（音量触顶后的延伸表达）
             _audio.PlaySfxAt(_sfxExplosion, pos, volume: volume, pitch: pitch,
@@ -633,7 +637,8 @@ namespace Game.Outpost.Battle
             // 挂组件的 AudioSource 不归框架分组音量管——主 × 音效组手动乘回（同火墙的桥接）。
             float gain = Mathf.Clamp01(Mathf.Log(Mathf.Max(_killRate, 1f) / RumbleRateFloor, 2f)
                          / Mathf.Log(RumbleRateFull / RumbleRateFloor, 2f));
-            float vol = 0.95f * Mathf.Sqrt(gain) * _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx);
+            // 顶格 1.0：融合区合爆已让位（KillFusionBlend 衰减），底床是屠杀规模的主表达，不再留头顶空间。
+            float vol = Mathf.Sqrt(gain) * _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx);
             if (vol <= 0.005f)
             {
                 if (_killRumble.isPlaying) _killRumble.Pause();
