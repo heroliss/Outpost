@@ -176,8 +176,11 @@ namespace Game.Outpost.Battle
         private Vector3 _centroidNum;       // 能量加权位置累计（指数衰减窗）
         private float _centroidDen;
         private const float RumbleRateFloor = 8f;   // 低于此击杀率底床全静（合爆层足够表达）
-        private const float RumbleRateFull = 120f;  // 到此击杀率底床满量（log 域映射 + 开方，低段先给存在感）——
-                                                    // 实测 20 波已 450+ 杀/秒，240 满量让中期波次白白欠表达
+        private const float RumbleRateFull = 600f;  // 到此击杀率底床满量（log 域映射 + 开方）。抬到 600（第六轮）：
+                                                    // 实测 22 波击杀率在 170~640 大幅波动，120 饱和让整段高战都顶在
+                                                    // 满量、感觉不到"音量随同时爆炸数变化"；600 让全程随密度连续增长。
+        private const float RumblePresence = 1.3f;  // 底床存在感系数（乘在 sfx 满量之上，同火墙的 loud 系数）——
+                                                    // "海量摧毁"的招牌音该比普通 sfx 更突出，最终仍由 1.0 天花板封顶。
 
         // 弹着「叮」（击中未击毁）的重触发限流：高射速下弹着逐帧都有，限到 ~14 发/秒当质感纹理、不当逐发汇报。
         // 弹着音效直接在 EnemyHit 帧播放——事件本就在弹着帧触发（真弹道），音画天然同拍，无需任何延迟机制。
@@ -643,12 +646,14 @@ namespace Game.Outpost.Battle
 
             if (_killRumble == null) return; // SetupAsync 完成前无底床（clip 未载）
             _killRumble.transform.position = _killCentroid;
-            // 音量曲线：log 域 8→240 杀/秒映射 0→1 再开方（低段先给存在感、高段留增长空间）。
-            // 挂组件的 AudioSource 不归框架分组音量管——主 × 音效组手动乘回（同火墙的桥接）。
-            float gain = Mathf.Clamp01(Mathf.Log(Mathf.Max(_killRate, 1f) / RumbleRateFloor, 2f)
-                         / Mathf.Log(RumbleRateFull / RumbleRateFloor, 2f));
-            // 顶格 1.0：融合区合爆已让位（KillFusionBlend 衰减），底床是屠杀规模的主表达，不再留头顶空间。
-            float vol = Mathf.Sqrt(gain) * _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx);
+            // 音量曲线：8→600 杀/秒**线性**归一再开方（这就是"音量随同时爆炸数变化"的落点：
+            // _killRate 是平滑击杀率，一簇同时爆炸经 k=6 快攻击瞬间顶上去，越密越响）。用线性归一
+            // 而非 log：log 把高段压平（300→600 只差 0.8dB，感觉不到变化），线性开方让高密度区间
+            // 拉开 ~3dB/倍程、实测 170~640 的波动清晰可闻。挂组件的 AudioSource 不归框架分组音量
+            // 管——主 × 音效组手动乘回（同火墙的桥接），× 存在感系数让招牌音更突出。
+            float sfxFull = _audio.MasterVolume * _audio.GetGroupVolume(AudioGroups.Sfx);
+            float u = Mathf.Clamp01((_killRate - RumbleRateFloor) / (RumbleRateFull - RumbleRateFloor));
+            float vol = Mathf.Min(RumblePresence * Mathf.Sqrt(u) * sfxFull, 1f); // 天花板 1.0（AudioSource 上限）
             if (vol <= 0.005f)
             {
                 if (_killRumble.isPlaying) _killRumble.Pause();

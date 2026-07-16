@@ -507,17 +507,23 @@ def make_kill_rumble():
     # 体家族，非嘶声）、>4k≈0。RMS 提到 SFX_RMS+2.5：怒吼要在满屏火墙下立得住（融合区合爆已全额
     # 让位，底床是屠杀唯一表达）。教训延续第四轮：先前为杀"咚"过度噪声化，把有效内容也杀了——
     # "消除离散"与"保留性格"要分频段各自处理，不是全频段一刀切。
+    # 超低频 + 响度（第六轮试听"低频内容再多些、超低频、响度更大"）：加专门的 ultra 超低频层
+    # （<75Hz 地动体量）、软限幅压波峰腾响度、RMS 提到 SFX_RMS+5.5。软限幅还给超低频加谐波——
+    # 小音箱放不出 50Hz 基频时靠谐波也能"听到"那个低频（缺失基频心理声学，一举两得）。
+    # 超低频占比 <60Hz 11%→25%、<120Hz 22%→38%，achievable RMS -15.5→-12.6dB（+3dB，峰值
+    # 撞 0.92 cap 后由软限幅决定，再高得靠运行时存在感系数，见 UpdateKillAudio）。
     rng = np.random.default_rng(23)
     loop = 4.0
     ext = loop + 1.3
     ne = samples(ext)
     n = samples(loop)
     t = np.arange(ne) / RATE
-    # ① 低频重量床（平滑噪声，无咚）
-    sub = 0.9 * lowpass(white(ext, rng), 160, order=2)
+    # ① 低频重量床（平滑噪声，无咚）：ultra 超低频地动 + sub + low 三段
+    ultra = 1.7 * lowpass(white(ext, rng), 75, order=2)
+    sub = 1.05 * lowpass(white(ext, rng), 160, order=2)
     low = lowpass(white(ext, rng), 500, order=2)
     slow = 0.81 + 0.06 * np.sin(2 * np.pi * 0.4 * t) + 0.07 * np.sin(2 * np.pi * 0.7 * t + 1.7) + 0.06 * np.sin(2 * np.pi * 1.1 * t + 3.9)
-    floor = (sub + low) * slow
+    floor = (ultra + sub + low) * slow
     # ② 中频翻腾（带通噪声 × ~5Hz 不规则 AM）
     churn_am = np.clip(1.0 + lowpass(white(ext, rng), 7), 0.2, 1.5)
     churn = 0.35 * bandpass(white(ext, rng), 300, 1500) * churn_am
@@ -525,12 +531,13 @@ def make_kill_rumble():
     crk = 0.34 * bandpass(crackle(ext, rng, density_hz=220, tau=0.055), 600, 3200)
     # ④ 极少远处高频 pop（稀疏，防嘶声）
     hi = 0.11 * bandpass(crackle(ext, rng, density_hz=25, tau=0.04), 3000, 6000)
+    x = softclip(floor + churn + crk + hi, 1.7)  # 压波峰腾响度 + 给超低频加可闻谐波
     # 取中段避开起始瞬态，喂正好 n+fade 长给 loop_crossfade（其无缝边界在 len-fade 处，多切会破坏）。
     fade = samples(0.08)
-    seg = (floor + churn + crk + hi)[samples(0.5): samples(0.5) + n + fade]
+    seg = x[samples(0.5): samples(0.5) + n + fade]
     x = loop_crossfade(seg, 0.08)
     print(seam_report(x, "sfx_rumble"))
-    out("sfx_rumble", x, SFX_RMS + 2.5)
+    out("sfx_rumble", x, SFX_RMS + 5.5, peak_cap=0.92)
 
 
 def make_detonate():
