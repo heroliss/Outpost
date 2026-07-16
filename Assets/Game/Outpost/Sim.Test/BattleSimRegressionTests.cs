@@ -55,7 +55,7 @@ namespace Game.Outpost.Sim.Test
         }
 
         /// <summary>
-        /// 黄金快照：seed 777 无头跑到第 12 波的位精确指纹。断言值 = 实测捕获（2026-07-13）。
+        /// 黄金快照：seed 777 无头跑到第 12 波的位精确指纹。断言值 = 实测捕获（2026-07-17，随机体型（生命按面积）+ 射速联动散射 + 解锁波次前移后重捕）。
         /// <b>它失败 = 规则或配置改动改变了 1~11 波的行为</b>——先确认改动是有意的，再更新这里的数字（这是 tripwire，不是 bug）。
         /// 与对拍互补：对拍抓单后端偏移，本条抓两后端共享代码（<c>SimMath</c> / 共享 tuning / 配置）的改动。
         /// </summary>
@@ -69,10 +69,10 @@ namespace Game.Outpost.Sim.Test
                 sim, setup, tables, targetWave: 12, out int kills, out int score, out int ticks);
 
             Assert.AreEqual(12, sim.WaveIndex, "did not reach wave 12");
-            Assert.AreEqual(10001, ticks, "tick count drift");
-            Assert.AreEqual(483, kills, "kills drift");
-            Assert.AreEqual(2541, score, "score drift");
-            Assert.AreEqual(-3431161696998243149L, chk, "trajectory checksum drift");
+            Assert.AreEqual(9445, ticks, "tick count drift");
+            Assert.AreEqual(511, kills, "kills drift");
+            Assert.AreEqual(2937, score, "score drift");
+            Assert.AreEqual(-2892748732779235377L, chk, "trajectory checksum drift");
         }
 
         /// <summary>

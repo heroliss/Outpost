@@ -32,13 +32,17 @@ namespace Game.Outpost.Sim
         public readonly float Hp;
         public readonly float MaxHp;
 
-        public EnemySnapshot(int id, int archetypeId, Vector2 position, float hp, float maxHp)
+        /// <summary>该实例的随机体型系数（出生时取，一生不变）。表现层用它缩放渲染体型；生命/碰撞半径已按它放大。</summary>
+        public readonly float SizeScale;
+
+        public EnemySnapshot(int id, int archetypeId, Vector2 position, float hp, float maxHp, float sizeScale)
         {
             Id = id;
             ArchetypeId = archetypeId;
             Position = position;
             Hp = hp;
             MaxHp = maxHp;
+            SizeScale = sizeScale;
         }
     }
 
@@ -73,7 +77,10 @@ namespace Game.Outpost.Sim
         /// <summary>本次击杀连带给玩家造成的溅射伤害（0 = 无溅射；仅"击杀且离基地够近"时 &gt; 0）。</summary>
         public readonly float SplashDamage;
 
-        public EnemyHitEvent(int enemyId, int archetypeId, Vector2 position, float damage, bool killed, float splashDamage = 0f)
+        /// <summary>被击中敌人的随机体型系数（表现层用它把击毁爆炸/碎片按体型放大——巨怪炸得更大一圈）。</summary>
+        public readonly float SizeScale;
+
+        public EnemyHitEvent(int enemyId, int archetypeId, Vector2 position, float damage, bool killed, float splashDamage = 0f, float sizeScale = 1f)
         {
             EnemyId = enemyId;
             ArchetypeId = archetypeId;
@@ -81,6 +88,7 @@ namespace Game.Outpost.Sim
             Damage = damage;
             Killed = killed;
             SplashDamage = splashDamage;
+            SizeScale = sizeScale;
         }
     }
 
@@ -105,10 +113,17 @@ namespace Game.Outpost.Sim
         /// <summary>飞行方向（单位向量，表现层据此定弹丸朝向）。</summary>
         public readonly Vector2 Direction;
 
-        public ProjectileSnapshot(Vector2 position, Vector2 direction)
+        /// <summary>
+        /// 曳光弹档位：0 = 普通弹，1/2/3 = 第 10/100/1000 发的里程碑曳光弹（表现层据此换色/放大，
+        /// 直观展示已射出的子弹量）。击发时按<b>累计发数</b>确定、随弹丸一生不变。
+        /// </summary>
+        public readonly byte Tracer;
+
+        public ProjectileSnapshot(Vector2 position, Vector2 direction, byte tracer)
         {
             Position = position;
             Direction = direction;
+            Tracer = tracer;
         }
     }
 
@@ -179,13 +194,17 @@ namespace Game.Outpost.Sim
         /// <summary>受击后的剩余血量（已扣减，不会为负）。</summary>
         public readonly float HpAfter;
 
-        public EnemyDetonatedEvent(int enemyId, int archetypeId, Vector2 position, float damage, float hpAfter)
+        /// <summary>自爆敌人的随机体型系数（表现层用它把自爆爆炸/碎片按体型放大）。</summary>
+        public readonly float SizeScale;
+
+        public EnemyDetonatedEvent(int enemyId, int archetypeId, Vector2 position, float damage, float hpAfter, float sizeScale = 1f)
         {
             EnemyId = enemyId;
             ArchetypeId = archetypeId;
             Position = position;
             Damage = damage;
             HpAfter = hpAfter;
+            SizeScale = sizeScale;
         }
     }
 
@@ -252,6 +271,9 @@ namespace Game.Outpost.Sim
 
         /// <summary>累计得分（按敌人原型的击杀分累加）。</summary>
         int Score { get; }
+
+        /// <summary>本局累计击发的弹丸总数（含未命中）。<see cref="long"/>——高射速长跑会超 int 范围；表现层逗号分隔展示 + 曳光弹里程碑判定。</summary>
+        long TotalShotsFired { get; }
 
         /// <summary>当前存活敌人数。</summary>
         int EnemyCount { get; }

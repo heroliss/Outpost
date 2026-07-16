@@ -24,12 +24,13 @@ namespace Game.Outpost.Sim.Ecs
         public float Value;
     }
 
-    /// <summary>敌人出生即定的只读元数据（实例 id / 原型索引 / 出生波成长系数）。</summary>
+    /// <summary>敌人出生即定的只读元数据（实例 id / 原型索引 / 出生波成长系数 / 随机体型系数）。</summary>
     internal struct EnemyMeta : IComponentData
     {
         public int Id;
         public int ArchIndex;
         public float StatScale;
+        public float Size; // 随机体型（缩放渲染体型 + 碰撞半径 + 生命，见 SpawnEnemy；与参考实现 EnemyState.SizeScale 同义）
     }
 
     // ── job 与主线程之间的记录结构（托管委托不能进 Burst，事件以缓冲带回按序重放）──
@@ -42,6 +43,7 @@ namespace Game.Outpost.Sim.Ecs
         public int ArchIndex;
         public float2 Pos;
         public float StatScale;
+        public float Size; // 体型系数（自爆事件带给表现层缩放爆炸）
     }
 
     /// <summary>弹丸 job 的一次弹着记录，主线程据此重放 EnemyHit 并写回幸存者血量。</summary>
@@ -55,6 +57,7 @@ namespace Game.Outpost.Sim.Ecs
         public float Damage;
         public float Splash;
         public float HpAfter;
+        public float Size;      // 被击中敌人的体型系数（击毁事件带给表现层缩放爆炸）
     }
 
     /// <summary>弹丸 job 读写的玩家侧聚合状态（打包成一个 NativeReference 进出 job；拦截溅射在 job 内扣血）。</summary>
@@ -103,7 +106,7 @@ namespace Game.Outpost.Sim.Ecs
             {
                 var m = meta[i];
                 var arch = Archetypes[m.ArchIndex];
-                float contact = arch.Radius + PlayerRadius;
+                float contact = arch.Radius * m.Size + PlayerRadius; // 大个体更早贴脸自爆（与参考实现逐式一致）
                 float2 p = pos[i].Value;
                 float dist = math.length(p);
                 if (dist > contact)
@@ -129,6 +132,7 @@ namespace Game.Outpost.Sim.Ecs
                         ArchIndex = m.ArchIndex,
                         Pos = p,
                         StatScale = m.StatScale,
+                        Size = m.Size,
                     });
                 }
             }
@@ -184,10 +188,11 @@ namespace Game.Outpost.Sim.Ecs
         public NativeArray<Entity> EnemyEntities;
         public NativeReference<int> EnemyCount;
 
-        // 在飞弹丸（SoA 三列表；命中 / 出界在此 swap-remove）
+        // 在飞弹丸（SoA 四列表；命中 / 出界在此 swap-remove）——Tracer 是纯表现标记、不入判定，仅随三列同步对齐。
         public NativeList<float2> ProjPos;
         public NativeList<float2> ProjDir;
         public NativeList<float> ProjDamage;
+        public NativeList<byte> ProjTracer;
 
         public NativeReference<PlayerHitState> Player;
         public NativeList<HitRecord> Hits;
@@ -223,7 +228,7 @@ namespace Game.Outpost.Sim.Ecs
                 {
                     float2 ep = EnemyPos[j];
                     float t = SimMath.SegmentCircleHitT(pos.x, pos.y, dx, dy, ep.x, ep.y,
-                        Archetypes[EnemyMeta[j].ArchIndex].Radius + ProjRadius);
+                        Archetypes[EnemyMeta[j].ArchIndex].Radius * EnemyMeta[j].Size + ProjRadius); // 大个体命中圈更大
                     if (t >= 0f && t < bestT)
                     {
                         bestT = t;
@@ -276,6 +281,7 @@ namespace Game.Outpost.Sim.Ecs
                         Damage = damage,
                         Splash = splash,
                         HpAfter = hp,
+                        Size = m.Size,
                     });
                     RemoveProjectileAt(i);
                     continue; // swap-remove：原位换入末位弹，不前进
@@ -300,6 +306,7 @@ namespace Game.Outpost.Sim.Ecs
             ProjPos.RemoveAtSwapBack(i);
             ProjDir.RemoveAtSwapBack(i);
             ProjDamage.RemoveAtSwapBack(i);
+            ProjTracer.RemoveAtSwapBack(i);
         }
 
         // 残骸落定：与参考实现 AddWreck / 主线程自爆侧逐行同式（事件点 + 确定性散布，写环形槽位并在静置格记账）。
@@ -439,7 +446,7 @@ namespace Game.Outpost.Sim.Ecs
                     for (int k = start; k < end; k++)
                     {
                         int ei = Items[k];
-                        float contact = Archetypes[EnemyMeta[ei].ArchIndex].Radius + wreckR;
+                        float contact = Archetypes[EnemyMeta[ei].ArchIndex].Radius * EnemyMeta[ei].Size + wreckR; // 大个体推残骸接触半径更大
                         float ddx = wpos.x - EnemyPos[ei].x, ddy = wpos.y - EnemyPos[ei].y;
                         float dsq = ddx * ddx + ddy * ddy;
                         if (dsq >= contact * contact) continue;
@@ -545,6 +552,8 @@ namespace Game.Outpost.Sim.Ecs
         private float _turretAngleDeg;
         private float _waveStatScale = 1f;
         private int _nextEnemyId = 1;
+        private long _totalShotsFired;    // 本局累计击发数（曳光弹里程碑 + 散射发序 + HUD 展示）
+        private float _maxSizeScale = 1f; // 全原型体型系数上界（占位网格边长按它推导，与参考实现同源）
 
         // 快照工作数组（Persistent，容量随波次增长复用）：语义见类型注释「快照」段。
         private NativeList<float2> _snapPos;
@@ -553,10 +562,11 @@ namespace Game.Outpost.Sim.Ecs
         private NativeList<Entity> _snapEntities;
         private int _aliveCount;
 
-        // 在飞弹丸（SoA 三列表，Persistent）：击发在托管侧 Add、弹丸 job 内 swap-remove；GetProjectile 直读。
+        // 在飞弹丸（SoA 四列表，Persistent）：击发在托管侧 Add、弹丸 job 内 swap-remove；GetProjectile 直读。Tracer 是表现标记。
         private NativeList<float2> _projPos;
         private NativeList<float2> _projDir;
         private NativeList<float> _projDamage;
+        private NativeList<byte> _projTracer;
 
         private NativeQueue<Detonation> _detonations;
         private readonly List<Detonation> _detScratch = new();
@@ -602,6 +612,7 @@ namespace Game.Outpost.Sim.Ecs
         public float TurretAngle => _turretAngleDeg;
         public int Kills { get; private set; }
         public int Score { get; private set; }
+        public long TotalShotsFired => _totalShotsFired;
         public int EnemyCount => _aliveCount;
         public int ProjectileCount => _projPos.IsCreated ? _projPos.Length : 0;
 
@@ -617,14 +628,16 @@ namespace Game.Outpost.Sim.Ecs
             var m = _snapMeta[index];
             var p = _snapPos[index];
             var arch = _archetypes[m.ArchIndex];
-            return new EnemySnapshot(m.Id, arch.Id, new Vector2(p.x, p.y), _snapHp[index], arch.MaxHp * m.StatScale);
+            // 生命上限含体型系数（与参考实现 GetEnemy 逐式一致）。
+            return new EnemySnapshot(m.Id, arch.Id, new Vector2(p.x, p.y), _snapHp[index],
+                arch.MaxHp * m.StatScale * SimMath.SizeHpFactor(m.Size), m.Size);
         }
 
         public ProjectileSnapshot GetProjectile(int index)
         {
             var p = _projPos[index];
             var d = _projDir[index];
-            return new ProjectileSnapshot(new Vector2(p.x, p.y), new Vector2(d.x, d.y));
+            return new ProjectileSnapshot(new Vector2(p.x, p.y), new Vector2(d.x, d.y), _projTracer[index]);
         }
 
         public WreckGridInfo WreckGrid
@@ -672,6 +685,7 @@ namespace Game.Outpost.Sim.Ecs
             _projPos = new NativeList<float2>(512, Allocator.Persistent);
             _projDir = new NativeList<float2>(512, Allocator.Persistent);
             _projDamage = new NativeList<float>(512, Allocator.Persistent);
+            _projTracer = new NativeList<byte>(512, Allocator.Persistent);
             _detonations = new NativeQueue<Detonation>(Allocator.Persistent);
             _hits = new NativeList<HitRecord>(256, Allocator.Persistent);
             _killedEntities = new NativeList<Entity>(256, Allocator.Persistent);
@@ -695,8 +709,13 @@ namespace Game.Outpost.Sim.Ecs
                 // 敌人占位网格布局与参考实现同式推导（格边长 = 最大接触距离的上界，3×3 邻域必覆盖接触对）。
                 float maxRadius = 0f;
                 for (int i = 0; i < setup.Enemies.Length; i++)
+                {
                     if (setup.Enemies[i].Radius > maxRadius) maxRadius = setup.Enemies[i].Radius;
-                _enemyGridCellSize = Math.Max(1f, maxRadius * (1f + BattleSimTuning.WreckBodyScale));
+                    float sm = SimMath.MaxSizeScale(setup.Enemies[i].SizeMin, setup.Enemies[i].SizeMax);
+                    if (sm > _maxSizeScale) _maxSizeScale = sm;
+                }
+                // 格边长上界随最大体型抬升（与参考实现逐式一致），保证推挤 3×3 邻域覆盖最大接触对。
+                _enemyGridCellSize = Math.Max(1f, maxRadius * (_maxSizeScale + BattleSimTuning.WreckBodyScale));
                 _enemyGridHalf = setup.ArenaRadius + 3f;
                 _enemyGridDim = Math.Max(1, (int)Math.Ceiling(_enemyGridHalf * 2f / _enemyGridCellSize));
                 _enemyCellCount = new NativeArray<int>(_enemyGridDim * _enemyGridDim, Allocator.Persistent);
@@ -801,6 +820,7 @@ namespace Game.Outpost.Sim.Ecs
             if (_projPos.IsCreated) _projPos.Dispose();
             if (_projDir.IsCreated) _projDir.Dispose();
             if (_projDamage.IsCreated) _projDamage.Dispose();
+            if (_projTracer.IsCreated) _projTracer.Dispose();
             if (_detonations.IsCreated) _detonations.Dispose();
             if (_hits.IsCreated) _hits.Dispose();
             if (_killedEntities.IsCreated) _killedEntities.Dispose();
@@ -895,10 +915,12 @@ namespace Game.Outpost.Sim.Ecs
                 (float)Math.Sin(angle) * _setup.ArenaRadius);
             var arch = _archetypes[archIndex];
             int id = _nextEnemyId++;
+            // 随机体型（确定性 Hash01，不消耗 _rng）+ 生命按面积（体型²）——与参考实现 SpawnEnemy 逐式一致。
+            float size = SimMath.EnemySizeScale(arch.SizeMin, arch.SizeMax, id);
             var e = _em.CreateEntity(_enemyEntityArchetype);
             _em.SetComponentData(e, new EnemyPos { Value = pos });
-            _em.SetComponentData(e, new EnemyHp { Value = arch.MaxHp * _waveStatScale });
-            _em.SetComponentData(e, new EnemyMeta { Id = id, ArchIndex = archIndex, StatScale = _waveStatScale });
+            _em.SetComponentData(e, new EnemyHp { Value = arch.MaxHp * _waveStatScale * SimMath.SizeHpFactor(size) });
+            _em.SetComponentData(e, new EnemyMeta { Id = id, ArchIndex = archIndex, StatScale = _waveStatScale, Size = size });
             EnemySpawned?.Invoke(new EnemySpawnedEvent(id, arch.Id, new Vector2(pos.x, pos.y)));
         }
 
@@ -938,11 +960,11 @@ namespace Game.Outpost.Sim.Ecs
             {
                 var d = _detScratch[i];
                 var arch = _archetypes[d.ArchIndex];
-                float dmg = arch.Attack * d.StatScale;
+                float dmg = arch.Attack * d.StatScale; // 自爆伤害不随体型（与参考实现一致）
                 _playerHp = Math.Max(0f, _playerHp - dmg);
                 AddWreckManaged(d.Pos, d.ArchIndex);
                 toDestroy[i] = d.Entity;
-                EnemyDetonated?.Invoke(new EnemyDetonatedEvent(d.Id, arch.Id, new Vector2(d.Pos.x, d.Pos.y), dmg, _playerHp));
+                EnemyDetonated?.Invoke(new EnemyDetonatedEvent(d.Id, arch.Id, new Vector2(d.Pos.x, d.Pos.y), dmg, _playerHp, d.Size));
             }
             _em.DestroyEntity(toDestroy);
             toDestroy.Dispose();
@@ -1053,19 +1075,21 @@ namespace Game.Outpost.Sim.Ecs
             float desired = (float)(Math.Atan2(tpos.y, tpos.x) * Rad2Deg);
             _turretAngleDeg = SimMath.MoveTowardsAngleDeg(_turretAngleDeg, desired, _player.RotationSpeed * dt);
 
-            double muzzleRad = _turretAngleDeg / Rad2Deg;
-            var muzzleDir = new float2((float)Math.Cos(muzzleRad), (float)Math.Sin(muzzleRad));
             float effInterval = _player.AttackInterval;
 
             _playerAttackCooldown -= dt;
             int shots = 0;
             while (_playerAttackCooldown <= 0f && shots < BattleSimTuning.MaxShotsPerTick)
             {
-                // 不分射速一律边转边打，沿当前炮口方向吐弹（与参考实现逐行一致）。
+                long n = ++_totalShotsFired;
+                // 逐发散射 + 曳光弹里程碑（确定性 Hash01 按发序，不消耗 _rng；与参考实现逐行一致）。
+                double shotRad = (_turretAngleDeg + SimMath.SpreadOffsetDeg(effInterval, n)) / Rad2Deg;
+                var dir = new float2((float)Math.Cos(shotRad), (float)Math.Sin(shotRad));
                 _projPos.Add(default);
-                _projDir.Add(muzzleDir);
+                _projDir.Add(dir);
                 _projDamage.Add(_player.Attack);
-                TurretFired?.Invoke(new TurretFiredEvent(new Vector2(muzzleDir.x, muzzleDir.y)));
+                _projTracer.Add(SimMath.TracerTier(n));
+                TurretFired?.Invoke(new TurretFiredEvent(new Vector2(dir.x, dir.y)));
                 _playerAttackCooldown += effInterval;
                 shots++;
             }
@@ -1098,6 +1122,7 @@ namespace Game.Outpost.Sim.Ecs
                 ProjPos = _projPos,
                 ProjDir = _projDir,
                 ProjDamage = _projDamage,
+                ProjTracer = _projTracer,
                 Player = _playerRef,
                 Hits = _hits,
                 KilledEntities = _killedEntities,
@@ -1134,7 +1159,7 @@ namespace Game.Outpost.Sim.Ecs
                     _em.SetComponentData(h.Entity, new EnemyHp { Value = h.HpAfter });
                 var arch = _archetypes[h.ArchIndex];
                 EnemyHit?.Invoke(new EnemyHitEvent(h.EnemyId, arch.Id,
-                    new Vector2(h.Impact.x, h.Impact.y), h.Damage, h.Killed != 0, h.Splash));
+                    new Vector2(h.Impact.x, h.Impact.y), h.Damage, h.Killed != 0, h.Splash, h.Size));
             }
         }
 

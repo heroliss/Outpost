@@ -25,6 +25,8 @@ namespace Game.Outpost.Battle
                     Attack = e.Attack,
                     Radius = e.Radius,
                     Score = e.Score,
+                    SizeMin = e.SizeMin,
+                    SizeMax = e.SizeMax,
                 });
 
             // 波次角色表 → Sim 的成长定义（角色 = 敌人原型 id + 一条成长曲线；顺序无关，Sim 按各自 UnlockWave 生效）。

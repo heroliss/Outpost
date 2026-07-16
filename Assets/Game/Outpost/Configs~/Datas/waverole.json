@@ -12,7 +12,7 @@
     },
     {
         "enemyId": 2,
-        "unlockWave": 6,
+        "unlockWave": 4,
         "baseCount": 2,
         "countGrowth": 1.22,
         "perWave": 0,
@@ -23,7 +23,7 @@
     },
     {
         "enemyId": 3,
-        "unlockWave": 12,
+        "unlockWave": 7,
         "baseCount": 1,
         "countGrowth": 1.18,
         "perWave": 0,
@@ -34,7 +34,7 @@
     },
     {
         "enemyId": 4,
-        "unlockWave": 18,
+        "unlockWave": 10,
         "baseCount": 3,
         "countGrowth": 1.25,
         "perWave": 0,
@@ -45,7 +45,7 @@
     },
     {
         "enemyId": 5,
-        "unlockWave": 26,
+        "unlockWave": 13,
         "baseCount": 1,
         "countGrowth": 1.12,
         "perWave": 0,

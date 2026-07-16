@@ -9,8 +9,10 @@
         <var name="hp" type="float" comment="生命上限（第 1 波基准值；实际按波次 statGrowth 放大）"/>
         <var name="moveSpeed" type="float" comment="移动速度（米/秒，径直冲向哨站）"/>
         <var name="attack" type="float" comment="抵达哨站自爆时的一次性伤害（第 1 波基准值；按波次 statGrowth 放大）"/>
-        <var name="radius" type="float" comment="碰撞半径（抵近到双方半径之和即自爆）"/>
+        <var name="radius" type="float" comment="碰撞半径（第 1 波基准；出生时再乘随机体型系数——大个体命中圈/自爆接触圈同步放大）"/>
         <var name="score" type="int" comment="击杀得分"/>
+        <var name="sizeMin" type="float" comment="随机体型系数下限（≤0 视为 1）。出生时在 [sizeMin,sizeMax] 取确定性值（分布向下限偏置：多数常规、偶尔巨怪），缩放体型+碰撞半径+生命（生命按面积算=体型²）。大个体给更宽区间"/>
+        <var name="sizeMax" type="float" comment="随机体型系数上限（≤0 视为 1；=sizeMin 则体型固定）"/>
         <var name="colorHex" type="string" comment="表现：主体色（RRGGBB 十六进制，无 # 前缀）"/>
         <var name="shape" type="string" comment="表现：程序网格形状（dart/arrowhead/hexagon/needle/octagon，映射 OutpostMeshes；有向形状会逐帧转向来袭方向）"/>
         <var name="diameter" type="float" comment="表现：体型直径（世界单位）"/>

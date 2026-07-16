@@ -46,6 +46,7 @@ namespace Game.Outpost.Battle
         private string _backendName = "";
         private int _enemyCount;
         private int _projectileCount;
+        private long _shotsFired;
         private int _wreckCount;
         private float _simTickMs;
         private float _fpsSmoothed;
@@ -102,6 +103,7 @@ namespace Game.Outpost.Battle
             Bag.Subscribe(rm.Backend, b => _backendName = b);
             Bag.Subscribe(rm.EnemyCount, c => _enemyCount = c);
             Bag.Subscribe(rm.ProjectileCount, c => _projectileCount = c);
+            Bag.Subscribe(rm.ShotsFired, n => _shotsFired = n);
             Bag.Subscribe(rm.WreckCount, c => _wreckCount = c);
             Bag.Subscribe(rm.SimTickMs, ms => _simTickMs = ms);
         }
@@ -115,7 +117,7 @@ namespace Game.Outpost.Battle
             if (_perfRefreshTimer <= 0f)
             {
                 _perfRefreshTimer = PerfRefreshInterval;
-                _perfText.text = $"{_backendName} · 敌 {_enemyCount} · 弹 {_projectileCount} · 残骸 {_wreckCount} · 模拟 {_simTickMs:F2}ms · {_fpsSmoothed:F0}fps";
+                _perfText.text = $"{_backendName} · 敌 {_enemyCount} · 弹 {_projectileCount} · 发 {_shotsFired:N0} · 残骸 {_wreckCount} · 模拟 {_simTickMs:F2}ms · {_fpsSmoothed:F0}fps";
             }
 
             // 受击红闪衰减。

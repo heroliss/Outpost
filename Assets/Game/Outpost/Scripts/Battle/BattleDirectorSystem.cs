@@ -691,7 +691,7 @@ namespace Game.Outpost.Battle
                 if (_killFxBudget > 0)
                 {
                     _killFxBudget--;
-                    SpawnKillExplosion(ToWorld(e.Position), e.ArchetypeId);
+                    SpawnKillExplosion(ToWorld(e.Position), e.ArchetypeId, e.SizeScale);
                 }
                 QueueBoom(e.ArchetypeId, ToWorld(e.Position));
             }
@@ -718,16 +718,17 @@ namespace Game.Outpost.Battle
             if (_killFxBudget <= 0) return;
             _killFxBudget--;
             var v = EnemyVisuals.Get(_visuals, e.ArchetypeId);
+            float s = v.ExplosionScale * e.SizeScale; // 爆炸体量 = 原型倍率 × 随机体型：巨怪炸得更大一圈
             var boom = v.Color * 2.7f;
             boom.a = 1f;
-            SpawnPulse(WithZ(pos, PulseZ), boom, 0.5f, 4.1f * v.ExplosionScale, 0.56f);
-            SpawnPulse(WithZ(pos, PulseZ), new Color(2.9f, 2.9f, 3.1f, 0.95f), 0.2f, 2.1f * v.ExplosionScale, 0.28f);
-            // 大个体才加外扩冲击波 + 碎片 + 烟；炮灰只留脉冲，防海量自爆刷屏。
+            SpawnPulse(WithZ(pos, PulseZ), boom, 0.5f, 4.1f * s, 0.56f);
+            SpawnPulse(WithZ(pos, PulseZ), new Color(2.9f, 2.9f, 3.1f, 0.95f), 0.2f, 2.1f * s, 0.28f);
+            // 大个体才加外扩冲击波 + 碎片 + 烟；炮灰只留脉冲，防海量自爆刷屏（门槛按原型倍率，随机大炮灰仍只留脉冲）。
             if (v.ExplosionScale >= 0.8f)
             {
-                SpawnPulse(WithZ(pos, PulseZ), boom, 1.7f * v.ExplosionScale, 5.2f * v.ExplosionScale, 0.34f);
-                SpawnDebris(pos, 6, 2.0f * v.ExplosionScale, 0.32f);
-                SpawnSmoke(pos, 0.4f, 2.2f * v.ExplosionScale, 0.7f);
+                SpawnPulse(WithZ(pos, PulseZ), boom, 1.7f * s, 5.2f * s, 0.34f);
+                SpawnDebris(pos, 6, 2.0f * s, 0.32f);
+                SpawnSmoke(pos, 0.4f, 2.2f * s, 0.7f);
             }
         }
 
@@ -764,19 +765,20 @@ namespace Game.Outpost.Battle
                 WithZ(playerPos + new Vector3(0f, 0.9f, 0f), FloaterZ));
         }
 
-        // 拦截击毁的爆炸：按原型色扩散大圈 + 亮白核，大个体加冲击波 + 碎片 + 烟。
-        private void SpawnKillExplosion(Vector3 hitPos, int archId)
+        // 拦截击毁的爆炸：按原型色扩散大圈 + 亮白核，大个体加冲击波 + 碎片 + 烟。体量随原型倍率 × 随机体型。
+        private void SpawnKillExplosion(Vector3 hitPos, int archId, float sizeScale)
         {
             var v = EnemyVisuals.Get(_visuals, archId);
+            float s = v.ExplosionScale * sizeScale;
             var c = v.Color * 2.6f;
             c.a = 0.95f;
-            SpawnPulse(WithZ(hitPos, PulseZ), c, 0.4f, 3.7f * v.ExplosionScale, 0.52f);
-            SpawnPulse(WithZ(hitPos, PulseZ), new Color(2.7f, 2.8f, 3.0f, 0.92f), 0.15f, 1.8f * v.ExplosionScale, 0.24f);
+            SpawnPulse(WithZ(hitPos, PulseZ), c, 0.4f, 3.7f * s, 0.52f);
+            SpawnPulse(WithZ(hitPos, PulseZ), new Color(2.7f, 2.8f, 3.0f, 0.92f), 0.15f, 1.8f * s, 0.24f);
             if (v.ExplosionScale >= 0.8f)
             {
-                SpawnPulse(WithZ(hitPos, PulseZ), c, 1.4f * v.ExplosionScale, 4.6f * v.ExplosionScale, 0.3f); // 外扩冲击波
-                SpawnDebris(hitPos, 5, 1.7f * v.ExplosionScale, 0.28f);
-                SpawnSmoke(hitPos, 0.3f, 1.6f * v.ExplosionScale, 0.6f);
+                SpawnPulse(WithZ(hitPos, PulseZ), c, 1.4f * s, 4.6f * s, 0.3f); // 外扩冲击波
+                SpawnDebris(hitPos, 5, 1.7f * s, 0.28f);
+                SpawnSmoke(hitPos, 0.3f, 1.6f * s, 0.6f);
             }
         }
 
@@ -993,12 +995,14 @@ namespace Game.Outpost.Battle
             SetI(_model.Score, _sim.Score);
             SetI(_model.EnemyCount, _sim.EnemyCount);
             SetI(_model.ProjectileCount, _sim.ProjectileCount);
+            SetL(_model.ShotsFired, _sim.TotalShotsFired);
             SetI(_model.WreckCount, _sim.WreckSlotCount);
             SetF(_model.SimTickMs, _simTickMs);
         }
 
         private static void SetF(R3.RP<float> rp, float v) { if (!Mathf.Approximately(rp.Value, v)) rp.Value = v; }
         private static void SetI(R3.RP<int> rp, int v) { if (rp.Value != v) rp.Value = v; }
+        private static void SetL(R3.RP<long> rp, long v) { if (rp.Value != v) rp.Value = v; }
 
         private void GoToResult()
         {

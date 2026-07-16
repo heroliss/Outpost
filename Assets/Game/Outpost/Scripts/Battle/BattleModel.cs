@@ -22,6 +22,9 @@ namespace Game.Outpost.Battle
         /// <summary>当前在飞弹丸数（真弹道下弹×敌碰撞是模拟负载主项，性能行展示）。</summary>
         public readonly RP<int> ProjectileCount = new(0);
 
+        /// <summary>本局累计击发弹丸总数（<c>long</c>——高射速长跑超 int；HUD 逗号分隔展示，与曳光弹里程碑同源）。</summary>
+        public readonly RP<long> ShotsFired = new(0);
+
         /// <summary>战场留存残骸数（表现层统计：实例化渲染压力的主要持续来源，性能行展示）。</summary>
         public readonly RP<int> WreckCount = new(0);
 

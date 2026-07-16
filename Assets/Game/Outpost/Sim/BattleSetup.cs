@@ -154,11 +154,22 @@ namespace Game.Outpost.Sim
         /// <summary>抵达玩家自爆时对玩家的一次性伤害（第 1 波基准值；实际伤害 = 本值 × 该波成长系数）。</summary>
         public float Attack;
 
-        /// <summary>碰撞半径（决定抵达自爆的接触距离 = 与玩家半径之和）。</summary>
+        /// <summary>碰撞半径（决定抵达自爆的接触距离 = 与玩家半径之和）。第 1 波基准值，出生时再乘该实例的随机体型系数。</summary>
         public float Radius;
 
         /// <summary>击杀得分。</summary>
         public int Score;
+
+        /// <summary>
+        /// 随机体型系数下限（&le; 0 视为 1）。每个敌人出生时在 [SizeMin, SizeMax] 里取一个确定性系数
+        /// （<see cref="SimMath.EnemySizeScale"/>：按实例 id 哈希、不消耗种子 RNG，分布向下限偏置）——
+        /// 同时缩放<b>渲染体型 + 碰撞半径 + 生命</b>（生命按<b>面积</b>算 = 体型²，见 <see cref="SimMath.SizeHpFactor"/>）。
+        /// 大个体原型给更宽区间 = 偶尔刷出很大的巨怪。<see cref="SizeMin"/> == <see cref="SizeMax"/> = 体型固定。
+        /// </summary>
+        public float SizeMin;
+
+        /// <summary>随机体型系数上限（&le; 0 视为 1）。见 <see cref="SizeMin"/>。</summary>
+        public float SizeMax;
     }
 
     /// <summary>

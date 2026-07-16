@@ -27,6 +27,7 @@ namespace Game.Outpost.Sim
             public Vector2 Pos;
             public float Hp;
             public float StatScale;
+            public float SizeScale; // 出生时确定的随机体型（缩放渲染体型 + 碰撞半径 + 生命，见 SpawnEnemy）
         }
 
         // 当前波次一条刷怪流的推进状态。Timer 初始为 0：首只在下一次 Tick 立刻刷出。
@@ -44,6 +45,7 @@ namespace Game.Outpost.Sim
             public Vector2 Pos;
             public Vector2 Dir;
             public float Damage;
+            public byte Tracer; // 曳光弹档位（击发时按累计发序确定，一生不变；纯表现标记，不入判定）
         }
 
         // 判定阈值（对准容差 / 单帧发数 / 火墙门槛与散布）是两后端共享的规格常量，见 BattleSimTuning。
@@ -67,6 +69,8 @@ namespace Game.Outpost.Sim
         private float _turretAngleDeg;      // 炮塔当前朝向（度）；逐帧按回转速度趋近最近目标
         private float _waveStatScale = 1f;  // 当前波次的敌人成长系数（StatGrowth^(w-1)），出生时写进 EnemyState
         private int _nextEnemyId = 1;
+        private long _totalShotsFired;      // 本局累计击发数（曳光弹里程碑 + 散射发序 + HUD 展示）
+        private float _maxSizeScale = 1f;   // 全原型体型系数上界（占位网格边长按它推导，保证推挤 3×3 覆盖）
 
         // 残骸减速泥地 + 推挤（规则见 WreckFieldSetup）：密度格计数 + 逐实体 SoA 槽位（环形复写挤掉最老的）。
         private int[] _wreckCells;
@@ -102,6 +106,7 @@ namespace Game.Outpost.Sim
         public float TurretAngle => _turretAngleDeg;
         public int Kills { get; private set; }
         public int Score { get; private set; }
+        public long TotalShotsFired => _totalShotsFired;
         public int EnemyCount => _enemies.Count;
         public int ProjectileCount => _projectiles.Count;
 
@@ -116,13 +121,15 @@ namespace Game.Outpost.Sim
         {
             var e = _enemies[index];
             var arch = _archetypes[e.ArchIndex];
-            return new EnemySnapshot(e.Id, arch.Id, e.Pos, e.Hp, arch.MaxHp * e.StatScale);
+            // 生命上限含体型系数（与 SpawnEnemy 的当前血同源）——表现层的血量比例暗化才不失真。
+            return new EnemySnapshot(e.Id, arch.Id, e.Pos, e.Hp,
+                arch.MaxHp * e.StatScale * SimMath.SizeHpFactor(e.SizeScale), e.SizeScale);
         }
 
         public ProjectileSnapshot GetProjectile(int index)
         {
             var p = _projectiles[index];
-            return new ProjectileSnapshot(p.Pos, p.Dir);
+            return new ProjectileSnapshot(p.Pos, p.Dir, p.Tracer);
         }
 
         public WreckGridInfo WreckGrid
@@ -170,8 +177,13 @@ namespace Game.Outpost.Sim
 
                 float maxRadius = 0f;
                 for (int i = 0; i < _archetypes.Length; i++)
+                {
                     if (_archetypes[i].Radius > maxRadius) maxRadius = _archetypes[i].Radius;
-                _enemyGridCellSize = Math.Max(1f, maxRadius * (1f + BattleSimTuning.WreckBodyScale));
+                    float sm = SimMath.MaxSizeScale(_archetypes[i].SizeMin, _archetypes[i].SizeMax);
+                    if (sm > _maxSizeScale) _maxSizeScale = sm; // 敌人半径按体型放大后，格边长要跟着最大体型抬升
+                }
+                // 格边长上界 = 最大敌人接触半径(archR×maxSize) + 最大残骸半径(archR×WreckBodyScale)，3×3 邻域必覆盖一切接触对。
+                _enemyGridCellSize = Math.Max(1f, maxRadius * (_maxSizeScale + BattleSimTuning.WreckBodyScale));
                 _enemyGridHalf = setup.ArenaRadius + 3f;
                 _enemyGridDim = Math.Max(1, (int)Math.Ceiling(_enemyGridHalf * 2f / _enemyGridCellSize));
                 _enemyCellCount = new int[_enemyGridDim * _enemyGridDim];
@@ -326,13 +338,17 @@ namespace Game.Outpost.Sim
                 (float)Math.Cos(angle) * _setup.ArenaRadius,
                 (float)Math.Sin(angle) * _setup.ArenaRadius);
             var arch = _archetypes[archIndex];
+            int id = _nextEnemyId++;
+            // 随机体型（确定性 Hash01，不消耗 _rng）：同时放大碰撞半径与生命——生命按面积（体型²）算，理由见 SimMath.SizeHpFactor。
+            float size = SimMath.EnemySizeScale(arch.SizeMin, arch.SizeMax, id);
             var e = new EnemyState
             {
-                Id = _nextEnemyId++,
+                Id = id,
                 ArchIndex = archIndex,
                 Pos = pos,
                 StatScale = _waveStatScale,
-                Hp = arch.MaxHp * _waveStatScale,
+                SizeScale = size,
+                Hp = arch.MaxHp * _waveStatScale * SimMath.SizeHpFactor(size),
             };
             _enemies.Add(e);
             EnemySpawned?.Invoke(new EnemySpawnedEvent(e.Id, arch.Id, pos));
@@ -348,7 +364,7 @@ namespace Game.Outpost.Sim
             {
                 var e = _enemies[i];
                 var arch = _archetypes[e.ArchIndex];
-                float contact = arch.Radius + _player.Radius;
+                float contact = arch.Radius * e.SizeScale + _player.Radius; // 大个体更早贴脸自爆（碰撞半径随体型放大）
                 float dist = e.Pos.Length();
 
                 if (dist > contact)
@@ -381,10 +397,10 @@ namespace Game.Outpost.Sim
             {
                 var e = _enemies[_detonatingIdx[k]];
                 var arch = _archetypes[e.ArchIndex];
-                float dmg = arch.Attack * e.StatScale;
+                float dmg = arch.Attack * e.StatScale; // 自爆伤害不随体型（用户定：只血量与体型正相关）
                 _playerHp = Math.Max(0f, _playerHp - dmg);
                 AddWreck(e.Pos, e.ArchIndex);
-                EnemyDetonated?.Invoke(new EnemyDetonatedEvent(e.Id, arch.Id, e.Pos, dmg, _playerHp));
+                EnemyDetonated?.Invoke(new EnemyDetonatedEvent(e.Id, arch.Id, e.Pos, dmg, _playerHp, e.SizeScale));
             }
 
             // 统一移除：按索引降序 swap-remove（降序保证换入元素不污染待移除索引）。
@@ -418,16 +434,18 @@ namespace Game.Outpost.Sim
             // 击发（真弹道）：不分射速一律「边转边打」——按有效射速沿当前炮口方向吐弹，不设对准门槛，
             // 转向途中照发（甩枪那几发划过战场，打到谁由 TickProjectiles 的扫掠碰撞决定，穿排/漏射自然涌现）。
             // 单帧可多发（上限 MaxShotsPerTick）。
-            double muzzleRad = _turretAngleDeg / Rad2Deg;
-            var muzzleDir = new Vector2((float)Math.Cos(muzzleRad), (float)Math.Sin(muzzleRad));
             float effInterval = _player.AttackInterval;
 
             _playerAttackCooldown -= dt;
             int shots = 0;
             while (_playerAttackCooldown <= 0f && shots < BattleSimTuning.MaxShotsPerTick)
             {
-                _projectiles.Add(new ProjectileState { Pos = default, Dir = muzzleDir, Damage = _player.Attack });
-                TurretFired?.Invoke(new TurretFiredEvent(muzzleDir));
+                long n = ++_totalShotsFired;
+                // 逐发散射：偏移随射速张开（确定性 Hash01 按发序取，不消耗 _rng）；第 10/100/1000 发升为曳光弹。
+                double shotRad = (_turretAngleDeg + SimMath.SpreadOffsetDeg(effInterval, n)) / Rad2Deg;
+                var dir = new Vector2((float)Math.Cos(shotRad), (float)Math.Sin(shotRad));
+                _projectiles.Add(new ProjectileState { Pos = default, Dir = dir, Damage = _player.Attack, Tracer = SimMath.TracerTier(n) });
+                TurretFired?.Invoke(new TurretFiredEvent(dir));
                 _playerAttackCooldown += effInterval;
                 shots++;
             }
@@ -453,7 +471,7 @@ namespace Game.Outpost.Sim
                 {
                     var e = _enemies[j];
                     float t = SimMath.SegmentCircleHitT(p.Pos.X, p.Pos.Y, dx, dy, e.Pos.X, e.Pos.Y,
-                        _archetypes[e.ArchIndex].Radius + _player.ProjectileRadius);
+                        _archetypes[e.ArchIndex].Radius * e.SizeScale + _player.ProjectileRadius); // 大个体命中圈更大
                     if (t >= 0f && t < bestT)
                     {
                         bestT = t;
@@ -527,7 +545,7 @@ namespace Game.Outpost.Sim
             {
                 _enemies[index] = e;
             }
-            EnemyHit?.Invoke(new EnemyHitEvent(e.Id, arch.Id, impact, damage, killed, splash));
+            EnemyHit?.Invoke(new EnemyHitEvent(e.Id, arch.Id, impact, damage, killed, splash, e.SizeScale));
         }
 
         // 残骸落定：事件点 + 确定性散布偏移（SimMath.WreckRestOffset，零 RNG 消耗），写入环形槽位并在静置格记账；
@@ -603,7 +621,7 @@ namespace Game.Outpost.Sim
                         {
                             int ei = _enemyCellItems[k];
                             var e = _enemies[ei];
-                            float contact = _archetypes[e.ArchIndex].Radius + wreckR;
+                            float contact = _archetypes[e.ArchIndex].Radius * e.SizeScale + wreckR; // 大个体推残骸的接触半径也更大
                             float ddx = wpos.X - e.Pos.X, ddy = wpos.Y - e.Pos.Y;
                             float dsq = ddx * ddx + ddy * ddy;
                             if (dsq >= contact * contact) continue;

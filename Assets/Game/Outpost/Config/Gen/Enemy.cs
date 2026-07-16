@@ -26,6 +26,8 @@ public sealed partial class Enemy : Luban.BeanBase
         Attack = _buf.ReadFloat();
         Radius = _buf.ReadFloat();
         Score = _buf.ReadInt();
+        SizeMin = _buf.ReadFloat();
+        SizeMax = _buf.ReadFloat();
         ColorHex = _buf.ReadString();
         Shape = _buf.ReadString();
         Diameter = _buf.ReadFloat();
@@ -58,13 +60,21 @@ public sealed partial class Enemy : Luban.BeanBase
     /// </summary>
     public readonly float Attack;
     /// <summary>
-    /// 碰撞半径（抵近到双方半径之和即自爆）
+    /// 碰撞半径（第 1 波基准；出生时再乘随机体型系数——大个体命中圈/自爆接触圈同步放大）
     /// </summary>
     public readonly float Radius;
     /// <summary>
     /// 击杀得分
     /// </summary>
     public readonly int Score;
+    /// <summary>
+    /// 随机体型系数下限（≤0 视为 1）。出生时在 [sizeMin,sizeMax] 取确定性值（分布向下限偏置：多数常规、偶尔巨怪），缩放体型+碰撞半径+生命（生命按面积算=体型&#178;）。大个体给更宽区间
+    /// </summary>
+    public readonly float SizeMin;
+    /// <summary>
+    /// 随机体型系数上限（≤0 视为 1；=sizeMin 则体型固定）
+    /// </summary>
+    public readonly float SizeMax;
     /// <summary>
     /// 表现：主体色（RRGGBB 十六进制，无 # 前缀）
     /// </summary>
@@ -99,6 +109,8 @@ public sealed partial class Enemy : Luban.BeanBase
         + "attack:" + Attack + ","
         + "radius:" + Radius + ","
         + "score:" + Score + ","
+        + "sizeMin:" + SizeMin + ","
+        + "sizeMax:" + SizeMax + ","
         + "colorHex:" + ColorHex + ","
         + "shape:" + Shape + ","
         + "diameter:" + Diameter + ","

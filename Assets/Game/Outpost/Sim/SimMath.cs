@@ -80,6 +80,65 @@ namespace Game.Outpost.Sim
             return (h >> 8) * (1f / 16777216f); // 取高 24 位当尾数，恰落 [0,1)
         }
 
+        // ── 敌人体型 / 击发散射 / 曳光弹（规则规格，两后端共享同一确定性算法）────
+
+        /// <summary>
+        /// 敌人随机体型系数：在 [<paramref name="sizeMin"/>, <paramref name="sizeMax"/>] 内按实例 id 取一个确定性值
+        /// （<see cref="Hash01"/> 混合，<b>不消耗种子 RNG</b>——出生角序列不受影响，两后端逐位一致）。
+        /// min/max &le; 0 视为 1、max &lt; min 收敛为 min（= 体型固定）。乘上原型的<b>渲染体型 / 碰撞半径 / 生命</b>。
+        /// <para>分布按 <see cref="BattleSimTuning.SizeBias"/> 向下限偏置——多数常规、偶尔巨怪，
+        /// 故体型上限可以开得夸张而不推高平均体型与平均血量。</para>
+        /// </summary>
+        public static float EnemySizeScale(float sizeMin, float sizeMax, int id)
+        {
+            float smin = sizeMin > 0f ? sizeMin : 1f;
+            float smax = sizeMax > smin ? sizeMax : smin;
+            if (smax <= smin) return smin;
+            // id × Knuth 乘性哈希常量再过 Hash01：相邻 id 也充分去相关（避免"按刷怪序渐变体型"）。
+            float h = Hash01((uint)id * 2654435761u);
+            return smin + (smax - smin) * (float)Math.Pow(h, BattleSimTuning.SizeBias);
+        }
+
+        /// <summary>
+        /// 体型 → 生命的换算：<b>按面积（平方）</b>，即生命 ∝ 体型²。两后端共用本函数，杜绝各写一份漂移。
+        /// <para><b>为什么是平方而不是线性</b>：碰撞半径已随体型放大，而弹幕里半径 r 的圆每秒接到的子弹数 ∝ r
+        /// （它对弹流呈现的是直径宽度、不是面积）。线性血量下 TTK ∝ r/r = 常数——巨怪与小怪死得一样快，
+        /// 体型完全不转化成硬度；平方血量下 TTK ∝ r²/r = r，体型才真正等于耐久。</para>
+        /// </summary>
+        public static float SizeHpFactor(float sizeScale) => sizeScale * sizeScale;
+
+        /// <summary>体型系数上界（guard 同 <see cref="EnemySizeScale"/>）——占位网格边长按它推导，保证 3×3 邻域覆盖最大接触对。</summary>
+        public static float MaxSizeScale(float sizeMin, float sizeMax)
+        {
+            float smin = sizeMin > 0f ? sizeMin : 1f;
+            return sizeMax > smin ? sizeMax : smin;
+        }
+
+        /// <summary>
+        /// 射速联动的确定性散射偏移（度）：按累计发序 <paramref name="shotIndex"/> 取 [-spread, +spread] 内一点，
+        /// spread 随射速（1/<paramref name="attackInterval"/>）从 0 线性张开到 <see cref="BattleSimTuning.SpreadMaxDeg"/>
+        /// （区间见 <see cref="BattleSimTuning.SpreadRateLo"/>/<see cref="BattleSimTuning.SpreadRateHi"/>）。
+        /// 用 <see cref="Hash01"/> 不碰种子 RNG——射速越快散得越开，且完全确定、两后端一致。
+        /// </summary>
+        public static float SpreadOffsetDeg(float attackInterval, long shotIndex)
+        {
+            float rate = attackInterval > 0f ? 1f / attackInterval : 0f;
+            float t = (rate - BattleSimTuning.SpreadRateLo)
+                      / (BattleSimTuning.SpreadRateHi - BattleSimTuning.SpreadRateLo);
+            if (t < 0f) t = 0f; else if (t > 1f) t = 1f;
+            float spread = BattleSimTuning.SpreadMaxDeg * t;
+            return (Hash01((uint)shotIndex) * 2f - 1f) * spread;
+        }
+
+        /// <summary>曳光弹档位：第 10/100/1000 发分别升为 1/2/3，其余为 0（表现层据此换色，直观展示已射子弹量）。</summary>
+        public static byte TracerTier(long shotIndex)
+        {
+            if (shotIndex % 1000 == 0) return 3;
+            if (shotIndex % 100 == 0) return 2;
+            if (shotIndex % 10 == 0) return 1;
+            return 0;
+        }
+
         /// <summary>
         /// 残骸静置偏移：击杀/自爆点 (px,py) 沿远离哨站（原点）的径向滑出、带侧向抖动——
         /// 死点即弹道来向的延长线，残骸被"打飞"一小段（幅度按原型半径 <paramref name="radius"/> 缩放）。

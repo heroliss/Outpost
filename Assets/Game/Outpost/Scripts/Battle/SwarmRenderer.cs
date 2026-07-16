@@ -39,8 +39,22 @@ namespace Game.Outpost.Battle
         // ── 弹丸层 ──────────────────────────────────────────────────────────
 
         private const float ProjectileZ = -0.3f;       // 单位(0)之前、脉冲(-0.2)之后——弹流叠在敌人海上但不压特效
-        private const float ProjectileLength = 0.55f;  // 拖尾总长（世界单位）：约为单帧位移的 1.4 倍，读成运动光痕
-        private static readonly Color ProjectileColor = new(0.9f, 3.2f, 3.0f, 1f); // HDR 青白（Bloom 辉光）
+        private const float ProjectileLength = 0.55f;  // 普通弹拖尾总长（世界单位）：约为单帧位移的 1.4 倍，读成运动光痕。曳光弹在此基础上按档位拉长
+
+        // 曳光弹配色（索引 = ProjectileSnapshot.Tracer 档位）：普通弹青白，第 10/100/1000 发换色，直观展示已射子弹量。
+        // 亮度逐级拉高（HDR 值越大 Bloom 溢得越狠）——曳光弹要在满屏弹流里一眼可辨，故明显亮过普通弹与敌人本体色。
+        private static readonly Color[] TracerColors =
+        {
+            new(0.9f, 3.2f, 3.0f, 1f),  // 0 普通：青白（保持原样）
+            new(6.0f, 3.2f, 0.7f, 1f),  // 1 每十：炽暖琥珀
+            new(1.8f, 7.0f, 1.0f, 1f),  // 2 每百：亮绿金里程碑
+            new(8.0f, 1.5f, 7.5f, 1f),  // 3 每千：灼亮品红（全场最醒目）
+        };
+
+        // 拖尾长度 / 宽度分开缩放（网格本体：长 1、宽 0.14，尖头朝本地 +X = 飞行方向）。
+        // 刻意不等比：等比放大会让曳光弹变成"又长又胖的菱形"，只拉长 + 略加宽才读成一道光痕。
+        private static readonly float[] TracerLengthScale = { 1f, 2.6f, 4.2f, 6.0f };
+        private static readonly float[] TracerWidthScale = { 1f, 1.5f, 1.9f, 2.3f };
 
         // ── 泥地热力图 ──────────────────────────────────────────────────────
 
@@ -383,15 +397,22 @@ namespace Game.Outpost.Battle
             int count = sim.ProjectileCount;
             if (count == 0) return;
             var mesh = OutpostMeshes.Projectile;
-            var scale = Vector3.one * ProjectileLength;
             int batch = 0;
             for (int i = 0; i < count; i++)
             {
                 var p = sim.GetProjectile(i);
+                int tier = p.Tracer; // 0..3；曳光弹换色 + 拉长拖尾
+                float len = ProjectileLength * TracerLengthScale[tier];
                 float ang = Mathf.Atan2(p.Direction.Y, p.Direction.X) * Mathf.Rad2Deg;
-                _matrices[batch] = Matrix4x4.TRS(new Vector3(p.Position.X, p.Position.Y, ProjectileZ),
-                    Quaternion.Euler(0f, 0f, ang), scale);
-                _colors[batch] = ProjectileColor;
+
+                // 拖尾往后长、弹头钉在弹丸真实位置：网格是中心对称的，等中心摆放会让长曳光的尖头戳到弹丸前方
+                // （视觉上先于弹着点命中）。故把网格中心沿飞行方向回退半个"超出普通弹的长度"——
+                // tier 0 回退量恰为 0，普通弹与改动前逐像素一致。
+                float back = (len - ProjectileLength) * 0.5f;
+                var pos = new Vector3(p.Position.X - p.Direction.X * back, p.Position.Y - p.Direction.Y * back, ProjectileZ);
+                _matrices[batch] = Matrix4x4.TRS(pos, Quaternion.Euler(0f, 0f, ang),
+                    new Vector3(len, ProjectileLength * TracerWidthScale[tier], 1f)); // z 任意：网格是平的
+                _colors[batch] = TracerColors[tier];
                 batch++;
                 if (batch == BatchSize)
                 {
@@ -465,7 +486,8 @@ namespace Game.Outpost.Battle
             }
             float breath = 1f + 0.035f * Mathf.Sin(now * 3.2f + anim.BreathPhase);
 
-            return Matrix4x4.TRS(pos, rot, Vector3.one * (v.Diameter * pop * breath));
+            // 体型 = 原型直径 × 该实例随机体型系数（模拟侧碰撞半径/血量已按同一系数放大，视觉与判定一致）。
+            return Matrix4x4.TRS(pos, rot, Vector3.one * (v.Diameter * snap.SizeScale * pop * breath));
         }
 
         // 血量越低越暗（保底约 1/4 亮度），受击白闪向亮白抬升（HDR 配合 Bloom 出闪光感）。

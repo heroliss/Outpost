@@ -23,6 +23,9 @@ namespace Game.Outpost.Battle
         /// <summary>当前在飞弹丸数（HUD 性能行——真弹道下模拟负载的另一规模轴）。</summary>
         public readonly ReadOnlyReactiveProperty<int> ProjectileCount;
 
+        /// <summary>本局累计击发弹丸总数（HUD 逗号分隔展示已射出的子弹量）。</summary>
+        public readonly ReadOnlyReactiveProperty<long> ShotsFired;
+
         /// <summary>战场留存残骸数（HUD 性能行——实例化渲染压力的主要持续来源）。</summary>
         public readonly ReadOnlyReactiveProperty<int> WreckCount;
 
@@ -41,6 +44,7 @@ namespace Game.Outpost.Battle
             Score = m.Score;
             EnemyCount = m.EnemyCount;
             ProjectileCount = m.ProjectileCount;
+            ShotsFired = m.ShotsFired;
             WreckCount = m.WreckCount;
             SimTickMs = m.SimTickMs;
             Backend = m.Backend;
