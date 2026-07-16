@@ -38,6 +38,7 @@ namespace Game.Outpost.Windows
         private VisualElement _expBar;
         private VisualElement _expFill;
         private Button _expButton;
+        private VisualElement _expBgmRow; // 电台战斗曲开关行：仅扩展包已安装时显示
         private string _expStatusKey = "";
         private bool _closed; // 异步下载返回后 UI 已随窗销毁：只跳过界面更新，下载与落盘照常收尾
 
@@ -121,12 +122,29 @@ namespace Game.Outpost.Windows
             _expBar = Root.Q<VisualElement>("exp-bar");
             _expFill = Root.Q<VisualElement>("exp-fill");
             _expButton = Root.Q<Button>("exp-download");
+            _expBgmRow = Root.Q<VisualElement>("exp-bgm-row");
 
             Bag.BindLocalizedText(Root.Q<Label>("exp-name"), "settings/expansion-name");
             Bag.BindLocalizedText(Root.Q<Label>("exp-desc"), "settings/expansion-desc");
             Bag.BindLocalizedText(_expButton, "settings/expansion-download");
             // 状态短语是"动态选 key"（下载中/已启用/失败），BindLocalizedText 只认固定 key——订 Locale 手动重查。
             Bag.Subscribe(loc.Locale, _ => RefreshExpansionStatusText(loc));
+
+            // 电台战斗曲开关（同后端选择的读写姿势）：写走命令、读走查询命令的只读订阅源；
+            // OutpostAudioSystem 订阅该偏好，战斗中切换即时换曲。行默认藏、扩展包已安装才显示。
+            _expBgmRow.style.display = DisplayStyle.None;
+            Bag.BindLocalizedText(Root.Q<Label>("exp-bgm-label"), "settings/expansion-bgm");
+            var bgmOn = Root.Q<Button>("exp-bgm-on");
+            var bgmOff = Root.Q<Button>("exp-bgm-off");
+            Bag.BindLocalizedText(bgmOn, "common/on");
+            Bag.BindLocalizedText(bgmOff, "common/off");
+            Bag.SubscribeClick(bgmOn, () => this.ExecuteCommand(new SetExpansionBgmCommand(true)));
+            Bag.SubscribeClick(bgmOff, () => this.ExecuteCommand(new SetExpansionBgmCommand(false)));
+            Bag.Subscribe(this.ExecuteCommand(new GetExpansionBgmCommand()), on =>
+            {
+                bgmOn.EnableInClassList("op-btn--lang-active", on);
+                bgmOff.EnableInClassList("op-btn--lang-active", !on);
+            });
 
             _expBar.style.display = DisplayStyle.None;
             Bag.SubscribeClick(_expButton, () => DownloadExpansion(loc).Forget());
@@ -179,6 +197,7 @@ namespace Game.Outpost.Windows
         {
             _expButton.style.display = DisplayStyle.None;
             _expBar.style.display = DisplayStyle.None;
+            _expBgmRow.style.display = DisplayStyle.Flex; // 已安装才露出电台曲开关
             SetExpansionStatus("settings/expansion-ready", loc);
         }
 

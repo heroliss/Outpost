@@ -32,6 +32,12 @@
                     <ui:VisualElement name="exp-fill" class="op-progress__fill" />
                 </ui:VisualElement>
                 <ui:Button name="exp-download" text="下载" class="op-btn" />
+                <!-- 电台战斗曲开关：仅扩展包已安装时显示（代码控制显隐）；写 BattlePrefsModel、即时换曲。 -->
+                <ui:VisualElement name="exp-bgm-row" class="op-lang-row">
+                    <ui:Label name="exp-bgm-label" text="电台战斗曲" class="op-label op-lang-row__label" enable-rich-text="false" />
+                    <ui:Button name="exp-bgm-on" text="开" class="op-btn op-btn--lang" />
+                    <ui:Button name="exp-bgm-off" text="关" class="op-btn op-btn--lang" />
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:Button name="close" text="关闭" class="op-btn" />
         </ui:VisualElement>

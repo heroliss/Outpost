@@ -37,6 +37,7 @@ namespace Game.Outpost.Save
                 if (settings.BattleBackend >= 0)
                     prefs.Backend.Value = (Battle.BattleSimBackend)settings.BattleBackend;
                 prefs.ShowWreckHeatmap.Value = settings.WreckHeatmap;
+                prefs.ExpansionBgm.Value = settings.ExpansionBgm;
 
                 // 扩展包已安装：后台补一次初始化（拉版本/清单，内容已在缓存不重下）——不 await，
                 // 启动不等它；音频侧按包状态懒加载，init 未完成前的战斗用默认曲、下一场自然接上。
@@ -71,6 +72,7 @@ namespace Game.Outpost.Save
                 ExpansionInstalled = IsExpansionInstalled(ctx.GetUtility<IAssetUtility>()),
                 BattleBackend = (int)ctx.GetModel<Battle.BattlePrefsModel>().Backend.CurrentValue,
                 WreckHeatmap = ctx.GetModel<Battle.BattlePrefsModel>().ShowWreckHeatmap.CurrentValue,
+                ExpansionBgm = ctx.GetModel<Battle.BattlePrefsModel>().ExpansionBgm.CurrentValue,
             };
             try
             {

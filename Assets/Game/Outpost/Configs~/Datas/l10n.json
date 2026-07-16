@@ -63,5 +63,9 @@
     { "key": "up/regen/name", "zhCn": "纳米修复", "en": "Nano Repair" },
     { "key": "up/regen/desc", "zhCn": "每秒回血 +2", "en": "Regen +2/s" },
     { "key": "up/rotation/name", "zhCn": "回转伺服", "en": "Turret Servo" },
-    { "key": "up/rotation/desc", "zhCn": "炮塔回转 +60°/秒", "en": "Rotation +60°/s" }
+    { "key": "up/rotation/desc", "zhCn": "炮塔回转 +60°/秒", "en": "Rotation +60°/s" },
+
+    { "key": "settings/expansion-bgm", "zhCn": "电台战斗曲", "en": "Radio battle track" },
+    { "key": "common/on", "zhCn": "开", "en": "On" },
+    { "key": "common/off", "zhCn": "关", "en": "Off" }
 ]

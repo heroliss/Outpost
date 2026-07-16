@@ -24,5 +24,12 @@ namespace Game.Outpost.Battle
         /// 弹丸/敌人/特效一起变速：慢放看清扫掠碰撞、快进看规模。默认 1×；离开战斗导演还原 <c>Time.timeScale = 1</c>。
         /// </summary>
         public readonly RP<float> SimSpeed = new(1f);
+
+        /// <summary>
+        /// 战斗 BGM 是否用扩展包变体「增援电台」（未安装扩展包时本开关无效、自动回落默认曲）。
+        /// 默认开 = 与"下载即启用"的旧行为一致；设置窗可切，<c>OutpostAudioSystem</c> 订阅后即时换曲（交叉淡变）。
+        /// 持久化走 <c>OutpostSettings.ExpansionBgm</c> 快照。
+        /// </summary>
+        public readonly RP<bool> ExpansionBgm = new(true);
     }
 }

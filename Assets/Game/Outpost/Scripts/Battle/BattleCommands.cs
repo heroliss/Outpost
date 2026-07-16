@@ -74,4 +74,24 @@ namespace Game.Outpost.Battle
         public ReadOnlyReactiveProperty<float> Execute(ICommandContext ctx)
             => ctx.GetModel<BattlePrefsModel>().SimSpeed;
     }
+
+    /// <summary>
+    /// 开关战斗 BGM 的扩展包变体「增援电台」（写 <see cref="BattlePrefsModel"/>；<c>OutpostAudioSystem</c>
+    /// 订阅该偏好，<b>即时生效</b>——战斗中切换会交叉淡变换曲）。落盘随关窗的设置快照。
+    /// </summary>
+    public readonly struct SetExpansionBgmCommand : ICommand
+    {
+        public readonly bool On;
+
+        public SetExpansionBgmCommand(bool on) => On = on;
+
+        public void Execute(ICommandContext ctx) => ctx.GetModel<BattlePrefsModel>().ExpansionBgm.Value = On;
+    }
+
+    /// <summary>电台 BGM 开关状态的只读订阅源（设置窗高亮回显用）。</summary>
+    public readonly struct GetExpansionBgmCommand : ICommand<ReadOnlyReactiveProperty<bool>>
+    {
+        public ReadOnlyReactiveProperty<bool> Execute(ICommandContext ctx)
+            => ctx.GetModel<BattlePrefsModel>().ExpansionBgm;
+    }
 }

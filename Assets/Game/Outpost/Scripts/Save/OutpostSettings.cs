@@ -44,5 +44,11 @@ namespace Game.Outpost.Save
 
         /// <summary>泥地热力图开关（默认关；运行时真源在 <c>BattlePrefsModel</c>，这里只是落盘快照）。</summary>
         public bool WreckHeatmap;
+
+        /// <summary>
+        /// 战斗 BGM 是否用扩展包变体「增援电台」（默认开 = 下载即启用的旧行为；老存档缺此字段时
+        /// JsonUtility 保留字段初始值，同样落到开）。运行时真源在 <c>BattlePrefsModel</c>，这里只是落盘快照。
+        /// </summary>
+        public bool ExpansionBgm = true;
     }
 }
