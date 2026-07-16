@@ -144,10 +144,11 @@ namespace Game.Outpost.Battle
         private AudioClip _sfxImpact;
 
         // 爆炸音限流按时间、不按帧："每帧 1 发"在编辑器高帧率（100~300fps）下就是每秒上百发，
-        // 0.6s 的爆炸尾巴叠出几十个并发 voice、冲破 Unity 32 实声道上限——超出的被引擎虚化（静音），
+        // 1.15s 的爆炸尾巴叠出几十个并发 voice、冲破 Unity 32 实声道上限——超出的被引擎虚化（静音），
         // 最安静的单发炮响 / 弹着叮播到一半被掐（2026-07-10 用户反馈"音效像被截断"的真凶）。
-        // ~12 发/秒 × 0.6s 尾巴 ≈ 峰值 8 个并发爆炸 voice，全场加总远离虚化线。
-        private const float BoomSfxMinInterval = 0.08f;
+        // ~9 发/秒 × 1.15s 尾巴 ≈ 峰值 10 个并发爆炸 voice，全场加总仍离虚化线有余量；
+        // 密集击杀时更少但每发更有体量的爆炸，也比"机关枪式 boom"更像战场。
+        private const float BoomSfxMinInterval = 0.11f;
         private float _lastBoomSfxTime = -1f;
 
         // 弹着「叮」（击中未击毁）的重触发限流：高射速下弹着逐帧都有，限到 ~14 发/秒当质感纹理、不当逐发汇报。
@@ -431,12 +432,14 @@ namespace Game.Outpost.Battle
             SpawnPulse(WithZ(_turret.MuzzleWorldPos, DebrisZ), MuzzleColor, 0.15f, 0.55f, 0.12f);
         }
 
-        // 开火音单发层：低射速逐发清脆单响，射速升高后（热度上来）音量渐让位给循环轰鸣、热度近满时归零。
+        // 开火音单发层：低射速逐发清脆单响，射速升高后（热度上来）音量渐让位给循环连发层、热度满时归零。
         // 最小重触发间隔丢掉超密击发——12 发/秒以上人耳已听成连串，丢发不丢听感、也不打爆 voice。
+        // 让位斜率与循环层（TurretView：heat²×0.9）配对：单发线性退、循环平方进，中段两层合计不塌陷
+        // ——旧版单发 0.87 热度就归零 + 循环上限仅 0.55，交叉点是个音量谷（"连发反而比单发小"）。
         private void TryPlayShotSfx(float now)
         {
             if (_lastShotSfxTime >= 0f && now - _lastShotSfxTime < ShotSfxMinInterval) return;
-            float volume = 0.5f * Mathf.Clamp01(1f - _fireHeat * 1.15f); // 热度 ≈0.87 起完全交给循环层
+            float volume = 0.62f * Mathf.Clamp01(1f - _fireHeat);
             if (volume <= 0.01f) return;
             _lastShotSfxTime = now;
             _audio.PlaySfx(_sfxShot, volume: volume, pitch: Random.Range(0.94f, 1.08f));

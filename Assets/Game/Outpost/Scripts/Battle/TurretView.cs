@@ -135,9 +135,10 @@ namespace Game.Outpost.Battle
         }
 
         /// <summary>
-        /// 逐帧调制火墙底噪：热度（0..1，导演按击发节奏自算）驱动音量与音高——点射几乎无声、火墙轰鸣。
-        /// 音量走热度<b>平方</b>：低射速段循环层收敛（此时逐发单响 sfx_shot 是主角），高射速段轰鸣全量——
-        /// 与单发层的"随热度让位"互补，两层在中段交叉过渡（分层设计见 BattleDirectorSystem 的开火音注释）。
+        /// 逐帧调制火墙连发层：热度（0..1，导演按击发节奏自算）驱动音量与音高——点射几乎无声、火墙全量连发。
+        /// 音量走热度<b>平方</b>：低射速段循环层收敛（此时逐发单响 sfx_shot 是主角），高射速段连发串全量——
+        /// 与单发层的"随热度线性让位"互补，两层合计在中段不塌陷（分层设计见 BattleDirectorSystem 的开火音注释）。
+        /// 上限 0.9 是全游戏最响的持续声——火墙就是这个游戏的火力幻想，必须压得住场。
         /// <paramref name="volumeScale"/> 是外部音量系数（主音量 × 音效组）：挂在对象上的组件音源不归框架
         /// 分组音量管，由业务一行乘法把它接回设置页滑条。
         /// </summary>
@@ -146,7 +147,7 @@ namespace Game.Outpost.Battle
             _sfxVolumeScale = Mathf.Clamp01(volumeScale); // 顺带缓存给伺服层（同一系数，见 UpdateServoLoop）
             if (_fireLoop == null) return;
             heat = Mathf.Clamp01(heat);
-            float v = heat * heat * 0.55f * _sfxVolumeScale;
+            float v = heat * heat * 0.9f * _sfxVolumeScale;
             if (v <= 0.005f)
             {
                 if (_fireLoop.isPlaying) _fireLoop.Pause(); // Pause 而非 Stop：热度回升时从相位中段续播，无重启爆点

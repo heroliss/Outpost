@@ -21,6 +21,16 @@
 # - 电台皮识别度：莫尔斯呼叫提前到 A 段/break（原先只在 32s 后的 C 段，前半首和默认皮几乎无差别），
 #   静电底/噼啪增益上调——切换开关应在数秒内可辨。
 #
+# 2026-07-16 四轮（用户反馈"击毁像敲铁皮无爆炸感；机炮偏小、单发缺出膛厚重感、连发反而比单发小；
+# 受创音与击毁音分不开；BGM 低频偏高"）：
+# - 拦截爆炸重做成"导弹空爆"：加低通噪声慢衰减的轰隆余韵 + 尾段短混响——爆炸与"敲击"的区别
+#   一半在衰减尾巴上；去掉金属 ring 层（弹着"叮"才是金属声的地界）。
+# - 单发炮声加 200~900Hz 报告层（等响度曲线的敏感区，"厚重感"主要住在这里）+ 低通轰鸣尾。
+# - 火墙循环从"稳态炉膛轰鸣"重做成 25 发/秒连发脉冲串：同 RMS 下稳态噪声听感远小于瞬态串，
+#   这是"连发听着比单发小"的主因（另一半在游戏侧交叉曲线，见 BattleDirectorSystem/TurretView）。
+# - 受创重音（sfx_detonate）与拦截空爆拉开性格：受创=沉/暗/装甲应力呻吟，空爆=亮劈裂/散/轰隆尾。
+# - BGM 低频回收：总线一阶低架削 ~3.5dB（RMS 归一自动把能量还给中高频，不改编曲）。
+#
 # 每个资产独立 RNG seed —— 音色可任意增删改序互不影响。战斗曲构建器 build_battle_track 被
 # gen_outpost_expansion_audio.py 复用（radio=True 换"军用电台"皮），保证两首战斗曲同一能量骨架。
 import numpy as np
@@ -283,7 +293,11 @@ def build_battle_track(rng, radio=False):
     room = reverb(to_stereo(drums + bass), mix=0.14, rt=0.9, damp=0.5)
     dry = to_stereo(drone + riser_buf) + room + hats_st
     wet = reverb(pad_st + theme_st + stabs, mix=0.28, rt=1.8, damp=0.35)
-    return wrap_loop_tail(dry + wet + extra_st, BATTLE_LOOP)
+    mix = dry + wet + extra_st
+    # 低频回收：一阶低架削 ~3.5dB（x - g·LP1 是平滑的快速低架，一阶相移小无梳状感）。
+    # RMS 归一会把削掉的能量还给中高频——频谱重心轻轻上移、总响度不变、编曲不动。
+    mix = mix - 0.35 * lowpass(mix, 130, order=1)
+    return wrap_loop_tail(mix, BATTLE_LOOP)
 
 
 def make_bgm_battle():
@@ -368,6 +382,7 @@ def make_bgm_title():
 
     mix = pad_st + to_stereo(sub) + arp + mel_st + bells_st + air_st * 0.012
     mix = reverb(mix, mix=0.36, rt=2.8, damp=0.4)
+    mix = mix - 0.28 * lowpass(mix, 110, order=1)  # 低频回收（同战斗曲的低架手法，幅度略轻）
     looped = wrap_loop_tail(mix, TITLE_LOOP)
     print(seam_report(looped, "bgm_title"))
     out("bgm_title", looped, BGM_RMS, peak_cap=0.7)
@@ -419,33 +434,40 @@ def make_wave():
 
 
 def make_explosion():
-    # 拦截击毁：五层——起爆高频劈裂 + 低频下扫体 + 噪声爆膛（LP 从 6.5k 下扫，前段亮）+ 碎裂噼啪 + 50Hz 余鸣。
-    # 真实爆炸的第一毫秒是宽带冲击（很亮），之后才是低频轰鸣——没有高频起爆就是"敲桌子"。
+    # 拦截击毁（导弹空爆）：起爆劈裂 + 低频冲击体 + 爆膛下扫 + 轰隆余韵（低通噪声慢衰减）+ 碎片噼啪，
+    # 整体过短混响并回单声道（3D 位置播放要求 mono）。爆炸与"敲击"的听感区别一半在衰减尾巴：
+    # 前 20ms 宽带冲击给"炸"、之后 0.5s+ 的低频轰隆给"爆炸的体量"——没有尾巴就是敲铁皮。
     rng = np.random.default_rng(13)
-    sec = 0.75
+    sec = 1.15
     n = samples(sec)
     t = np.arange(n) / RATE
-    crack = highpass(white(sec, rng), 2500) * env_exp(n, 0.014)
-    body = osc_sine(38 + 120 * np.exp(-t * 16), sec) * env_exp(n, 0.13)
-    burst = lowpass_sweep(white(sec, rng), 6500 * np.exp(-t * 9) + 300) * env_exp(n, 0.16)
-    snap = bandpass(crackle(sec, rng, density_hz=70, tau=0.12), 1500, 7500) * env_exp(n, 0.2)
-    hum = osc_sine(52, sec) * env_exp(n, 0.28)
-    x = softclip(0.6 * crack + 0.85 * body + 0.6 * burst + 0.5 * snap + 0.12 * hum, drive=1.4)
+    crack = highpass(white(sec, rng), 2500) * env_exp(n, 0.012)
+    body = osc_sine(30 + 135 * np.exp(-t * 13), sec) * env_exp(n, 0.17)
+    burst = lowpass_sweep(white(sec, rng), 7000 * np.exp(-t * 8) + 250) * env_exp(n, 0.11)
+    rumble = lowpass(white(sec, rng), 380) * env_exp(n, 0.4)
+    debris = bandpass(crackle(sec, rng, density_hz=45, tau=0.28), 1200, 6500) * env_exp(n, 0.32)
+    x = softclip(0.55 * crack + 0.9 * body + 0.6 * burst + 0.55 * rumble + 0.4 * debris, drive=1.5)
+    x = reverb(x, mix=0.16, rt=1.0, damp=0.5).mean(axis=1)
     out("sfx_explosion", x, SFX_RMS)
 
 
 def make_detonate():
-    # 漏怪自爆炸基地（受创聚合窗口到期播）：更深更长的 boom——下扫至 30Hz、40Hz 震腔殿后。
+    # 哨站受创重音（受创聚合窗口到期播，跟随主观镜头而非敌人位置——语义是"我们被砸了"）：
+    # 深冲击下扫 + 低通砸击 + 装甲结构应力呻吟（低频非谐金属部分音簇、缓慢音高晃动）+ 40Hz 震腔殿后。
+    # 性格与拦截空爆刻意拉开：空爆=亮劈裂/宽带散开/轰隆尾，受创=沉/暗/金属应力——受击方 vs 击毁方，
+    # 玩家闭眼也要能分清"是我在挨打"。
     rng = np.random.default_rng(14)
-    sec = 1.15
+    sec = 1.2
     n = samples(sec)
     t = np.arange(n) / RATE
-    body = osc_sine(30 + 95 * np.exp(-t * 11), sec) * env_exp(n, 0.2)
-    crack = highpass(white(sec, rng), 2000) * env_exp(n, 0.016)  # 起爆劈裂：比拦截爆炸略钝，但不能没有
-    burst = lowpass_sweep(white(sec, rng), 4500 * np.exp(-t * 7) + 200) * env_exp(n, 0.22)
-    snap = bandpass(crackle(sec, rng, density_hz=50, tau=0.18), 1000, 6000) * env_exp(n, 0.3)
-    cavity = osc_sine(40, sec) * env_exp(n, 0.45)
-    x = softclip(0.95 * body + 0.4 * crack + 0.55 * burst + 0.4 * snap + 0.18 * cavity, drive=1.6)
+    body = osc_sine(26 + 90 * np.exp(-t * 9), sec) * env_exp(n, 0.2)
+    thud = lowpass(white(sec, rng), 320) * env_exp(n, 0.06)
+    groan = np.zeros(n)
+    for f, g, tau in ((82, 1.0, 0.5), (147, 0.65, 0.38), (233, 0.45, 0.28), (341, 0.3, 0.2)):
+        groan += g * osc_sine(f * (1 + 0.004 * np.sin(2 * np.pi * 1.3 * t)), sec) * env_exp(n, tau)
+    crack = highpass(white(sec, rng), 1800) * env_exp(n, 0.01)
+    cavity = osc_sine(40, sec) * env_exp(n, 0.5)
+    x = softclip(0.95 * body + 0.55 * thud + 0.5 * groan + 0.35 * crack + 0.18 * cavity, drive=1.6)
     out("sfx_detonate", x, SFX_RMS)
 
 
@@ -488,19 +510,22 @@ def make_retreat():
 
 
 def make_shot():
-    # 单发炮声（低射速段主角）：炮口爆膛 crack + 165→62Hz 体腔下扫 + 高频 sizzle + 金属簧片瞬态 + 机械短尾。
-    # 高射速段由 sfx_fire_loop 接棒（>15Hz 重复事件人耳听成连续音）——限流与交叉见 director/TurretView。
-    # crack/sizzle 占比刻意高：低频体腔给"分量"、高频劈裂给"清脆"，只有前者听感是闷响。
+    # 单发炮声（低射速段主角）：出膛 crack + 高频 sizzle + 低频冲击体（170→45Hz 下扫）
+    # + 200~900Hz 报告层 + 低通轰鸣尾。高射速段由 sfx_fire_loop 接棒——限流与交叉见 director/TurretView。
+    # "厚重感"主要住在报告层（等响度曲线的敏感区，胸腔感）和轰鸣尾（炮声在开阔地的余韵）；
+    # 只有低频体腔+短瞬态就是干瘪的"砰"（鞭炮），crack/sizzle 保清脆、报告层+尾巴给分量。
     rng = np.random.default_rng(16)
-    sec = 0.25
+    sec = 0.5
     n = samples(sec)
     t = np.arange(n) / RATE
     crack = highpass(white(sec, rng), 2200) * env_exp(n, 0.012)
     sizz = bandpass(white(sec, rng), 3500, 9500) * env_exp(n, 0.03)
-    body = osc_sine(62 + 103 * np.exp(-t * 20), sec) * env_exp(n, 0.055)
-    ring = osc_sine(1400, sec) * env_exp(n, 0.014)
-    mech = lowpass(white(sec, rng), 500) * env_exp(n, 0.05)
-    x = softclip(0.85 * crack + 0.35 * sizz + 0.75 * body + 0.18 * ring + 0.15 * mech, drive=1.3)
+    body = osc_sine(45 + 125 * np.exp(-t * 15), sec) * env_exp(n, 0.075)
+    punch = bandpass(white(sec, rng), 200, 900) * env_exp(n, 0.04)
+    boom_tail = lowpass(white(sec, rng), 500) * env_exp(n, 0.13)
+    # 配比原则：crack/sizzle 保"清脆"（质心目标 ~1000Hz，别掉回 3 位数变闷响），
+    # body/punch/tail 给"出膛分量"（胸腔感+余韵）——两头都要，偏哪头都会收到试听反馈。
+    x = softclip(0.78 * crack + 0.35 * sizz + 0.78 * body + 0.7 * punch + 0.3 * boom_tail, drive=1.4)
     out("sfx_shot", x, SFX_RMS)
 
 
@@ -518,23 +543,32 @@ def make_impact():
 
 
 def make_fire_loop():
-    # 火墙循环底噪（2s 无缝）：52Hz 锯齿 buzz（整 104 周期）+ 26Hz 亚低频 + 宽带"怒吼"噪声（环形淡接）
-    # + 13Hz 机械纹波 AM（整 26 周期）。运行时 TurretView 随热度调 volume/pitch（0.85~1.3）。
-    # ⚠ 周期信号过滤波器会带启动瞬态（首尾滤波状态不同=接缝跳变）：tile 两圈取第二圈=全程稳态、逐位周期。
+    # 火墙循环（2s 无缝）：25 发/秒的连发脉冲串（每发=微型炮响：低频 thump + 中频爆膛 + 高频 snap，
+    # 逐发增益微随机防"缝纫机"）+ 宽带怒吼/嘶声底床。运行时 TurretView 随热度调 volume/pitch，
+    # pitch 0.85~1.3 把发数扫到 21~32 发/秒（读成"转速拉起"）。
+    # 为什么是脉冲串不是轰鸣：同 RMS 下稳态噪声的听感远小于瞬态串（人耳对瞬态敏感）——旧版纯
+    # "炉膛轰鸣"是"连发听着反而比单发小"的主因；机炮连发本来就是密集炮串，瞬态密度即响度。
+    # 循环闭合：整 50 发/圈、脉冲尾巴经 wrap_loop_tail 叠回头部（接缝落在脉冲网格上天然被掩蔽）；
+    # 噪声底床单独环形淡接。
     rng = np.random.default_rng(18)
     loop = 2.0
+    rep = 25.0
     n = samples(loop)
-    t = np.arange(n) / RATE
-    buzz = lowpass(np.tile(osc_saw(52.0, loop), 2), 750)[n:]
-    sub = osc_sine(26.0, loop)
+    imp = silence(loop + 0.3)
+    for i in range(int(loop * rep)):
+        dur = 0.12
+        nn = samples(dur)
+        tt = np.arange(nn) / RATE
+        thump = osc_sine(65 + 150 * np.exp(-tt * 40), dur) * env_exp(nn, 0.02)
+        burst = bandpass(white(dur, rng), 250, 3200) * env_exp(nn, 0.011)
+        snap = highpass(white(dur, rng), 3200) * env_exp(nn, 0.005)
+        mix_into(imp, 0.9 * thump + 0.65 * burst + 0.3 * snap, i / rep, gain=0.9 + 0.2 * rng.random())
+    imp = wrap_loop_tail(imp, loop)
     roar = bandpass(white(loop + 0.56, rng), 130, 1400)[samples(0.5):]
     roar = loop_crossfade(roar, 0.06)[:n]
-    rattle = bandpass(white(loop + 0.56, rng), 1800, 3600)[samples(0.5):]
-    rattle = loop_crossfade(rattle, 0.06)[:n]
-    hiss = bandpass(white(loop + 0.56, rng), 3600, 8000)[samples(0.5):]  # 火焰高频嘶声：没有它是闷吼
+    hiss = bandpass(white(loop + 0.56, rng), 3600, 9000)[samples(0.5):]  # 火焰高频嘶声：没有它是闷吼
     hiss = loop_crossfade(hiss, 0.06)[:n]
-    am = 0.72 + 0.28 * np.sin(2 * np.pi * 13.0 * t)
-    x = (0.6 * buzz + 0.25 * sub + 0.5 * roar + 0.14 * rattle + 0.07 * hiss) * am
+    x = softclip(imp + 0.28 * roar + 0.06 * hiss, drive=1.3)
     print(seam_report(x, "sfx_fire_loop"))
     out("sfx_fire_loop", x, SFX_RMS)
 
