@@ -133,6 +133,9 @@ public class HudView : MonoViewBase
 | [HybridCLR](https://github.com/focus-creative-games/hybridclr) | 代码热更 | 列表驱动的热更范围 + Boot 引导（ADR-0008） |
 | [Luban](https://github.com/focus-creative-games/luban) | 配置表 | 构建期生成代码/数据/清单，运行期自加载配置服务（ADR-0009） |
 | [Odin Inspector](https://odininspector.com) | Inspector 扩展 | 接口类型字段序列化、自定义绘制器 |
+| [AnkleBreaker Unity MCP](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin) | 编辑器自动化 | 让 AI 经带队列与 Undo 的结构化工具安全操作 Unity Editor |
+
+<img src="https://raw.githubusercontent.com/AnkleBreaker-Studio/unity-mcp-plugin/main/icon.png" alt="AnkleBreaker MCP logo" width="24"> **Powered by AnkleBreaker MCP**。
 
 ---
 
