@@ -38,6 +38,14 @@ MonoBehaviour:
         AddressRuleName: AddressByFileName
         PackRuleName: PackDirectory
         FilterRuleName: CollectPrefab
+        AssetTags:
+        UserData:
+      - CollectPath: Assets/Game/Framework/Test/Res
+        CollectorGUID: f3b1a899d1bd4ed1a20aa35c0c4d7d6f
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackSeparately
+        FilterRuleName: CollectScene
         AssetTags: 
         UserData: 
     - GroupName: FrameworkDemoGroup
