@@ -26,6 +26,11 @@ namespace Game.Outpost.Battle
             base.Awake(); // 注入 + 绑定 Context
             Bag.Subscribe(_button.onClick, () => this.ExecuteCommand(new RetreatCommand()));
 
+            // BattleState 只等附加场景加载；导演还要异步加载配置与音频。未就绪时禁用按钮，
+            // 避免玩家点击后命令被导演初始化守卫静默忽略。
+            var battle = this.ExecuteCommand(new GetBattleReadModelCommand());
+            Bag.Subscribe(battle.IsReady, ready => _button.interactable = ready);
+
             var loc = this.GetUtility<ILocalizationUtility>();
             Bag.Subscribe(loc.Locale, _ => _label.text = loc.Get("hud/retreat"));
         }

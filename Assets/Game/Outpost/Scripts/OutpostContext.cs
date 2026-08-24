@@ -55,9 +55,10 @@ namespace Game.Outpost
             builder.RegisterOwned(new AudioUtility(), typeof(IAudioUtility));
 
             // 本地化：文本源 = 业务 adapter 包自己的 Luban 表（TbL10N）。文本源要吃配置表服务（场景组件 Awake 注册），
-            // 用 RegisterFactory 让容器解决依赖顺序——首次解析（进标题开窗绑定文本）时配置服务早已注册。
+            // 用 RegisterOwnedFactory 让容器解决依赖顺序——首次解析（进标题开窗绑定文本）时配置服务早已注册；
+            // LocalizationUtility 实现 IDisposable，owned factory 保证它仍随根 Context 释放，不因懒构造漏掉所有权。
             // 初始语言按系统推断，玩家选过语言则启动时 LoadSettingsCommand 回灌；中文是源语言，作 fallback。
-            builder.RegisterFactory(
+            builder.RegisterOwnedFactory(
                 c => new LocalizationUtility(
                     new OutpostTextSource((IConfigUtility<Tables>)c.Resolve(typeof(IConfigUtility<Tables>))),
                     initialLocale: OutpostLocales.FromSystem(),

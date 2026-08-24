@@ -10,6 +10,12 @@ namespace Game.Outpost.Battle
     /// </summary>
     public sealed class BattleModel : IModel
     {
+        /// <summary>
+        /// 战斗导演已完成配置、资源和模拟后端初始化，玩家命令可以被可靠接收。
+        /// 状态进入不等于可交互：<c>BattleState</c> 只等待场景加载，本标志覆盖场景内异步 Setup 的剩余窗口。
+        /// </summary>
+        public readonly RP<bool> IsReady = new(false);
+
         public readonly RP<float> PlayerHp = new(0);
         public readonly RP<float> PlayerMaxHp = new(0);
         public readonly RP<int> Wave = new(0);

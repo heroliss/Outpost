@@ -325,6 +325,7 @@ namespace Game.Outpost.Battle
             _model.PlayerMaxHp.Value = _sim.PlayerMaxHp;
             WriteModel();
             _ready = true;
+            _model.IsReady.Value = true;
         }
 
         // 接缝的后端工厂：ECS 后端就是多出来的这一个分支（ADR-0030），事件→表现翻译层、Model、HUD 全部零改动。
@@ -457,6 +458,8 @@ namespace Game.Outpost.Battle
 
             if (_sim.Phase == BattlePhase.Defeat)
             {
+                // 内部仍要驱动结算倒计时，但所有面向玩家的交互从这一帧起应立即关闭。
+                _model.IsReady.Value = false;
                 _ending = true;
                 _endTimer = _resultDelay;
                 // 终局强调：战败红色大脉冲，从哨站位置扩散 + 下行失守音。
@@ -875,6 +878,9 @@ namespace Game.Outpost.Battle
         public void Retreat()
         {
             if (!_ready || _ending || _sim == null) return;
+            // 对外立即关闭交互，但内部 _ready 仍表示“导演已完成初始化、可继续驱动收尾”。若把它也清掉，
+            // Update 会在 _ending 倒计时前提前 return，撤离便永远无法进入结算。
+            _model.IsReady.Value = false;
             _retreated = true;
             _ending = true;
             _endTimer = 0.6f;
@@ -1007,6 +1013,7 @@ namespace Game.Outpost.Battle
         private void GoToResult()
         {
             _ready = false;
+            _model.IsReady.Value = false;
             var result = new BattleResult(_sim.WaveIndex, _sim.Score, _sim.Kills, _retreated);
             FlowNav.Go(this.GetUtility<IGameFlow>(), new ResultState(result));
         }

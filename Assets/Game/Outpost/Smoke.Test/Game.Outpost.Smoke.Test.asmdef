@@ -1,0 +1,27 @@
+{
+    "name": "Game.Outpost.Smoke.Test",
+    "rootNamespace": "Game.Outpost.Smoke.Test",
+    "references": [
+        "Game.Outpost",
+        "Game.Framework",
+        "Game.Framework.UI",
+        "Game.Framework.UI.Toolkit",
+        "UniTask",
+        "UnityEngine.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "R3.dll",
+        "Sirenix.Serialization.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

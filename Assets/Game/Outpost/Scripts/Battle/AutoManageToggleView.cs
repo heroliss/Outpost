@@ -12,7 +12,7 @@ namespace Game.Outpost.Battle
     /// <summary>
     /// 托管模式开关（HUD 屏幕按钮，UGUI 路径）：点击切换「托管开/关」，开启后波间三选一由导演自动选卡、玩家进入纯观战。
     /// 只读订阅 <see cref="UpgradeChoiceReadModel.AutoManaged"/> 回显按钮文案 / 配色，写只走 <see cref="SetAutoManageCommand"/>——
-    /// 读写分离同其余 View：看得到状态、改不了 Model，切换意图经命令中转到导演。可随时点、随时开关。
+    /// 读写分离同其余 View：看得到状态、改不了 Model，切换意图经命令中转到导演。战斗就绪后才允许交互。
     /// </summary>
     public sealed class AutoManageToggleView : MonoViewBase
     {
@@ -35,6 +35,10 @@ namespace Game.Outpost.Battle
             base.Awake(); // 注入 + 绑定 Context，之后即可经 Command 拿只读订阅源
 
             var rm = this.ExecuteCommand(new GetUpgradeChoiceCommand());
+            var battle = this.ExecuteCommand(new GetBattleReadModelCommand());
+
+            // 初始化完成前与结算收束期都关闭交互，避免按钮看似可用而导演静默忽略命令。
+            Bag.Subscribe(battle.IsReady, ready => _button.interactable = ready);
 
             // 回显：订阅即得当前值，托管状态任意时刻变化都刷新文案与配色；文案绑本地化 key（状态 × 语言双源，§21）。
             var loc = this.GetUtility<ILocalizationUtility>();

@@ -161,7 +161,7 @@ namespace Game.Outpost.Windows
             SetExpansionStatus("settings/expansion-downloading", loc);
             try
             {
-                // Initialize 幂等且失败不抛（结果写包状态）：先拉版本/清单，失败直接走重试态。
+                // Initialize 幂等且普通失败不抛（结果写包状态）；调用者取消仍保持 OCE。
                 await assets.Initialize(AssetPackages.OutpostExpansionPackage);
                 if (assets.GetInitState(AssetPackages.OutpostExpansionPackage).CurrentValue != AssetInitState.Ready)
                     throw new InvalidOperationException("扩展包初始化未就绪（拉取版本/清单失败）。");

@@ -11,6 +11,9 @@ namespace Game.Outpost.Battle
     /// </summary>
     public readonly struct BattleReadModel
     {
+        /// <summary>战斗命令是否已可交互；HUD 应据此禁用会被初始化守卫拒绝的操作。</summary>
+        public readonly ReadOnlyReactiveProperty<bool> IsReady;
+
         public readonly ReadOnlyReactiveProperty<float> Hp;
         public readonly ReadOnlyReactiveProperty<float> MaxHp;
         public readonly ReadOnlyReactiveProperty<int> Wave;
@@ -37,6 +40,7 @@ namespace Game.Outpost.Battle
 
         public BattleReadModel(BattleModel m)
         {
+            IsReady = m.IsReady;
             Hp = m.PlayerHp;
             MaxHp = m.PlayerMaxHp;
             Wave = m.Wave;

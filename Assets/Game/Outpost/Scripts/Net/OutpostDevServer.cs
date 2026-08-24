@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Game.Framework.Logging;
 using Game.Framework.Network;
 using Game.Framework.Utility;
 
@@ -55,6 +56,7 @@ namespace Game.Outpost.Net
         };
 
         private volatile bool _running;
+        private bool _disposed;
 
         private sealed class WsClient
         {
@@ -71,26 +73,48 @@ namespace Game.Outpost.Net
 
         public OutpostDevServer()
         {
-            int httpPort = FindFreeHttpPort(out _http);
-            HttpBaseUrl = $"http://127.0.0.1:{httpPort}";
+            HttpListener http = null;
+            TcpListener wsListener = null;
+            try
+            {
+                int httpPort = FindFreeHttpPort(out http);
+                wsListener = new TcpListener(IPAddress.Loopback, 0); // 端口 0 = OS 分配空闲端口
+                wsListener.Start();
 
-            _wsListener = new TcpListener(IPAddress.Loopback, 0); // 端口 0 = OS 分配空闲端口
-            _wsListener.Start();
-            WsUrl = $"ws://127.0.0.1:{((IPEndPoint)_wsListener.LocalEndpoint).Port}/";
-
-            _running = true;
-            _ = HttpAcceptLoop();
-            _ = WsAcceptLoop();
+                _http = http;
+                _wsListener = wsListener;
+                HttpBaseUrl = $"http://127.0.0.1:{httpPort}";
+                WsUrl = $"ws://127.0.0.1:{((IPEndPoint)wsListener.LocalEndpoint).Port}/";
+                _running = true;
+                _ = HttpAcceptLoop();
+                _ = WsAcceptLoop();
+            }
+            catch
+            {
+                try { wsListener?.Stop(); } catch { }
+                try { http?.Close(); } catch { }
+                try { _cts.Cancel(); } catch { }
+                try { _cts.Dispose(); } catch { }
+                throw;
+            }
         }
 
         public void Dispose()
         {
-            if (!_running) return;
+            if (_disposed) return;
+            _disposed = true;
+            bool wasRunning = _running;
             _running = false;
-            _cts.Cancel();
-            try { if (_http.IsListening) _http.Stop(); } catch { /* 已停 */ }
+            if (wasRunning)
+            {
+                try { _cts.Cancel(); }
+                catch (Exception e) { Log.Error("Cancellation callback threw while stopping the Outpost dev server; listener cleanup will continue.", e, "OutpostDevServer"); }
+            }
+            try { if (_http.IsListening) _http.Stop(); }
+            catch (Exception e) { Log.Error("HTTP listener threw while stopping; remaining dev-server cleanup will continue.", e, "OutpostDevServer"); }
             try { _http.Close(); } catch { /* 已停 */ }
-            try { _wsListener.Stop(); } catch { /* 已停 */ }
+            try { _wsListener.Stop(); }
+            catch (Exception e) { Log.Error("WebSocket listener threw while stopping; active clients will still be closed.", e, "OutpostDevServer"); }
 
             // 停监听只挡新连接；已建立连接的读循环阻塞在 ReadAsync（Mono 的 NetworkStream 不响应 ct），主动关 socket 让它退出。
             lock (_wsClients)
@@ -99,7 +123,7 @@ namespace Game.Outpost.Net
                     try { client.Tcp.Close(); } catch { /* 已断 */ }
                 _wsClients.Clear();
             }
-            _cts.Dispose();
+            try { _cts.Dispose(); } catch { }
         }
 
         // ── HTTP：排行榜读写 ─────────────────────────────────────────────────
@@ -107,6 +131,7 @@ namespace Game.Outpost.Net
         private static int FindFreeHttpPort(out HttpListener listener)
         {
             // 18500 起扫描：demo 服务器占 18400 段、框架测试服务器占 18200 段，错开避免共存冲突。
+            Exception lastError = null;
             for (int port = 18500; port < 18560; port++)
             {
                 var candidate = new HttpListener();
@@ -117,12 +142,24 @@ namespace Game.Outpost.Net
                     listener = candidate;
                     return port;
                 }
-                catch (HttpListenerException)
+                catch (HttpListenerException e)
                 {
-                    ((IDisposable)candidate).Dispose(); // 端口被占，换下一个
+                    lastError = e;
+                    candidate.Close();
+                }
+                catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressAlreadyInUse)
+                {
+                    lastError = e;
+                    candidate.Close(); // Unity Mono 的 HttpListener.Start 可能直接透出该异常
+                }
+                catch
+                {
+                    candidate.Close();
+                    throw;
                 }
             }
-            throw new InvalidOperationException("18500-18559 无可用端口，无法启动 Outpost dev server。");
+            listener = null;
+            throw new InvalidOperationException("18500-18559 无可用端口，无法启动 Outpost dev server。", lastError);
         }
 
         private async Task HttpAcceptLoop()
