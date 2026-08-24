@@ -10,7 +10,7 @@
 
 | 特点 | 一句话说明 |
 |---|---|
-| **单向数据流** | View 只观察、不写入；状态变化必须经 Command → System → Model |
+| **单向数据流** | View 只观察、不写入；状态变化统一经 Command，简单操作直达 Model，复杂规则委托 System |
 | **类型驱动** | 事件、命令、服务都用类型区分，避免字符串和枚举的脆弱标识 |
 | **Hierarchy 原生** | Context 父子关系直接用 GameObject 层级表达，拖动节点即可重组依赖图 |
 | **多 Context 嵌套** | 子 Context 自动继承父级服务，平行 Context 完全隔离——天然适合多场景、多模块、Mock 测试 |
@@ -31,7 +31,7 @@
 
 图上几条关键信息：
 
-- **写入是单向链路** —— View 任何状态改动必须走 `Command → System → Model`，View 自身不直接写
+- **写入是单向链路** —— View 任何状态改动都先经过 Command；简单原子操作可 `Command → Model`，复杂或可复用规则走 `Command → System → Model`，View 自身不直接写
 - **读取也经过 Command** —— `ReactiveProperty` 持续推送当前值（给 UI 文本订阅）、`Event` 瞬时通知一次（给动画 / 音效）；View 通过只读查询 Command 取得订阅源，两条响应路径互不知道对方存在
 - **MonoBehaviour / Rigidbody 正交于五层** —— 任意层都可以继承 MonoBehaviour 拿到 Inspector 序列化与 Unity 生命周期，引擎能力不影响架构定位
 - **权限由接口编译期约束** —— `IModel` 不能调用 `ISystem`、`View` 不能写 `Model`，越界默认编译报错；`[Inject]` 注入在注入期做同源校验。这是**防误用**的类型约束（刻意绕过——如强转 Context——仍然可行），目标是让"顺手写错"变得困难、让越界必须显式可见，而非运行时沙箱
@@ -47,7 +47,7 @@ public class PlayerModel : MonoModelBase
     [field: SerializeField] public RP<int> HP { get; private set; } = new(100);
 }
 
-// System —— 修改数据的合法来源；RP<T> IS-A ReadOnlyReactiveProperty<T>，直接赋值，零分配
+// System —— 可复用业务规则的主要写入者；RP<T> IS-A ReadOnlyReactiveProperty<T>，直接赋值，零分配
 public interface IPlayerSystem : ISystem
 {
     ReadOnlyReactiveProperty<int> HP { get; }   // 只读响应式状态，View 经查询 Command 订阅
@@ -113,8 +113,8 @@ public class HudView : MonoViewBase
 
 以下不是愿景，是当前仓库里**可复核**的维护纪律：
 
-- **测试**：180+ 条 PlayMode 测试秒级跑完、全绿——覆盖容器解析契约、命令分发（含 struct 零装箱路径）、事件总线、生命周期级联（DisposableBag / 取消传导 / 异常隔离）、对象池（重复归还 / 外来实例检测）、UI 窗口栈（cover-reveal / 缓存 / 模态 / 并发打开）。核心编排（如 `UIUtility`）刻意做成渲染中立的纯 C#，可脱离场景单测。命令行护栏：`Tools/run-tests.ps1` batchmode 全量跑（CI / 推送前用）。
-- **文档四层，且与代码同步维护**：本 README（门面）→ [用户手册 18 章](docs/framework-guide.md)（心智模型 + API）→ [ADR](docs/adr/README.md)（每个关键决策的"为什么"与代价）→ 分层 `AGENTS.md`（就近自动加载的协作约束）。改设计必须同步改文档是硬规矩，不留"文档说 A 代码做 B"。
+- **测试**：400+ 条 PlayMode 测试 + EditMode 编辑器测试（2026-08-24 基线：416 + 91，全绿）——覆盖容器解析契约、命令分发（含 struct 零装箱路径）、事件总线、初始化失败事务与生命周期级联、AI PlayMode 无弹窗预检、诊断面板编辑态防误报、Editor 窄窗口响应式布局、资源原生操作所有权与跨 Provider 包级并发、内嵌服务器端口回退、Demo 教学契约与源码跳转防腐、异步按钮取消/异常/防重入、对象池、UI Loading 并发所有权与窗口栈、UI 嵌入桥低清等比降采样，以及 Outpost 双后端确定性回归与“标题 → 战斗 → 撤离 → 结算 → 回标题”的真实玩家路径。核心编排（如 `UIUtility`）刻意做成渲染中立的纯 C#，可脱离场景单测。交互式 Editor 经 `SSFramework/诊断/AI 自动化/PlayMode 测试预检（保存脏场景）` 后可由 MCP 无弹窗启动；命令行护栏则在关闭本工程 Editor 后由 `Tools/run-tests.ps1` 默认顺序跑 EditMode + PlayMode，并分别保留 NUnit XML / Editor 日志（CI / 推送前用）。
+- **文档四层，且与代码同步维护**：本 README（门面）→ [用户手册 28 章](docs/framework-guide.md)（心智模型 + API）→ [ADR](docs/adr/README.md)（每个关键决策的“为什么”与代价）→ 分层 `AGENTS.md`（就近自动加载的协作约束）。改设计必须同步改文档是硬规矩，不留“文档说 A、代码做 B”。
 - **权限双保险**：编译期 `ICanXxx` 接口约束 + `[Inject]` 注入期同源镜像校验（`InjectionPlan`），两条路径共用一套权限模型，堵住"扩展方法编译不过就换注入绕过"的口子。
 - **防泄漏是设计目标不是补丁**：linked CTS 单槽缓存与移交释放、池租借登记的提前归还摘除、停放节点自愈重建、Dispose 幂等与逆序释放——这些边界行为都有注释解释"为什么"并有测试盯着。
 - **零编译警告**：包括 XML doc 的 cref 完整性（泛型尖括号转义约定见 `AGENTS.md`）。
@@ -143,7 +143,10 @@ public class HudView : MonoViewBase
 
 | 文档 | 适用对象 | 内容 |
 |---|---|---|
-| **[用户手册](docs/framework-guide.md)** | 框架使用者 | 18 章完整教程，从理念到 API 速查 |
+| **[用户手册](docs/framework-guide.md)** | 框架使用者 | 28 章完整教程，从理念到 API 速查 |
+| [持续完善计划](docs/project-improvement-plan.md) | 维护者 / 评审者 | 当前健康基线、已完成闭环与下一批优先级 |
+| [Framework Module 地图](docs/framework-module-map.md) | 架构维护者 | 22 个 asmdef 的职责、依赖方向与删除测试 |
+| [架构决策记录](docs/adr/README.md) | 设计评审者 | 关键决策的 Context / Decision / Consequences |
 | [框架使用规则](Assets/Game/AGENTS.md) | AI Agent / 团队成员 | 业务代码遵循的核心约定 |
 | [框架内部编码规则](Assets/Game/Framework/AGENTS.md) | 框架维护者 | 改框架源码时的内部规范 |
 | [项目协作规则](AGENTS.md) | 所有协作者 | 项目级 AI 协作约定 |
@@ -154,7 +157,9 @@ public class HudView : MonoViewBase
 1. 框架理念 / 2. 架构总览 / 3. 快速开始 / 4. Context / 5. Model 与 Event
 6. System / 7. Utility / 8. View / 9. Command / 10. 多上下文
 11. 容器注册与解析规则 / 12. 纯代码上下文 / 13. AssetReference / 14. 数据流统一抽象
-15. 热更新（HybridCLR） / 16. 配置表（Luban） / 17. UI 框架 / 18. 推荐项目结构
+15. 热更新（HybridCLR） / 16. 配置表（Luban） / 17. UI 框架 / 18. 本地存储
+19. 音频 / 20. 游戏流程 / 21. 本地化 / 22. 字体 / 23. 框架诊断面板
+24. 响应式集合与列表绑定 / 25. 网络 / 26. 推荐项目结构 / 27. UI 嵌入桥 / 28. 日志
 
 ---
 
@@ -164,12 +169,12 @@ public class HudView : MonoViewBase
 
 | 分类 | 章节 |
 |---|---|
-| 入门 | 框架总览 · 最小闭环（View → Command → Model 单向数据流） |
-| 核心 | Model · 状态与 Inspector / Command · 三态 / System · 逻辑归位 / Event · 事件总线 / 依赖注入 · Container / 多 Context · 作用域树 / 生命周期 · DisposableBag / View · MonoViewBase / View · UIToolkit |
-| 能力 | 对象池 · C#/GameObject / 资源加载 / UI 框架 · 窗口层级 |
-| 进阶 | 配置表 · Luban / 热更 · HybridCLR / YooAsset · 底层实现 等 |
+| 入门 | 框架总览 / 最小闭环 / 接入你的项目 |
+| 核心 | Model / Command / System / Event / 双 View 后端 / 多 Context / Container / 服务注册生成 / 生命周期 / 诊断面板 |
+| 能力 | 对象池 / 资源 / 存储 / 日志 / 音频 / Flow / 本地化 / 字体 / UI 窗口与列表 / UI 嵌入桥 / 网络 |
+| 进阶 | R3 / YooAsset / 资源运营端到端 / HybridCLR / Luban / DOTS-ECS 融合 |
 
-每个操作按钮都是原子的框架操作，旁边附「查看源码」跳转，直接对照代码理解因果。
+能力点章节的按钮通常保持“一次操作、一个可观察结果”，旁边附「查看源码」跳转以便直接对照因果；端到端工作流章节会明确组合前面已讲过的原语，让读者看到完整编排。
 
 ---
 
@@ -184,19 +189,19 @@ SSFramework/
 │           ├── AGENTS.md              ← 框架内部规则（含程序集结构表）
 │           ├── Core/                  ← 运行时内核（Game.Framework）
 │           │   ├── Context/ Internal/ ← GameContext、Container、DI、注入
-│           │   ├── Command/ System/ Model/ Event/ Utility/ View/  ← 五层
-│           │   ├── Lifecycle/         ← DisposableBag
-│           │   ├── Reactive/          ← RP<T>
-│           │   ├── Pool/              ← 对象池（C# + GameObject）
-│           │   └── Asset/             ← 资源系统抽象（IAssetProvider / AssetReference）
+│           │   ├── Command/ Systems/ Model/ Event/ Utility/ View/ ← 五层
+│           │   ├── Lifecycle/ Reactive/ Pool/ Asset/              ← 生命周期与通用原语
+│           │   └── Audio/ Flow/ Localization/ Logging/ Network/ Storage/ Diagnostics/
+│           │                              ← 可按 Interface 组合的运行时能力
 │           ├── Asset.Yoo/             ← YooAsset provider 模块
-│           ├── UI/ UI.UGui/ UI.Toolkit/ ← UI 框架核心 + 双后端 adapter
+│           ├── UI/ UI.UGui/ UI.Toolkit/ UI.Bridge/ ← UI 核心、双后端与嵌入桥
 │           ├── Config/                ← 配置表运行时模块 + Luban 生成管线（Editor）
+│           ├── Fonts/ Network.Proto/  ← 可删除的字体链 / Protobuf Adapter 模块
 │           ├── Boot/                  ← 热更引导薄壳（AOT）
 │           ├── Build/Editor/          ← 资源 / 热更构建管线
 │           ├── Editor/                ← 通用编辑器（RPDrawer / AssetReferenceDrawer）
 │           ├── Demo/                  ← 可运行教学 demo
-│           └── Test/                  ← PlayMode 测试
+│           └── Test/                  ← EditMode + PlayMode 测试
 ├── docs/                              ← 用户手册、ADR、协作指南
 ├── README.md                          ← 本文件
 ├── AGENTS.md                          ← 项目级协作规则
