@@ -62,7 +62,7 @@
 - **M5 玩家包端到端（Windows IL2CPP，非开发包）**：BootScene → HotUpdateLauncher 初始化代码包 → CDN 拉清单 → 按拓扑序加载 9 个热更 DLL → `GameEntry`(v4) 代码引导栈 → DefaultPackage（内置首包）初始化 → **OutpostGame 场景从 bundle 拉起**（含热更程序集脚本的场景首次 bundle 化实跑）→ 标题可玩；正式包下排行入口按策略隐藏。修复 A#6 后 uxml 窗口正常。热更一轮：改 `EntryVersion` → 重打代码包 + 部署 → 玩家包重启经 CDN 拉到新版代码。扩展包内置只有清单、内容真经 CDN 下载。
 - **CI 护栏**：关闭本工程的交互式 Editor 后，`Tools/run-tests.ps1` 默认顺序跑 EditMode + PlayMode；也可用 `-TestPlatform PlayMode` 定向回归业务套件。
 
-**2026-08-23 自动化补验收：**新增独立 `Game.Outpost.Smoke.Test`，不录 UI 坐标，直接经稳定业务 Interface 跑真实 OutpostGame/OutpostBattle 场景的“标题 → 战斗就绪 → 撤离 → 结算 → 回标题”。测试以同一父目录内的原子重命名暂存真实存档，结束后原样移回；失败时备份仍完整留存，不走“复制一半后删除原数据”的危险路径。它还验证战斗场景、`BattleContext`、导演与时间倍率无残留；夹具自身设置/恢复 `Application.runInBackground`，可在 Editor 失焦时完成。实测发现并修复：① Additive 隔离误删 `Code-based tests runner` 根节点；② 撤离关闭外部 `IsReady` 时误清内部导演 `_ready`，导致结算倒计时停摆；③ 自然战败与初始化/结算期间，各玩家交互按钮未统一服从 `BattleReadModel.IsReady`；④ Unity Test Framework 的续跑器不能反射 UniTask 自定义 Enumerator，需保留编译器生成的外层协程。2026-08-24 当前项目基线为 PlayMode **421/421**、EditMode **101/101** 全绿。
+**2026-08-23 自动化补验收：**新增独立 `Game.Outpost.Smoke.Test`，不录 UI 坐标，直接经稳定业务 Interface 跑真实 OutpostGame/OutpostBattle 场景的“标题 → 战斗就绪 → 撤离 → 结算 → 回标题”。测试以同一父目录内的原子重命名暂存真实存档，结束后原样移回；失败时备份仍完整留存，不走“复制一半后删除原数据”的危险路径。它还验证战斗场景、`BattleContext`、导演与时间倍率无残留；夹具自身设置/恢复 `Application.runInBackground`，可在 Editor 失焦时完成。实测发现并修复：① Additive 隔离误删 `Code-based tests runner` 根节点；② 撤离关闭外部 `IsReady` 时误清内部导演 `_ready`，导致结算倒计时停摆；③ 自然战败与初始化/结算期间，各玩家交互按钮未统一服从 `BattleReadModel.IsReady`；④ Unity Test Framework 的续跑器不能反射 UniTask 自定义 Enumerator，需保留编译器生成的外层协程。2026-08-24 当前项目基线为 PlayMode **422/422**、EditMode **102/102** 全绿。
 
 ## Consequences
 
