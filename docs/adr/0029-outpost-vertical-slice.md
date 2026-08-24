@@ -53,7 +53,7 @@
 2. **FlowState 拥有窗口的关闭桥接**：`Bag.Add(Disposable.Create(() => ui.Close<T>()))` 手写样板从 M0 用到 M5。可考虑 `Bag.OpenWindow<T>` 之类便捷件，暂record。
 3. ~~**`BindLocalizedText` 的刷新信号只有 Locale**~~：**2026-08-24 已在 ADR-0024 v2 收口。**Source 现在区分 Unavailable/Missing/Found 并发 `Invalidated`，Localization 汇总为 `TextRevision`；Outpost 文本绑定无需再由 Boot 硬等配置 Ready，配置后到会在同一语言下自动重取，且不会把加载中误报成缺 key。
 4. **嵌套子 GameFlow 未被切片消费**（§28 验收缺口）：波间抉择本质是 director 的暂停相位，硬套子 Flow 属过度设计。该能力的真实验收另择场景（如带内嵌状态机的副本流程）。
-5. **下载尺寸暴露**：扩展包下载 UX 想标「下载 X MB」，现有 `IsNeedDownload` 是 bool——`GetDownloadSize` 需求真实出现了（ADR-0013 开放决策早有预判），按需加 `IAssetUtility` API。
+5. **下载尺寸暴露**：扩展包下载 UX 想标「下载 X MB」；地址查询现已升级为 `GetLocationState` 四态，但仍只给分类、不提供字节数——`GetDownloadSize` 需求真实存在，按需再加 `IAssetUtility` 尺寸 API（见 ADR-0013）。
 6. **构建管线长操作 × 自动化**：Generate/资源构建/玩家包构建都是同步阻塞编辑器的分钟级操作，MCP/CI 侧只能「触发 + 标记文件轮询」。可考虑构建器写进度文件的约定，暂record。
 
 ## 验收结果
@@ -62,7 +62,7 @@
 - **M5 玩家包端到端（Windows IL2CPP，非开发包）**：BootScene → HotUpdateLauncher 初始化代码包 → CDN 拉清单 → 按拓扑序加载 9 个热更 DLL → `GameEntry`(v4) 代码引导栈 → DefaultPackage（内置首包）初始化 → **OutpostGame 场景从 bundle 拉起**（含热更程序集脚本的场景首次 bundle 化实跑）→ 标题可玩；正式包下排行入口按策略隐藏。修复 A#6 后 uxml 窗口正常。热更一轮：改 `EntryVersion` → 重打代码包 + 部署 → 玩家包重启经 CDN 拉到新版代码。扩展包内置只有清单、内容真经 CDN 下载。
 - **CI 护栏**：关闭本工程的交互式 Editor 后，`Tools/run-tests.ps1` 默认顺序跑 EditMode + PlayMode；也可用 `-TestPlatform PlayMode` 定向回归业务套件。
 
-**2026-08-23 自动化补验收：**新增独立 `Game.Outpost.Smoke.Test`，不录 UI 坐标，直接经稳定业务 Interface 跑真实 OutpostGame/OutpostBattle 场景的“标题 → 战斗就绪 → 撤离 → 结算 → 回标题”。测试以同一父目录内的原子重命名暂存真实存档，结束后原样移回；失败时备份仍完整留存，不走“复制一半后删除原数据”的危险路径。它还验证战斗场景、`BattleContext`、导演与时间倍率无残留；夹具自身设置/恢复 `Application.runInBackground`，可在 Editor 失焦时完成。实测发现并修复：① Additive 隔离误删 `Code-based tests runner` 根节点；② 撤离关闭外部 `IsReady` 时误清内部导演 `_ready`，导致结算倒计时停摆；③ 自然战败与初始化/结算期间，各玩家交互按钮未统一服从 `BattleReadModel.IsReady`；④ Unity Test Framework 的续跑器不能反射 UniTask 自定义 Enumerator，需保留编译器生成的外层协程。2026-08-24 当前项目基线为 PlayMode **420/420**、EditMode **101/101** 全绿。
+**2026-08-23 自动化补验收：**新增独立 `Game.Outpost.Smoke.Test`，不录 UI 坐标，直接经稳定业务 Interface 跑真实 OutpostGame/OutpostBattle 场景的“标题 → 战斗就绪 → 撤离 → 结算 → 回标题”。测试以同一父目录内的原子重命名暂存真实存档，结束后原样移回；失败时备份仍完整留存，不走“复制一半后删除原数据”的危险路径。它还验证战斗场景、`BattleContext`、导演与时间倍率无残留；夹具自身设置/恢复 `Application.runInBackground`，可在 Editor 失焦时完成。实测发现并修复：① Additive 隔离误删 `Code-based tests runner` 根节点；② 撤离关闭外部 `IsReady` 时误清内部导演 `_ready`，导致结算倒计时停摆；③ 自然战败与初始化/结算期间，各玩家交互按钮未统一服从 `BattleReadModel.IsReady`；④ Unity Test Framework 的续跑器不能反射 UniTask 自定义 Enumerator，需保留编译器生成的外层协程。2026-08-24 当前项目基线为 PlayMode **421/421**、EditMode **101/101** 全绿。
 
 ## Consequences
 
