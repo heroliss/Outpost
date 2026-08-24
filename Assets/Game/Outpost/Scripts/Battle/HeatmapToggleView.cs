@@ -35,7 +35,7 @@ namespace Game.Outpost.Battle
             base.Awake(); // 注入 + 绑定 Context
 
             var loc = this.GetUtility<ILocalizationUtility>();
-            Bag.Subscribe(this.ExecuteCommand(new GetWreckHeatmapCommand()).CombineLatest(loc.Locale, (on, _) => on), on =>
+            Bag.Subscribe(this.ExecuteCommand(new GetWreckHeatmapCommand()).CombineLatest(loc.TextRevision, (on, _) => on), on =>
             {
                 _current = on;
                 if (_label != null) _label.text = loc.Get(on ? "hud/heatmap-on" : "hud/heatmap-off");

@@ -80,10 +80,10 @@ namespace Game.Outpost.Battle
                 _prevHp = t.hp;
             });
 
-            // 文案 × 语言双源：UGUI/TMP 侧没有 BindLocalizedText 语法糖，按 §21 姿势 CombineLatest(数据, Locale)——
-            // 进战斗时语言已定（设置入口只在标题），但绑定姿势保持响应式，语言维度零额外心智。
+            // 文案 × 文本修订双源：UGUI/TMP 侧没有 BindLocalizedText 语法糖，按 §21 姿势
+            // CombineLatest(数据, TextRevision)，同时覆盖换语言与延迟源就绪。
             var loc = this.GetUtility<ILocalizationUtility>();
-            Bag.Subscribe(rm.Wave.CombineLatest(loc.Locale, (w, _) => w), w =>
+            Bag.Subscribe(rm.Wave.CombineLatest(loc.TextRevision, (w, _) => w), w =>
             {
                 _waveText.text = loc.Get("hud/wave", w);
 
@@ -96,8 +96,8 @@ namespace Game.Outpost.Battle
                 }
             });
 
-            Bag.Subscribe(rm.Kills.CombineLatest(loc.Locale, (k, _) => k), k => _killsText.text = loc.Get("hud/kills", k));
-            Bag.Subscribe(rm.Score.CombineLatest(loc.Locale, (s, _) => s), s => _scoreText.text = loc.Get("hud/score", s));
+            Bag.Subscribe(rm.Kills.CombineLatest(loc.TextRevision, (k, _) => k), k => _killsText.text = loc.Get("hud/kills", k));
+            Bag.Subscribe(rm.Score.CombineLatest(loc.TextRevision, (s, _) => s), s => _scoreText.text = loc.Get("hud/score", s));
 
             // 性能行：订阅只缓存值，拼串在 Update 里节流——EnemyCount/SimTickMs 每帧都变，逐次拼串太浪费。
             Bag.Subscribe(rm.Backend, b => _backendName = b);

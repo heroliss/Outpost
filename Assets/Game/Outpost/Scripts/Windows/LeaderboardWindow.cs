@@ -40,6 +40,7 @@ namespace Game.Outpost.Windows
         private readonly ObservableList<Row> _rows = new();
         private Label _status;
         private Button _refresh;
+        private string _statusKey;
         private bool _closed; // 拉取的取消令牌绑根 Context 不随窗口——关窗后到达的响应不再动本实例 UI
 
         protected override void OnCreated()
@@ -51,6 +52,7 @@ namespace Game.Outpost.Windows
             Bag.BindLocalizedText(Root.Q<Button>("close"), "common/close");
             Bag.SubscribeClick(Root.Q<Button>("close"), () => this.GetUtility<IUIUtility>().Close(this));
             Bag.SubscribeClick(_refresh, () => Refresh().Forget());
+            Bag.Subscribe(this.GetUtility<ILocalizationUtility>().TextRevision, _ => RefreshStatusText());
 
             Bag.BindList(Root.Q<VisualElement>("list"), _rows, CreateRow);
         }
@@ -61,10 +63,8 @@ namespace Game.Outpost.Windows
 
         private async UniTaskVoid Refresh()
         {
-            var loc = this.GetUtility<ILocalizationUtility>();
             _refresh.SetEnabled(false);
-            _status.style.display = DisplayStyle.Flex;
-            _status.text = loc.Get("lb/loading");
+            SetStatus("lb/loading");
             _rows.Clear();
             try
             {
@@ -73,18 +73,18 @@ namespace Game.Outpost.Windows
 
                 if (resp == null || resp.Entries.Count == 0)
                 {
-                    _status.text = loc.Get("lb/empty");
+                    SetStatus("lb/empty");
                     return;
                 }
                 for (int i = 0; i < resp.Entries.Count; i++)
                     _rows.Add(new Row(i + 1, resp.Entries[i]));
-                _status.style.display = DisplayStyle.None;
+                SetStatus(null);
             }
             catch (NetworkException e)
             {
                 Debug.LogWarning($"[LeaderboardWindow] 拉取排行榜失败（{e.Kind}）：{e.Message}");
                 if (_closed) return;
-                _status.text = loc.Get("lb/error");
+                SetStatus("lb/error");
             }
             finally
             {
@@ -94,7 +94,7 @@ namespace Game.Outpost.Windows
 
         private VisualElement CreateRow(Row row, DisposableBag rowBag)
         {
-            // 纯静态行（榜单是快照，行内无订阅）——rowBag 不用；行离开列表由 BindList 销毁。
+            // 榜单数据是快照；只有格式化文案订文本修订，行离开列表时由自己的 rowBag 退订。
             var root = new VisualElement();
             root.AddToClassList("op-lb-row");
 
@@ -102,7 +102,9 @@ namespace Game.Outpost.Windows
             rank.AddToClassList("op-lb-row__rank");
             var name = new Label(row.Entry.Player);
             name.AddToClassList("op-lb-row__name");
-            var wave = new Label(this.GetUtility<ILocalizationUtility>().Get("lb/wave", row.Entry.Wave));
+            var wave = new Label();
+            var loc = this.GetUtility<ILocalizationUtility>();
+            rowBag.Subscribe(loc.TextRevision, _ => wave.text = loc.Get("lb/wave", row.Entry.Wave));
             wave.AddToClassList("op-lb-row__wave");
             var score = new Label(row.Entry.Score.ToString("N0"));
             score.AddToClassList("op-lb-row__score");
@@ -116,6 +118,19 @@ namespace Game.Outpost.Windows
             if (row.Entry.Player == this.ExecuteCommand(new GetPlayerRecordCommand()).Callsign.CurrentValue)
                 root.AddToClassList("op-lb-row--self");
             return root;
+        }
+
+        private void SetStatus(string key)
+        {
+            _statusKey = key;
+            _status.style.display = key == null ? DisplayStyle.None : DisplayStyle.Flex;
+            RefreshStatusText();
+        }
+
+        private void RefreshStatusText()
+        {
+            if (_statusKey != null)
+                _status.text = this.GetUtility<ILocalizationUtility>().Get(_statusKey);
         }
     }
 }

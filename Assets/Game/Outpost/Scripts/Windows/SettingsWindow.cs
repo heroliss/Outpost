@@ -33,7 +33,7 @@ namespace Game.Outpost.Windows
         private float _lastAuditionTime;
         private AudioClip _auditionClip;
 
-        // 扩展内容区元素与状态。_expStatusKey 是状态短语的 l10n key（换语言时经 Locale 订阅重查）。
+        // 扩展内容区元素与状态。_expStatusKey 是状态短语的 l10n key（经 TextRevision 订阅重查）。
         private Label _expStatus;
         private VisualElement _expBar;
         private VisualElement _expFill;
@@ -55,8 +55,8 @@ namespace Game.Outpost.Windows
             var music = Root.Q<Slider>("music");
             var sfx = Root.Q<Slider>("sfx");
 
-            // Slider 不是 TextElement（label 是它的属性），本地化直接订 Locale 写回。
-            Bag.Subscribe(loc.Locale, _ =>
+            // Slider 不是 TextElement（label 是它的属性），手动订文本修订以同时覆盖换语言与延迟源就绪。
+            Bag.Subscribe(loc.TextRevision, _ =>
             {
                 master.label = loc.Get("settings/master");
                 music.label = loc.Get("settings/music");
@@ -127,8 +127,8 @@ namespace Game.Outpost.Windows
             Bag.BindLocalizedText(Root.Q<Label>("exp-name"), "settings/expansion-name");
             Bag.BindLocalizedText(Root.Q<Label>("exp-desc"), "settings/expansion-desc");
             Bag.BindLocalizedText(_expButton, "settings/expansion-download");
-            // 状态短语是"动态选 key"（下载中/已启用/失败），BindLocalizedText 只认固定 key——订 Locale 手动重查。
-            Bag.Subscribe(loc.Locale, _ => RefreshExpansionStatusText(loc));
+            // 状态短语是"动态选 key"（下载中/已启用/失败），BindLocalizedText 只认固定 key——订文本修订手动重查。
+            Bag.Subscribe(loc.TextRevision, _ => RefreshExpansionStatusText(loc));
 
             // 电台战斗曲开关（同后端选择的读写姿势）：写走命令、读走查询命令的只读订阅源；
             // OutpostAudioSystem 订阅该偏好，战斗中切换即时换曲。行默认藏、扩展包已安装才显示。

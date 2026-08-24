@@ -32,7 +32,7 @@ namespace Game.Outpost.Battle
             Bag.Subscribe(battle.IsReady, ready => _button.interactable = ready);
 
             var loc = this.GetUtility<ILocalizationUtility>();
-            Bag.Subscribe(loc.Locale, _ => _label.text = loc.Get("hud/retreat"));
+            Bag.Subscribe(loc.TextRevision, _ => _label.text = loc.Get("hud/retreat"));
         }
     }
 }

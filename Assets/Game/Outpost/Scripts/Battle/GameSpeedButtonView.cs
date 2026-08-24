@@ -38,9 +38,9 @@ namespace Game.Outpost.Battle
         {
             base.Awake(); // 注入 + 绑定 Context，之后即可经 Command 拿只读订阅源
 
-            // 回显：订阅即得当前值，速度任意时刻变化都刷新文案与配色；文案绑本地化 key（倍率 × 语言双源，§21）。
+            // 回显：订阅即得当前值，速度任意时刻变化都刷新文案与配色；文案绑本地化 key（倍率 × 文本修订双源，§21）。
             var loc = this.GetUtility<ILocalizationUtility>();
-            Bag.Subscribe(this.ExecuteCommand(new GetSimSpeedCommand()).CombineLatest(loc.Locale, (s, _) => s), s =>
+            Bag.Subscribe(this.ExecuteCommand(new GetSimSpeedCommand()).CombineLatest(loc.TextRevision, (s, _) => s), s =>
             {
                 _current = s;
                 if (_label != null) _label.text = loc.Get("hud/speed", s.ToString("0.##"));

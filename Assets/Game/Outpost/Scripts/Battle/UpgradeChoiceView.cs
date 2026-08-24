@@ -40,7 +40,7 @@ namespace Game.Outpost.Battle
             var loc = this.GetUtility<ILocalizationUtility>();
 
             // 面板标题 / 操作提示绑 key（进战斗时取当前语言）。
-            Bag.Subscribe(loc.Locale, _ =>
+            Bag.Subscribe(loc.TextRevision, _ =>
             {
                 _panelTitle.text = loc.Get("upgrade/pick");
                 _panelHint.text = loc.Get("upgrade/hint");
@@ -58,10 +58,10 @@ namespace Game.Outpost.Battle
             {
                 var go = Instantiate(_cardPrefab);
 
-                // opt.Title / opt.Desc 是本地化 key（配置表存 key）：行内订 Locale 解析成当前语言文案。
+                // opt.Title / opt.Desc 是本地化 key（配置表存 key）：行内订文本修订，换语言或源就绪都重取。
                 var title = go.transform.Find("Title");
                 var desc = go.transform.Find("Desc");
-                rowBag.Subscribe(loc.Locale, _ =>
+                rowBag.Subscribe(loc.TextRevision, _ =>
                 {
                     if (title != null) title.GetComponent<TMP_Text>().text = loc.Get(opt.Title);
                     if (desc != null) desc.GetComponent<TMP_Text>().text = loc.Get(opt.Desc);

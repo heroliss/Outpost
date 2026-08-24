@@ -40,9 +40,9 @@ namespace Game.Outpost.Battle
             // 初始化完成前与结算收束期都关闭交互，避免按钮看似可用而导演静默忽略命令。
             Bag.Subscribe(battle.IsReady, ready => _button.interactable = ready);
 
-            // 回显：订阅即得当前值，托管状态任意时刻变化都刷新文案与配色；文案绑本地化 key（状态 × 语言双源，§21）。
+            // 回显：托管状态任意时刻变化都刷新；文本修订同时覆盖换语言与延迟源就绪。
             var loc = this.GetUtility<ILocalizationUtility>();
-            Bag.Subscribe(rm.AutoManaged.CombineLatest(loc.Locale, (on, _) => on), on =>
+            Bag.Subscribe(rm.AutoManaged.CombineLatest(loc.TextRevision, (on, _) => on), on =>
             {
                 _current = on;
                 if (_label != null) _label.text = loc.Get(on ? "hud/auto-on" : "hud/auto-off");

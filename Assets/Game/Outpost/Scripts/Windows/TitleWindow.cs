@@ -42,10 +42,10 @@ namespace Game.Outpost.Windows
             // 设置：音量 / 语言（同为 Popup 层模态，压在标题之上——切语言时能看到本页文案跟着变）。
             Bag.SubscribeClick(Root.Q<Button>("settings"), () => this.GetUtility<IUIUtility>().Open<SettingsWindow>().Forget());
 
-            // 战绩行是「数据 × 语言」双源文本：数据是打开时的快照（存档只在结算变化），语言可被设置窗实时切——
-            // 订 Locale 重算（订阅即得当前值 = 首次填充），OnOpen 再补一次数据面（每次开窗取最新战绩）。
+            // 战绩行是「数据 × 文本修订」双源：修订同时覆盖换语言与延迟源就绪；OnOpen 再补一次数据面
+            // （存档只在结算变化，每次开窗取最新战绩）。
             var loc = this.GetUtility<ILocalizationUtility>();
-            Bag.Subscribe(loc.Locale, _ => RefreshRecord(loc));
+            Bag.Subscribe(loc.TextRevision, _ => RefreshRecord(loc));
         }
 
         protected override void OnOpen(object args)
