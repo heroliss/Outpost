@@ -68,28 +68,17 @@
     <type fullname="R3.CompositeDisposable" preserve="all" />
     <type fullname="R3.Disposable" preserve="all" />
     <type fullname="R3.Observable" preserve="all" />
+    <type fullname="R3.ObservableExtensions" preserve="all" />
     <type fullname="R3.ObservableSubscribeExtensions" preserve="all" />
     <type fullname="R3.Observable`1" preserve="all" />
     <type fullname="R3.Observer`1" preserve="all" />
     <type fullname="R3.ReactiveProperty`1" preserve="all" />
     <type fullname="R3.ReadOnlyReactiveProperty`1" preserve="all" />
     <type fullname="R3.Subject`1" preserve="all" />
+    <type fullname="R3.Unit" preserve="all" />
   </assembly>
   <assembly fullname="R3.Unity">
     <type fullname="R3.SerializableReactiveProperty`1" preserve="all" />
-  </assembly>
-  <assembly fullname="Sirenix.OdinInspector.Attributes">
-    <type fullname="Sirenix.OdinInspector.ValueDropdownItem" preserve="all" />
-  </assembly>
-  <assembly fullname="Sirenix.Serialization">
-    <type fullname="Sirenix.OdinInspector.SerializedMonoBehaviour" preserve="all" />
-    <type fullname="Sirenix.Serialization.DeserializationContext" preserve="all" />
-    <type fullname="Sirenix.Serialization.OdinSerializeAttribute" preserve="all" />
-    <type fullname="Sirenix.Serialization.SerializationContext" preserve="all" />
-    <type fullname="Sirenix.Serialization.SerializationUtility" preserve="all" />
-  </assembly>
-  <assembly fullname="Sirenix.Serialization.Config">
-    <type fullname="Sirenix.Serialization.DataFormat" preserve="all" />
   </assembly>
   <assembly fullname="UniTask">
     <type fullname="Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder" preserve="all" />
@@ -150,6 +139,7 @@
     <type fullname="UnityEngine.HeaderAttribute" preserve="all" />
     <type fullname="UnityEngine.HideInCallstackAttribute" preserve="all" />
     <type fullname="UnityEngine.HideInInspector" preserve="all" />
+    <type fullname="UnityEngine.InspectorNameAttribute" preserve="all" />
     <type fullname="UnityEngine.LayerMask" preserve="all" />
     <type fullname="UnityEngine.LineRenderer" preserve="all" />
     <type fullname="UnityEngine.LogType" preserve="all" />
@@ -163,6 +153,7 @@
     <type fullname="UnityEngine.MinAttribute" preserve="all" />
     <type fullname="UnityEngine.MonoBehaviour" preserve="all" />
     <type fullname="UnityEngine.Object" preserve="all" />
+    <type fullname="UnityEngine.PropertyAttribute" preserve="all" />
     <type fullname="UnityEngine.Quaternion" preserve="all" />
     <type fullname="UnityEngine.Random" preserve="all" />
     <type fullname="UnityEngine.RangeAttribute" preserve="all" />
@@ -235,6 +226,7 @@
     <type fullname="UnityEngine.UI.Button/ButtonClickedEvent" preserve="all" />
     <type fullname="UnityEngine.UI.CanvasScaler" preserve="all" />
     <type fullname="UnityEngine.UI.CanvasScaler/ScaleMode" preserve="all" />
+    <type fullname="UnityEngine.UI.CanvasScaler/ScreenMatchMode" preserve="all" />
     <type fullname="UnityEngine.UI.ContentSizeFitter" preserve="all" />
     <type fullname="UnityEngine.UI.ContentSizeFitter/FitMode" preserve="all" />
     <type fullname="UnityEngine.UI.Graphic" preserve="all" />
@@ -242,6 +234,7 @@
     <type fullname="UnityEngine.UI.HorizontalLayoutGroup" preserve="all" />
     <type fullname="UnityEngine.UI.Image" preserve="all" />
     <type fullname="UnityEngine.UI.LayoutGroup" preserve="all" />
+    <type fullname="UnityEngine.UI.Selectable" preserve="all" />
     <type fullname="UnityEngine.UI.Text" preserve="all" />
   </assembly>
   <assembly fullname="UnityEngine.UIElementsModule">
@@ -354,6 +347,7 @@
     <type fullname="System.Action`1" preserve="all" />
     <type fullname="System.Action`2" preserve="all" />
     <type fullname="System.Activator" preserve="all" />
+    <type fullname="System.AppDomain" preserve="all" />
     <type fullname="System.ArgumentException" preserve="all" />
     <type fullname="System.ArgumentNullException" preserve="all" />
     <type fullname="System.ArgumentOutOfRangeException" preserve="all" />
@@ -387,6 +381,7 @@
     <type fullname="System.Collections.Generic.KeyValuePair`2" preserve="all" />
     <type fullname="System.Collections.Generic.List`1" preserve="all" />
     <type fullname="System.Collections.Generic.List`1/Enumerator" preserve="all" />
+    <type fullname="System.Collections.Generic.Queue`1" preserve="all" />
     <type fullname="System.Collections.Generic.Stack`1" preserve="all" />
     <type fullname="System.Collections.IEnumerable" preserve="all" />
     <type fullname="System.Collections.IEnumerator" preserve="all" />
@@ -427,6 +422,8 @@
     <type fullname="System.Int32" preserve="all" />
     <type fullname="System.Int64" preserve="all" />
     <type fullname="System.InvalidOperationException" preserve="all" />
+    <type fullname="System.Linq.Enumerable" preserve="all" />
+    <type fullname="System.Linq.IOrderedEnumerable`1" preserve="all" />
     <type fullname="System.Math" preserve="all" />
     <type fullname="System.Net.IWebProxy" preserve="all" />
     <type fullname="System.Net.WebSockets.ClientWebSocket" preserve="all" />
@@ -449,6 +446,7 @@
     <type fullname="System.ReadOnlyMemory`1" preserve="all" />
     <type fullname="System.Reflection.Assembly" preserve="all" />
     <type fullname="System.Reflection.AssemblyName" preserve="all" />
+    <type fullname="System.Reflection.Binder" preserve="all" />
     <type fullname="System.Reflection.BindingFlags" preserve="all" />
     <type fullname="System.Reflection.ConstructorInfo" preserve="all" />
     <type fullname="System.Reflection.CustomAttributeExtensions" preserve="all" />
@@ -458,10 +456,13 @@
     <type fullname="System.Reflection.MethodBase" preserve="all" />
     <type fullname="System.Reflection.MethodInfo" preserve="all" />
     <type fullname="System.Reflection.ParameterInfo" preserve="all" />
+    <type fullname="System.Reflection.ParameterModifier" preserve="all" />
     <type fullname="System.Reflection.PropertyInfo" preserve="all" />
     <type fullname="System.Runtime.CompilerServices.AsyncStateMachineAttribute" preserve="all" />
     <type fullname="System.Runtime.CompilerServices.CompilationRelaxationsAttribute" preserve="all" />
     <type fullname="System.Runtime.CompilerServices.CompilerGeneratedAttribute" preserve="all" />
+    <type fullname="System.Runtime.CompilerServices.ConditionalWeakTable`2" preserve="all" />
+    <type fullname="System.Runtime.CompilerServices.ConditionalWeakTable`2/CreateValueCallback" preserve="all" />
     <type fullname="System.Runtime.CompilerServices.ExtensionAttribute" preserve="all" />
     <type fullname="System.Runtime.CompilerServices.IAsyncStateMachine" preserve="all" />
     <type fullname="System.Runtime.CompilerServices.InternalsVisibleToAttribute" preserve="all" />
@@ -474,6 +475,7 @@
     <type fullname="System.Runtime.CompilerServices.TaskAwaiter" preserve="all" />
     <type fullname="System.Runtime.CompilerServices.TaskAwaiter`1" preserve="all" />
     <type fullname="System.Runtime.CompilerServices.TupleElementNamesAttribute" preserve="all" />
+    <type fullname="System.Runtime.ExceptionServices.ExceptionDispatchInfo" preserve="all" />
     <type fullname="System.Runtime.InteropServices.InAttribute" preserve="all" />
     <type fullname="System.RuntimeFieldHandle" preserve="all" />
     <type fullname="System.RuntimeTypeHandle" preserve="all" />
@@ -485,13 +487,13 @@
     <type fullname="System.Text.StringBuilder" preserve="all" />
     <type fullname="System.ThreadStaticAttribute" preserve="all" />
     <type fullname="System.Threading.CancellationToken" preserve="all" />
-    <type fullname="System.Threading.CancellationTokenRegistration" preserve="all" />
     <type fullname="System.Threading.CancellationTokenSource" preserve="all" />
     <type fullname="System.Threading.Interlocked" preserve="all" />
     <type fullname="System.Threading.Monitor" preserve="all" />
     <type fullname="System.Threading.Tasks.Task" preserve="all" />
     <type fullname="System.Threading.Tasks.Task`1" preserve="all" />
     <type fullname="System.Threading.Thread" preserve="all" />
+    <type fullname="System.Threading.Volatile" preserve="all" />
     <type fullname="System.TimeSpan" preserve="all" />
     <type fullname="System.Type" preserve="all" />
     <type fullname="System.UnauthorizedAccessException" preserve="all" />

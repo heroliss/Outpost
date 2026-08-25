@@ -10,7 +10,6 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		"ObservableCollections.dll",
 		"R3.Unity.dll",
 		"R3.dll",
-		"Sirenix.Serialization.dll",
 		"System.Core.dll",
 		"UniTask.dll",
 		"UnityEngine.CoreModule.dll",
@@ -26,23 +25,27 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// }} 
 
 	// {{ AOT generic types
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetDownloader.<Download>d__12>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetDownloader.<Download>d__16>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetDownloader.<RunDownloadOwner>d__17,byte>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetPackageOperationLane.<Drain>d__3>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetPackageOperationLane.Entry.<Wait>d__8>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetReference.<Get>d__13<object>,object>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetReference.<RunLoad>d__16<object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetReferenceList.<GetAll>d__8<object>,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<ClearCache>d__55>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<ClearCacheByLocations>d__59>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<ClearCacheByTags>d__57>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<EnsureInitialized>d__31>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<Initialize>d__32>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<InitializePackageAsync>d__24>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<Load>d__34<object>,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadByGuid>d__36<object>,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadBytes>d__42,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadInternal>d__65,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadScene>d__38,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadText>d__40,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<UnloadUnusedAssets>d__61>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<ClearCache>d__50>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<ClearCacheByLocations>d__54>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<ClearCacheByTags>d__52>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<EnsureInitialized>d__28>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<Initialize>d__29>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<InitializePackageAsync>d__20>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<Load>d__31<object>,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadByGuid>d__33<object>,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadBytes>d__39,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadInternal>d__61,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadScene>d__35,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<LoadText>d__37,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<RunInitializationOwner>d__21>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.AssetUtility.<UnloadUnusedAssets>d__56>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__3<object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__4<object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__5<object>,object>
@@ -92,24 +95,38 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.Systems.LoggingCommandSystem.<Await>d__18<object>,object>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.Toolkit.ToolkitBackend.<CreateWindow>d__9,object>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UGui.UGuiBackend.<CreateWindow>d__9,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<Open>d__13<object>,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<OpenCore>d__14,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<ShowLoading>d__25>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<ShowToast>d__24>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<ClearCacheAsync>d__14>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__16>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__15>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<AcquireLoading>d__30,Game.Framework.UI.LoadingHandle>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<Open>d__18<object>,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<OpenCore>d__19,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<ShowLoading>d__31>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.UI.UIUtility.<ShowToast>d__29>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<>c__DisplayClass19_0.<<ClearCacheAsync>b__0>d>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<>c__DisplayClass20_0.<<ClearCacheByTagsAsync>b__0>d>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<>c__DisplayClass21_0.<<ClearCacheByLocationsAsync>b__0>d>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<>c__DisplayClass22_0.<<UnloadUnusedAssetsAsync>b__0>d>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<ClearCacheAsync>d__19>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__21>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__20>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<InitializeAsync>d__2>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadAssetAsync>d__4,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadBytesAsync>d__7,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__22,System.ValueTuple<object,object>>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadSceneAsync>d__5,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__21,System.ValueTuple<object,object>>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadTextAsync>d__6,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__25,System.ValueTuple<byte,object>>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__26,System.ValueTuple<byte,object,object>>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__17>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__24>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<InitializePackageCoreAsync>d__3>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadAssetAsync>d__5,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadAssetCoreAsync>d__6,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadBytesAsync>d__11,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadBytesCoreAsync>d__12,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__27,System.ValueTuple<object,object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadSceneAsync>d__7,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadSceneCoreAsync>d__8,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__26,System.ValueTuple<object,object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadTextAsync>d__9,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<LoadTextCoreAsync>d__10,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__30,System.ValueTuple<byte,object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__31,System.ValueTuple<byte,object,object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__22>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__29>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooPackageOperationCoordinator.<>c__DisplayClass13_0.<<RunWriter>b__0>d,byte>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooPackageOperationCoordinator.<WaitForWriter>d__14>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooPackageOperationCoordinator.OperationOwner.<Run>d__16<object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooPackageOperationCoordinator.OperationOwner.<WaitCore>d__15<object>,object>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Framework.YooSceneHandle.<Unload>d__9>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Main.GameEntry.<Boot>d__4>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Outpost.Battle.BattleDirectorSystem.<FastForwardTo>d__105>
@@ -121,23 +138,27 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Outpost.Save.LoadSettingsCommand.<ExecuteAsync>d__0>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Outpost.Save.SaveSettingsCommand.<ExecuteAsync>d__0>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask.<>c<Game.Outpost.Save.SubmitRunResultCommand.<ExecuteAsync>d__2,byte>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetDownloader.<Download>d__12>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetDownloader.<Download>d__16>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetDownloader.<RunDownloadOwner>d__17,byte>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetPackageOperationLane.<Drain>d__3>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetPackageOperationLane.Entry.<Wait>d__8>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetReference.<Get>d__13<object>,object>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetReference.<RunLoad>d__16<object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetReferenceList.<GetAll>d__8<object>,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<ClearCache>d__55>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<ClearCacheByLocations>d__59>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<ClearCacheByTags>d__57>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<EnsureInitialized>d__31>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<Initialize>d__32>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<InitializePackageAsync>d__24>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<Load>d__34<object>,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadByGuid>d__36<object>,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadBytes>d__42,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadInternal>d__65,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadScene>d__38,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadText>d__40,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<UnloadUnusedAssets>d__61>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<ClearCache>d__50>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<ClearCacheByLocations>d__54>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<ClearCacheByTags>d__52>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<EnsureInitialized>d__28>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<Initialize>d__29>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<InitializePackageAsync>d__20>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<Load>d__31<object>,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadByGuid>d__33<object>,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadBytes>d__39,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadInternal>d__61,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadScene>d__35,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<LoadText>d__37,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<RunInitializationOwner>d__21>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.AssetUtility.<UnloadUnusedAssets>d__56>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__3<object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__4<object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__5<object>,object>
@@ -187,24 +208,38 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.Systems.LoggingCommandSystem.<Await>d__18<object>,object>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.Toolkit.ToolkitBackend.<CreateWindow>d__9,object>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UGui.UGuiBackend.<CreateWindow>d__9,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<Open>d__13<object>,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<OpenCore>d__14,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<ShowLoading>d__25>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<ShowToast>d__24>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<ClearCacheAsync>d__14>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__16>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__15>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<AcquireLoading>d__30,Game.Framework.UI.LoadingHandle>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<Open>d__18<object>,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<OpenCore>d__19,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<ShowLoading>d__31>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.UI.UIUtility.<ShowToast>d__29>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<>c__DisplayClass19_0.<<ClearCacheAsync>b__0>d>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<>c__DisplayClass20_0.<<ClearCacheByTagsAsync>b__0>d>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<>c__DisplayClass21_0.<<ClearCacheByLocationsAsync>b__0>d>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<>c__DisplayClass22_0.<<UnloadUnusedAssetsAsync>b__0>d>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<ClearCacheAsync>d__19>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__21>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__20>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<InitializeAsync>d__2>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadAssetAsync>d__4,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadBytesAsync>d__7,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__22,System.ValueTuple<object,object>>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadSceneAsync>d__5,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__21,System.ValueTuple<object,object>>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadTextAsync>d__6,object>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__25,System.ValueTuple<byte,object>>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__26,System.ValueTuple<byte,object,object>>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__17>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__24>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<InitializePackageCoreAsync>d__3>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadAssetAsync>d__5,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadAssetCoreAsync>d__6,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadBytesAsync>d__11,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadBytesCoreAsync>d__12,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__27,System.ValueTuple<object,object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadSceneAsync>d__7,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadSceneCoreAsync>d__8,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__26,System.ValueTuple<object,object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadTextAsync>d__9,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<LoadTextCoreAsync>d__10,object>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__30,System.ValueTuple<byte,object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__31,System.ValueTuple<byte,object,object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__22>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__29>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooPackageOperationCoordinator.<>c__DisplayClass13_0.<<RunWriter>b__0>d,byte>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooPackageOperationCoordinator.<WaitForWriter>d__14>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooPackageOperationCoordinator.OperationOwner.<Run>d__16<object>>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooPackageOperationCoordinator.OperationOwner.<WaitCore>d__15<object>,object>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Framework.YooSceneHandle.<Unload>d__9>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Main.GameEntry.<Boot>d__4>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Outpost.Battle.BattleDirectorSystem.<FastForwardTo>d__105>
@@ -216,6 +251,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Outpost.Save.LoadSettingsCommand.<ExecuteAsync>d__0>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Outpost.Save.SaveSettingsCommand.<ExecuteAsync>d__0>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask<Game.Outpost.Save.SubmitRunResultCommand.<ExecuteAsync>d__2,byte>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<Game.Framework.UI.LoadingHandle>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object,object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>
@@ -228,16 +264,16 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.Flow.GameFlow.<RunTransitions>d__16>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.MonoConfigUtilityBase.<LoadAsync>d__14<object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.Network.WebSocketUtility.<ReceiveLoop>d__25>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__11>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__9>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.UI.Toolkit.ToolkitToastWindow.<AutoClose>d__5>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.UI.UGui.UGuiToastWindow.<AutoClose>d__5>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.UI.UIUtility.<RunCloseTransition>d__29>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.UI.UIUtility.<RunOpenTransition>d__32>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.UI.UIUtility.<RunCloseTransition>d__43>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Framework.UI.UIUtility.<RunOpenTransition>d__46>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Outpost.Battle.BattleDirectorSystem.<SetupAsync>d__102>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Outpost.Flow.FlowNav.<<Go>g__GoAsync|0_0>d>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Outpost.Systems.OutpostAudioSystem.<InitAsync>d__5>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Outpost.Systems.OutpostAudioSystem.<PlayBattleMusic>d__7>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__9>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__10>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Outpost.Windows.SettingsWindow.<DownloadExpansion>d__13>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid.<>c<Game.Outpost.Windows.SettingsWindow.<PreloadAuditionAsync>d__17>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.AssetInitSystem.<InitAsync>d__5>
@@ -246,18 +282,19 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.Flow.GameFlow.<RunTransitions>d__16>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.MonoConfigUtilityBase.<LoadAsync>d__14<object>>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.Network.WebSocketUtility.<ReceiveLoop>d__25>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__11>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__9>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.UI.Toolkit.ToolkitToastWindow.<AutoClose>d__5>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.UI.UGui.UGuiToastWindow.<AutoClose>d__5>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.UI.UIUtility.<RunCloseTransition>d__29>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.UI.UIUtility.<RunOpenTransition>d__32>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.UI.UIUtility.<RunCloseTransition>d__43>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Framework.UI.UIUtility.<RunOpenTransition>d__46>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Outpost.Battle.BattleDirectorSystem.<SetupAsync>d__102>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Outpost.Flow.FlowNav.<<Go>g__GoAsync|0_0>d>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Outpost.Systems.OutpostAudioSystem.<InitAsync>d__5>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Outpost.Systems.OutpostAudioSystem.<PlayBattleMusic>d__7>
-	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__9>
+	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__10>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Outpost.Windows.SettingsWindow.<DownloadExpansion>d__13>
 	// Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoid<Game.Outpost.Windows.SettingsWindow.<PreloadAuditionAsync>d__17>
+	// Cysharp.Threading.Tasks.CompilerServices.IStateMachineRunnerPromise<Game.Framework.UI.LoadingHandle>
 	// Cysharp.Threading.Tasks.CompilerServices.IStateMachineRunnerPromise<System.ValueTuple<byte,object,object>>
 	// Cysharp.Threading.Tasks.CompilerServices.IStateMachineRunnerPromise<System.ValueTuple<byte,object>>
 	// Cysharp.Threading.Tasks.CompilerServices.IStateMachineRunnerPromise<System.ValueTuple<object,object>>
@@ -265,6 +302,14 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.CompilerServices.IStateMachineRunnerPromise<int>
 	// Cysharp.Threading.Tasks.CompilerServices.IStateMachineRunnerPromise<object>
 	// Cysharp.Threading.Tasks.ITaskPoolNode<object>
+	// Cysharp.Threading.Tasks.IUniTaskSource<Game.Framework.UI.LoadingHandle>
+	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
+	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>>
 	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.IUniTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>>
@@ -318,6 +363,14 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.IUniTaskSource<object>
 	// Cysharp.Threading.Tasks.Internal.StatePool<Cysharp.Threading.Tasks.UniTask.Awaiter<object>>
 	// Cysharp.Threading.Tasks.Internal.StateTuple<Cysharp.Threading.Tasks.UniTask.Awaiter<object>>
+	// Cysharp.Threading.Tasks.UniTask.Awaiter<Game.Framework.UI.LoadingHandle>
+	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
+	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>>
@@ -370,6 +423,14 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.UniTask.Awaiter<int>
 	// Cysharp.Threading.Tasks.UniTask.Awaiter<object>
 	// Cysharp.Threading.Tasks.UniTask.CanceledResultSource<object>
+	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<Game.Framework.UI.LoadingHandle>
+	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
+	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>>
@@ -421,6 +482,14 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<byte>
 	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<int>
 	// Cysharp.Threading.Tasks.UniTask.IsCanceledSource<object>
+	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<Game.Framework.UI.LoadingHandle>
+	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
+	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>>
@@ -474,6 +543,15 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.UniTask.MemoizeSource<object>
 	// Cysharp.Threading.Tasks.UniTask.WhenAllPromise.<>c<object>
 	// Cysharp.Threading.Tasks.UniTask.WhenAllPromise<object>
+	// Cysharp.Threading.Tasks.UniTask<Game.Framework.UI.LoadingHandle>
+	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
+	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>>
+	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>>>
 	// Cysharp.Threading.Tasks.UniTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>>>
@@ -532,6 +610,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// Cysharp.Threading.Tasks.UniTask<object>
 	// Cysharp.Threading.Tasks.UniTaskCompletionSource<object>
 	// Cysharp.Threading.Tasks.UniTaskCompletionSourceCore<Cysharp.Threading.Tasks.AsyncUnit>
+	// Cysharp.Threading.Tasks.UniTaskCompletionSourceCore<Game.Framework.UI.LoadingHandle>
 	// Cysharp.Threading.Tasks.UniTaskCompletionSourceCore<System.ValueTuple<byte,object,object>>
 	// Cysharp.Threading.Tasks.UniTaskCompletionSourceCore<System.ValueTuple<byte,object>>
 	// Cysharp.Threading.Tasks.UniTaskCompletionSourceCore<System.ValueTuple<object,object>>
@@ -588,31 +667,32 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// R3.AnonymousObservable<object,object>
 	// R3.AnonymousObserver<Game.Framework.DownloadProgressReport>
 	// R3.AnonymousObserver<ObservableCollections.CollectionChangedEvent<object>>
+	// R3.AnonymousObserver<R3.Unit>
 	// R3.AnonymousObserver<System.ValueTuple<float,float>>
 	// R3.AnonymousObserver<byte>
 	// R3.AnonymousObserver<float>
 	// R3.AnonymousObserver<int>
 	// R3.AnonymousObserver<long>
 	// R3.AnonymousObserver<object>
-	// R3.CombineLatest._CombineLatest.CombineLatestObserver<byte,object,byte,byte>
-	// R3.CombineLatest._CombineLatest.CombineLatestObserver<byte,object,byte,object>
+	// R3.CombineLatest._CombineLatest.CombineLatestObserver<byte,int,byte,byte>
+	// R3.CombineLatest._CombineLatest.CombineLatestObserver<byte,int,byte,int>
 	// R3.CombineLatest._CombineLatest.CombineLatestObserver<float,float,System.ValueTuple<float,float>,float>
-	// R3.CombineLatest._CombineLatest.CombineLatestObserver<float,object,float,float>
-	// R3.CombineLatest._CombineLatest.CombineLatestObserver<float,object,float,object>
-	// R3.CombineLatest._CombineLatest.CombineLatestObserver<int,object,int,int>
-	// R3.CombineLatest._CombineLatest.CombineLatestObserver<int,object,int,object>
-	// R3.CombineLatest._CombineLatest<byte,object,byte>
+	// R3.CombineLatest._CombineLatest.CombineLatestObserver<float,int,float,float>
+	// R3.CombineLatest._CombineLatest.CombineLatestObserver<float,int,float,int>
+	// R3.CombineLatest._CombineLatest.CombineLatestObserver<int,int,int,int>
+	// R3.CombineLatest._CombineLatest<byte,int,byte>
 	// R3.CombineLatest._CombineLatest<float,float,System.ValueTuple<float,float>>
-	// R3.CombineLatest._CombineLatest<float,object,float>
-	// R3.CombineLatest._CombineLatest<int,object,int>
-	// R3.CombineLatest<byte,object,byte>
+	// R3.CombineLatest._CombineLatest<float,int,float>
+	// R3.CombineLatest._CombineLatest<int,int,int>
+	// R3.CombineLatest<byte,int,byte>
 	// R3.CombineLatest<float,float,System.ValueTuple<float,float>>
-	// R3.CombineLatest<float,object,float>
-	// R3.CombineLatest<int,object,int>
+	// R3.CombineLatest<float,int,float>
+	// R3.CombineLatest<int,int,int>
 	// R3.Observable<Game.Framework.DownloadProgressReport>
 	// R3.Observable<Game.Framework.Flow.FlowChangedEvent>
 	// R3.Observable<Game.Framework.Network.WebSocketClosedEvent>
 	// R3.Observable<ObservableCollections.CollectionChangedEvent<object>>
+	// R3.Observable<R3.Unit>
 	// R3.Observable<System.ValueTuple<float,float>>
 	// R3.Observable<byte>
 	// R3.Observable<float>
@@ -623,6 +703,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// R3.Observer<Game.Framework.Flow.FlowChangedEvent>
 	// R3.Observer<Game.Framework.Network.WebSocketClosedEvent>
 	// R3.Observer<ObservableCollections.CollectionChangedEvent<object>>
+	// R3.Observer<R3.Unit>
 	// R3.Observer<System.ValueTuple<float,float>>
 	// R3.Observer<byte>
 	// R3.Observer<float>
@@ -647,6 +728,8 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// R3.ReadOnlyReactiveProperty<int>
 	// R3.ReadOnlyReactiveProperty<long>
 	// R3.ReadOnlyReactiveProperty<object>
+	// R3.Select._Select<int,R3.Unit>
+	// R3.Select<int,R3.Unit>
 	// R3.SerializableReactiveProperty<byte>
 	// R3.SerializableReactiveProperty<float>
 	// R3.SerializableReactiveProperty<int>
@@ -654,11 +737,14 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// R3.SerializableReactiveProperty<object>
 	// R3.Subject.ObserverNode<Game.Framework.Flow.FlowChangedEvent>
 	// R3.Subject.ObserverNode<Game.Framework.Network.WebSocketClosedEvent>
+	// R3.Subject.ObserverNode<R3.Unit>
 	// R3.Subject.ObserverNode<object>
 	// R3.Subject<Game.Framework.Flow.FlowChangedEvent>
 	// R3.Subject<Game.Framework.Network.WebSocketClosedEvent>
+	// R3.Subject<R3.Unit>
 	// R3.Subject<object>
-	// Sirenix.Serialization.Serializer<object>
+	// R3.WhereSelect._WhereSelect<int,R3.Unit>
+	// R3.WhereSelect<int,R3.Unit>
 	// System.Action<Game.Framework.Audio.MonoAudioUtility.GroupVolumeConfig>
 	// System.Action<Game.Framework.DownloadProgressReport>
 	// System.Action<Game.Framework.Flow.FlowChangedEvent>
@@ -679,6 +765,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Action<ObservableCollections.CollectionChangedEvent<Game.Outpost.Windows.LeaderboardWindow.Row>>
 	// System.Action<ObservableCollections.CollectionChangedEvent<object>>
 	// System.Action<R3.Result>
+	// System.Action<R3.Unit>
 	// System.Action<System.Collections.Generic.KeyValuePair<object,object>>
 	// System.Action<System.ValueTuple<float,float>>
 	// System.Action<System.ValueTuple<object,object>>
@@ -731,6 +818,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.Comparer<Game.Framework.Audio.MonoAudioUtility.GroupVolumeConfig>
 	// System.Collections.Generic.Comparer<Game.Framework.Pool.MonoPoolUtility.GameObjectPoolConfig>
 	// System.Collections.Generic.Comparer<Game.Framework.Systems.LoggingCommandSystem.Entry>
+	// System.Collections.Generic.Comparer<Game.Framework.UI.LoadingHandle>
 	// System.Collections.Generic.Comparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<Game.Outpost.Battle.UpgradeOption,object>>
 	// System.Collections.Generic.Comparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<Game.Outpost.Windows.LeaderboardWindow.Row,object>>
 	// System.Collections.Generic.Comparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<object,object>>
@@ -739,6 +827,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.Comparer<Game.Outpost.Sim.EnemyArchetype>
 	// System.Collections.Generic.Comparer<Game.Outpost.Windows.LeaderboardWindow.Row>
 	// System.Collections.Generic.Comparer<System.Collections.Generic.KeyValuePair<object,object>>
+	// System.Collections.Generic.Comparer<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Collections.Generic.Comparer<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Collections.Generic.Comparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Collections.Generic.Comparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Collections.Generic.Comparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Collections.Generic.Comparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
 	// System.Collections.Generic.Comparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>
 	// System.Collections.Generic.Comparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>
 	// System.Collections.Generic.Comparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>
@@ -791,6 +885,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.ComparisonComparer<Game.Framework.Audio.MonoAudioUtility.GroupVolumeConfig>
 	// System.Collections.Generic.ComparisonComparer<Game.Framework.Pool.MonoPoolUtility.GameObjectPoolConfig>
 	// System.Collections.Generic.ComparisonComparer<Game.Framework.Systems.LoggingCommandSystem.Entry>
+	// System.Collections.Generic.ComparisonComparer<Game.Framework.UI.LoadingHandle>
 	// System.Collections.Generic.ComparisonComparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<Game.Outpost.Battle.UpgradeOption,object>>
 	// System.Collections.Generic.ComparisonComparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<Game.Outpost.Windows.LeaderboardWindow.Row,object>>
 	// System.Collections.Generic.ComparisonComparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<object,object>>
@@ -799,6 +894,11 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.ComparisonComparer<Game.Outpost.Sim.EnemyArchetype>
 	// System.Collections.Generic.ComparisonComparer<Game.Outpost.Windows.LeaderboardWindow.Row>
 	// System.Collections.Generic.ComparisonComparer<System.Collections.Generic.KeyValuePair<object,object>>
+	// System.Collections.Generic.ComparisonComparer<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Collections.Generic.ComparisonComparer<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Collections.Generic.ComparisonComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Collections.Generic.ComparisonComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Collections.Generic.ComparisonComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Collections.Generic.ComparisonComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Collections.Generic.ComparisonComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Collections.Generic.ComparisonComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -849,7 +949,6 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.Dictionary.Enumerator<int,object>
 	// System.Collections.Generic.Dictionary.Enumerator<object,byte>
 	// System.Collections.Generic.Dictionary.Enumerator<object,float>
-	// System.Collections.Generic.Dictionary.Enumerator<object,int>
 	// System.Collections.Generic.Dictionary.Enumerator<object,object>
 	// System.Collections.Generic.Dictionary.KeyCollection.Enumerator<System.ValueTuple<object,object>,object>
 	// System.Collections.Generic.Dictionary.KeyCollection.Enumerator<int,Game.Outpost.Battle.EnemyVisual>
@@ -857,7 +956,6 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.Dictionary.KeyCollection.Enumerator<int,object>
 	// System.Collections.Generic.Dictionary.KeyCollection.Enumerator<object,byte>
 	// System.Collections.Generic.Dictionary.KeyCollection.Enumerator<object,float>
-	// System.Collections.Generic.Dictionary.KeyCollection.Enumerator<object,int>
 	// System.Collections.Generic.Dictionary.KeyCollection.Enumerator<object,object>
 	// System.Collections.Generic.Dictionary.KeyCollection<System.ValueTuple<object,object>,object>
 	// System.Collections.Generic.Dictionary.KeyCollection<int,Game.Outpost.Battle.EnemyVisual>
@@ -865,7 +963,6 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.Dictionary.KeyCollection<int,object>
 	// System.Collections.Generic.Dictionary.KeyCollection<object,byte>
 	// System.Collections.Generic.Dictionary.KeyCollection<object,float>
-	// System.Collections.Generic.Dictionary.KeyCollection<object,int>
 	// System.Collections.Generic.Dictionary.KeyCollection<object,object>
 	// System.Collections.Generic.Dictionary.ValueCollection.Enumerator<System.ValueTuple<object,object>,object>
 	// System.Collections.Generic.Dictionary.ValueCollection.Enumerator<int,Game.Outpost.Battle.EnemyVisual>
@@ -873,7 +970,6 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.Dictionary.ValueCollection.Enumerator<int,object>
 	// System.Collections.Generic.Dictionary.ValueCollection.Enumerator<object,byte>
 	// System.Collections.Generic.Dictionary.ValueCollection.Enumerator<object,float>
-	// System.Collections.Generic.Dictionary.ValueCollection.Enumerator<object,int>
 	// System.Collections.Generic.Dictionary.ValueCollection.Enumerator<object,object>
 	// System.Collections.Generic.Dictionary.ValueCollection<System.ValueTuple<object,object>,object>
 	// System.Collections.Generic.Dictionary.ValueCollection<int,Game.Outpost.Battle.EnemyVisual>
@@ -881,7 +977,6 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.Dictionary.ValueCollection<int,object>
 	// System.Collections.Generic.Dictionary.ValueCollection<object,byte>
 	// System.Collections.Generic.Dictionary.ValueCollection<object,float>
-	// System.Collections.Generic.Dictionary.ValueCollection<object,int>
 	// System.Collections.Generic.Dictionary.ValueCollection<object,object>
 	// System.Collections.Generic.Dictionary<System.ValueTuple<object,object>,object>
 	// System.Collections.Generic.Dictionary<int,Game.Outpost.Battle.EnemyVisual>
@@ -889,12 +984,18 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.Dictionary<int,object>
 	// System.Collections.Generic.Dictionary<object,byte>
 	// System.Collections.Generic.Dictionary<object,float>
-	// System.Collections.Generic.Dictionary<object,int>
 	// System.Collections.Generic.Dictionary<object,object>
 	// System.Collections.Generic.EqualityComparer<Game.Framework.DownloadProgressReport>
+	// System.Collections.Generic.EqualityComparer<Game.Framework.UI.LoadingHandle>
 	// System.Collections.Generic.EqualityComparer<Game.Outpost.Battle.EnemyVisual>
 	// System.Collections.Generic.EqualityComparer<Game.Outpost.Battle.SwarmRenderer.UnitAnim>
 	// System.Collections.Generic.EqualityComparer<ObservableCollections.SortOperation<object>>
+	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
 	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>
 	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>
 	// System.Collections.Generic.EqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>
@@ -943,8 +1044,11 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.EqualityComparer<int>
 	// System.Collections.Generic.EqualityComparer<long>
 	// System.Collections.Generic.EqualityComparer<object>
+	// System.Collections.Generic.HashSet.Enumerator<int>
 	// System.Collections.Generic.HashSet.Enumerator<object>
+	// System.Collections.Generic.HashSet<int>
 	// System.Collections.Generic.HashSet<object>
+	// System.Collections.Generic.HashSetEqualityComparer<int>
 	// System.Collections.Generic.HashSetEqualityComparer<object>
 	// System.Collections.Generic.ICollection<Game.Framework.Audio.MonoAudioUtility.GroupVolumeConfig>
 	// System.Collections.Generic.ICollection<Game.Framework.Pool.MonoPoolUtility.GameObjectPoolConfig>
@@ -962,7 +1066,6 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<int,object>>
 	// System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<object,byte>>
 	// System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<object,float>>
-	// System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<object,int>>
 	// System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<object,object>>
 	// System.Collections.Generic.ICollection<System.ValueTuple<object,object>>
 	// System.Collections.Generic.ICollection<UnityEngine.EventSystems.RaycastResult>
@@ -995,14 +1098,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.IEnumerable<Game.Outpost.Battle.UpgradeOption>
 	// System.Collections.Generic.IEnumerable<Game.Outpost.Sim.EnemyArchetype>
 	// System.Collections.Generic.IEnumerable<Game.Outpost.Windows.LeaderboardWindow.Row>
-	// System.Collections.Generic.IEnumerable<Sirenix.OdinInspector.ValueDropdownItem>
 	// System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<System.ValueTuple<object,object>,object>>
 	// System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<int,Game.Outpost.Battle.EnemyVisual>>
 	// System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<int,Game.Outpost.Battle.SwarmRenderer.UnitAnim>>
 	// System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<int,object>>
 	// System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<object,byte>>
 	// System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<object,float>>
-	// System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<object,int>>
 	// System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<object,object>>
 	// System.Collections.Generic.IEnumerable<System.ValueTuple<object,object,byte,byte>>
 	// System.Collections.Generic.IEnumerable<System.ValueTuple<object,object>>
@@ -1020,14 +1121,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.IEnumerator<Game.Outpost.Battle.UpgradeOption>
 	// System.Collections.Generic.IEnumerator<Game.Outpost.Sim.EnemyArchetype>
 	// System.Collections.Generic.IEnumerator<Game.Outpost.Windows.LeaderboardWindow.Row>
-	// System.Collections.Generic.IEnumerator<Sirenix.OdinInspector.ValueDropdownItem>
 	// System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<System.ValueTuple<object,object>,object>>
 	// System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<int,Game.Outpost.Battle.EnemyVisual>>
 	// System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<int,Game.Outpost.Battle.SwarmRenderer.UnitAnim>>
 	// System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<int,object>>
 	// System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<object,byte>>
 	// System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<object,float>>
-	// System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<object,int>>
 	// System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<object,object>>
 	// System.Collections.Generic.IEnumerator<System.ValueTuple<object,object,byte,byte>>
 	// System.Collections.Generic.IEnumerator<System.ValueTuple<object,object>>
@@ -1071,7 +1170,6 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.KeyValuePair<int,object>
 	// System.Collections.Generic.KeyValuePair<object,byte>
 	// System.Collections.Generic.KeyValuePair<object,float>
-	// System.Collections.Generic.KeyValuePair<object,int>
 	// System.Collections.Generic.KeyValuePair<object,object>
 	// System.Collections.Generic.List.Enumerator<Game.Framework.Audio.MonoAudioUtility.GroupVolumeConfig>
 	// System.Collections.Generic.List.Enumerator<Game.Framework.Pool.MonoPoolUtility.GameObjectPoolConfig>
@@ -1108,6 +1206,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.ObjectComparer<Game.Framework.Audio.MonoAudioUtility.GroupVolumeConfig>
 	// System.Collections.Generic.ObjectComparer<Game.Framework.Pool.MonoPoolUtility.GameObjectPoolConfig>
 	// System.Collections.Generic.ObjectComparer<Game.Framework.Systems.LoggingCommandSystem.Entry>
+	// System.Collections.Generic.ObjectComparer<Game.Framework.UI.LoadingHandle>
 	// System.Collections.Generic.ObjectComparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<Game.Outpost.Battle.UpgradeOption,object>>
 	// System.Collections.Generic.ObjectComparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<Game.Outpost.Windows.LeaderboardWindow.Row,object>>
 	// System.Collections.Generic.ObjectComparer<Game.Framework.UI.ReactiveListBinding.Binding.Entry<object,object>>
@@ -1116,6 +1215,11 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.ObjectComparer<Game.Outpost.Sim.EnemyArchetype>
 	// System.Collections.Generic.ObjectComparer<Game.Outpost.Windows.LeaderboardWindow.Row>
 	// System.Collections.Generic.ObjectComparer<System.Collections.Generic.KeyValuePair<object,object>>
+	// System.Collections.Generic.ObjectComparer<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Collections.Generic.ObjectComparer<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Collections.Generic.ObjectComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Collections.Generic.ObjectComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Collections.Generic.ObjectComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Collections.Generic.ObjectComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Collections.Generic.ObjectComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Collections.Generic.ObjectComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1161,9 +1265,15 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.ObjectComparer<int>
 	// System.Collections.Generic.ObjectComparer<object>
 	// System.Collections.Generic.ObjectEqualityComparer<Game.Framework.DownloadProgressReport>
+	// System.Collections.Generic.ObjectEqualityComparer<Game.Framework.UI.LoadingHandle>
 	// System.Collections.Generic.ObjectEqualityComparer<Game.Outpost.Battle.EnemyVisual>
 	// System.Collections.Generic.ObjectEqualityComparer<Game.Outpost.Battle.SwarmRenderer.UnitAnim>
 	// System.Collections.Generic.ObjectEqualityComparer<ObservableCollections.SortOperation<object>>
+	// System.Collections.Generic.ObjectEqualityComparer<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Collections.Generic.ObjectEqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Collections.Generic.ObjectEqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Collections.Generic.ObjectEqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Collections.Generic.ObjectEqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Collections.Generic.ObjectEqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Collections.Generic.ObjectEqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Collections.Generic.ObjectEqualityComparer<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1207,6 +1317,8 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Collections.Generic.ObjectEqualityComparer<int>
 	// System.Collections.Generic.ObjectEqualityComparer<long>
 	// System.Collections.Generic.ObjectEqualityComparer<object>
+	// System.Collections.Generic.Queue.Enumerator<object>
+	// System.Collections.Generic.Queue<object>
 	// System.Collections.Generic.Stack.Enumerator<object>
 	// System.Collections.Generic.Stack<object>
 	// System.Collections.ObjectModel.ReadOnlyCollection<Game.Framework.Audio.MonoAudioUtility.GroupVolumeConfig>
@@ -1228,6 +1340,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Comparison<Game.Framework.Audio.MonoAudioUtility.GroupVolumeConfig>
 	// System.Comparison<Game.Framework.Pool.MonoPoolUtility.GameObjectPoolConfig>
 	// System.Comparison<Game.Framework.Systems.LoggingCommandSystem.Entry>
+	// System.Comparison<Game.Framework.UI.LoadingHandle>
 	// System.Comparison<Game.Framework.UI.ReactiveListBinding.Binding.Entry<Game.Outpost.Battle.UpgradeOption,object>>
 	// System.Comparison<Game.Framework.UI.ReactiveListBinding.Binding.Entry<Game.Outpost.Windows.LeaderboardWindow.Row,object>>
 	// System.Comparison<Game.Framework.UI.ReactiveListBinding.Binding.Entry<object,object>>
@@ -1236,6 +1349,10 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Comparison<Game.Outpost.Sim.EnemyArchetype>
 	// System.Comparison<Game.Outpost.Windows.LeaderboardWindow.Row>
 	// System.Comparison<System.Collections.Generic.KeyValuePair<object,object>>
+	// System.Comparison<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Comparison<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Comparison<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Comparison<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
 	// System.Comparison<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>
 	// System.Comparison<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>
 	// System.Comparison<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>
@@ -1275,12 +1392,20 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Comparison<float>
 	// System.Comparison<int>
 	// System.Comparison<object>
+	// System.Func<Cysharp.Threading.Tasks.UniTask<byte>>
 	// System.Func<Cysharp.Threading.Tasks.UniTask<object>>
 	// System.Func<Cysharp.Threading.Tasks.UniTask>
+	// System.Func<Game.Framework.UI.LoadingHandle>
 	// System.Func<Game.Outpost.Battle.UpgradeOption,Game.Outpost.Battle.UpgradeOption>
 	// System.Func<Game.Outpost.Battle.UpgradeOption,object,object>
 	// System.Func<Game.Outpost.Windows.LeaderboardWindow.Row,Game.Outpost.Windows.LeaderboardWindow.Row>
 	// System.Func<Game.Outpost.Windows.LeaderboardWindow.Row,object,object>
+	// System.Func<System.Threading.CancellationToken,Cysharp.Threading.Tasks.UniTask>
+	// System.Func<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Func<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Func<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Func<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Func<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Func<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Func<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Func<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1320,13 +1445,21 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Func<System.ValueTuple<byte,object>>
 	// System.Func<System.ValueTuple<object,object>>
 	// System.Func<UnityEngine.Vector2Int>
-	// System.Func<byte,object,byte>
+	// System.Func<byte,int,byte>
 	// System.Func<byte>
 	// System.Func<float,float,System.ValueTuple<float,float>>
 	// System.Func<float,float>
-	// System.Func<float,object,float>
-	// System.Func<int,object,int>
+	// System.Func<float,int,float>
+	// System.Func<int,R3.Unit>
+	// System.Func<int,byte>
+	// System.Func<int,int,int>
 	// System.Func<int>
+	// System.Func<object,Game.Framework.UI.LoadingHandle>
+	// System.Func<object,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Func<object,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Func<object,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Func<object,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Func<object,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Func<object,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Func<object,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Func<object,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1371,6 +1504,18 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Func<object,object>
 	// System.Func<object>
 	// System.IEquatable<object>
+	// System.Linq.Buffer<object>
+	// System.Linq.Enumerable.<CastIterator>d__99<object>
+	// System.Linq.Enumerable.Iterator<object>
+	// System.Linq.Enumerable.WhereEnumerableIterator<object>
+	// System.Linq.Enumerable.WhereSelectArrayIterator<object,object>
+	// System.Linq.Enumerable.WhereSelectEnumerableIterator<object,object>
+	// System.Linq.Enumerable.WhereSelectListIterator<object,object>
+	// System.Linq.EnumerableSorter<object,object>
+	// System.Linq.EnumerableSorter<object>
+	// System.Linq.OrderedEnumerable.<GetEnumerator>d__1<object>
+	// System.Linq.OrderedEnumerable<object,object>
+	// System.Linq.OrderedEnumerable<object>
 	// System.Memory<byte>
 	// System.Nullable<R3.Result>
 	// System.Nullable<UnityEngine.Vector3>
@@ -1402,6 +1547,13 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.ReadOnlySpan<byte>
 	// System.ReadOnlySpan<object>
 	// System.ReadOnlySpan<ushort>
+	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<Game.Framework.UI.LoadingHandle>
+	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
 	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>
 	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>
 	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>
@@ -1448,6 +1600,11 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<byte>
 	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>
 	// System.Runtime.CompilerServices.AsyncTaskMethodBuilder<object>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<Game.Framework.UI.LoadingHandle>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>
@@ -1484,6 +1641,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<byte>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<int>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable.ConfiguredTaskAwaiter<object>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<Game.Framework.UI.LoadingHandle>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1525,6 +1688,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<byte>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<int>
 	// System.Runtime.CompilerServices.ConfiguredTaskAwaitable<object>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<Game.Framework.UI.LoadingHandle>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1566,6 +1735,13 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<byte>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<int>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter<object>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<Game.Framework.UI.LoadingHandle>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>
@@ -1612,6 +1788,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<byte>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<int>
 	// System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<object>
+	// System.Runtime.CompilerServices.TaskAwaiter<Game.Framework.UI.LoadingHandle>
+	// System.Runtime.CompilerServices.TaskAwaiter<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Runtime.CompilerServices.TaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Runtime.CompilerServices.TaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Runtime.CompilerServices.TaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Runtime.CompilerServices.TaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Runtime.CompilerServices.TaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Runtime.CompilerServices.TaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Runtime.CompilerServices.TaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1653,6 +1835,13 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Runtime.CompilerServices.TaskAwaiter<byte>
 	// System.Runtime.CompilerServices.TaskAwaiter<int>
 	// System.Runtime.CompilerServices.TaskAwaiter<object>
+	// System.Runtime.CompilerServices.ValueTaskAwaiter<Game.Framework.UI.LoadingHandle>
+	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
 	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>
 	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>
 	// System.Runtime.CompilerServices.ValueTaskAwaiter<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>
@@ -1704,6 +1893,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Span<byte>
 	// System.Span<object>
 	// System.Span<ushort>
+	// System.Threading.Tasks.ContinuationTaskFromResultTask<Game.Framework.UI.LoadingHandle>
+	// System.Threading.Tasks.ContinuationTaskFromResultTask<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Threading.Tasks.ContinuationTaskFromResultTask<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Threading.Tasks.ContinuationTaskFromResultTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Threading.Tasks.ContinuationTaskFromResultTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Threading.Tasks.ContinuationTaskFromResultTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Threading.Tasks.ContinuationTaskFromResultTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Threading.Tasks.ContinuationTaskFromResultTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Threading.Tasks.ContinuationTaskFromResultTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1745,6 +1940,13 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Threading.Tasks.ContinuationTaskFromResultTask<byte>
 	// System.Threading.Tasks.ContinuationTaskFromResultTask<int>
 	// System.Threading.Tasks.ContinuationTaskFromResultTask<object>
+	// System.Threading.Tasks.Sources.IValueTaskSource<Game.Framework.UI.LoadingHandle>
+	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
 	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>
 	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>
 	// System.Threading.Tasks.Sources.IValueTaskSource<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>
@@ -1791,6 +1993,13 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Threading.Tasks.Sources.IValueTaskSource<byte>
 	// System.Threading.Tasks.Sources.IValueTaskSource<int>
 	// System.Threading.Tasks.Sources.IValueTaskSource<object>
+	// System.Threading.Tasks.Task<Game.Framework.UI.LoadingHandle>
+	// System.Threading.Tasks.Task<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Threading.Tasks.Task<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Threading.Tasks.Task<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Threading.Tasks.Task<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Threading.Tasks.Task<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Threading.Tasks.Task<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
 	// System.Threading.Tasks.Task<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>
 	// System.Threading.Tasks.Task<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>
 	// System.Threading.Tasks.Task<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>
@@ -1837,6 +2046,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Threading.Tasks.Task<byte>
 	// System.Threading.Tasks.Task<int>
 	// System.Threading.Tasks.Task<object>
+	// System.Threading.Tasks.TaskFactory<Game.Framework.UI.LoadingHandle>
+	// System.Threading.Tasks.TaskFactory<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Threading.Tasks.TaskFactory<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Threading.Tasks.TaskFactory<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Threading.Tasks.TaskFactory<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Threading.Tasks.TaskFactory<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Threading.Tasks.TaskFactory<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Threading.Tasks.TaskFactory<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Threading.Tasks.TaskFactory<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1878,6 +2093,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Threading.Tasks.TaskFactory<byte>
 	// System.Threading.Tasks.TaskFactory<int>
 	// System.Threading.Tasks.TaskFactory<object>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<Game.Framework.UI.LoadingHandle>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>
@@ -1919,6 +2140,13 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<byte>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<int>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c<object>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<Game.Framework.UI.LoadingHandle>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>
@@ -1965,6 +2193,14 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<byte>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<int>
 	// System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask<object>
+	// System.Threading.Tasks.ValueTask<Game.Framework.UI.LoadingHandle>
+	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
+	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>>
 	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>>
 	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>>
 	// System.Threading.Tasks.ValueTask<System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>>
@@ -2016,6 +2252,14 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 	// System.Threading.Tasks.ValueTask<byte>
 	// System.Threading.Tasks.ValueTask<int>
 	// System.Threading.Tasks.ValueTask<object>
+	// System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>
+	// System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>
+	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>
+	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>
+	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>
+	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>
+	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>
+	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,Game.Framework.UI.LoadingHandle>>>>>>>>
 	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object,object>>>>>>>>>>>
 	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,object>>>>>>>>>>>
 	// System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<byte,System.ValueTuple<object,object>>>>>>>>>>>
@@ -2101,14 +2345,16 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 
 	public void RefMethods()
 	{
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetDownloader.<Download>d__12>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetDownloader.<Download>d__12&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<ClearCache>d__55>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<ClearCache>d__55&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<ClearCacheByLocations>d__59>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<ClearCacheByLocations>d__59&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<ClearCacheByTags>d__57>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<ClearCacheByTags>d__57&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<EnsureInitialized>d__31>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<EnsureInitialized>d__31&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<Initialize>d__32>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<Initialize>d__32&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<InitializePackageAsync>d__24>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<InitializePackageAsync>d__24&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<UnloadUnusedAssets>d__61>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<UnloadUnusedAssets>d__61&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetPackageOperationLane.<Drain>d__3>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetPackageOperationLane.<Drain>d__3&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetPackageOperationLane.Entry.<Wait>d__8>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetPackageOperationLane.Entry.<Wait>d__8&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<ClearCache>d__50>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<ClearCache>d__50&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<ClearCacheByLocations>d__54>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<ClearCacheByLocations>d__54&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<ClearCacheByTags>d__52>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<ClearCacheByTags>d__52&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<EnsureInitialized>d__28>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<EnsureInitialized>d__28&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<Initialize>d__29>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<Initialize>d__29&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<InitializePackageAsync>d__20>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<InitializePackageAsync>d__20&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<RunInitializationOwner>d__21>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<RunInitializationOwner>d__21&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<UnloadUnusedAssets>d__56>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<UnloadUnusedAssets>d__56&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__3<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__3<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__4<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__4<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Diagnostics.FrameworkSelfCheck.<RunAsyncChecks>d__14>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Diagnostics.FrameworkSelfCheck.<RunAsyncChecks>d__14&)
@@ -2124,26 +2370,34 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Storage.StorageUtility.<Enqueue>d__12>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Storage.StorageUtility.<Enqueue>d__12&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Storage.StorageUtility.<Save>d__5<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Storage.StorageUtility.<Save>d__5<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Systems.LoggingCommandSystem.<Await>d__17>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Systems.LoggingCommandSystem.<Await>d__17&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<ClearCacheAsync>d__14>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<ClearCacheAsync>d__14&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__16>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__16&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__15>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__15&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<>c__DisplayClass19_0.<<ClearCacheAsync>b__0>d>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<>c__DisplayClass19_0.<<ClearCacheAsync>b__0>d&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<>c__DisplayClass20_0.<<ClearCacheByTagsAsync>b__0>d>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<>c__DisplayClass20_0.<<ClearCacheByTagsAsync>b__0>d&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<>c__DisplayClass21_0.<<ClearCacheByLocationsAsync>b__0>d>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<>c__DisplayClass21_0.<<ClearCacheByLocationsAsync>b__0>d&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<>c__DisplayClass22_0.<<UnloadUnusedAssetsAsync>b__0>d>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<>c__DisplayClass22_0.<<UnloadUnusedAssetsAsync>b__0>d&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<ClearCacheAsync>d__19>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<ClearCacheAsync>d__19&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__21>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__21&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__20>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__20&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<InitializeAsync>d__2>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<InitializeAsync>d__2&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__17>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__17&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__24>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__24&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<InitializePackageCoreAsync>d__3>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<InitializePackageCoreAsync>d__3&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__22>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__22&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__29>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__29&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooSceneHandle.<Unload>d__9>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooSceneHandle.<Unload>d__9&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Main.GameEntry.<Boot>d__4>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Main.GameEntry.<Boot>d__4&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Outpost.Battle.BattleDirectorSystem.<FastForwardTo>d__105>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Outpost.Battle.BattleDirectorSystem.<FastForwardTo>d__105&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Outpost.Flow.BootState.<OnEnter>d__1>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Outpost.Flow.BootState.<OnEnter>d__1&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Outpost.Save.LoadPlayerRecordCommand.<ExecuteAsync>d__0>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Outpost.Save.LoadPlayerRecordCommand.<ExecuteAsync>d__0&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Outpost.Save.SaveSettingsCommand.<ExecuteAsync>d__0>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Outpost.Save.SaveSettingsCommand.<ExecuteAsync>d__0&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object,object>>,Game.Framework.YooAssetProvider.<InitializeAsync>d__2>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object,object>>&,Game.Framework.YooAssetProvider.<InitializeAsync>d__2&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object>>,Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__24>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object>>&,Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__24&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object,object>>,Game.Framework.YooAssetProvider.<InitializePackageCoreAsync>d__3>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object,object>>&,Game.Framework.YooAssetProvider.<InitializePackageCoreAsync>d__3&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object>>,Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__29>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object>>&,Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__29&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<byte>,Game.Framework.AssetDownloader.<Download>d__16>(Cysharp.Threading.Tasks.UniTask.Awaiter<byte>&,Game.Framework.AssetDownloader.<Download>d__16&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<byte>,Game.Framework.YooPackageOperationCoordinator.<WaitForWriter>d__14>(Cysharp.Threading.Tasks.UniTask.Awaiter<byte>&,Game.Framework.YooPackageOperationCoordinator.<WaitForWriter>d__14&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<byte>,Game.Outpost.Flow.ResultState.<OnEnter>d__3>(Cysharp.Threading.Tasks.UniTask.Awaiter<byte>&,Game.Outpost.Flow.ResultState.<OnEnter>d__3&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<int>,Game.Framework.Diagnostics.FrameworkSelfCheck.<RunAsyncChecks>d__14>(Cysharp.Threading.Tasks.UniTask.Awaiter<int>&,Game.Framework.Diagnostics.FrameworkSelfCheck.<RunAsyncChecks>d__14&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetReference.<RunLoad>d__16<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetReference.<RunLoad>d__16<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.Network.HttpUtility.<Post>d__14<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.Network.HttpUtility.<Post>d__14<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<ShowLoading>d__25>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<ShowLoading>d__25&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<ShowToast>d__24>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<ShowToast>d__24&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<ShowLoading>d__31>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<ShowLoading>d__31&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<ShowToast>d__29>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<ShowToast>d__29&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.YooPackageOperationCoordinator.OperationOwner.<Run>d__16<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.YooPackageOperationCoordinator.OperationOwner.<Run>d__16<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Main.GameEntry.<Boot>d__4>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Main.GameEntry.<Boot>d__4&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Outpost.Flow.BattleState.<OnEnter>d__1>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Outpost.Flow.BattleState.<OnEnter>d__1&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Outpost.Flow.ResultState.<OnEnter>d__3>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Outpost.Flow.ResultState.<OnEnter>d__3&)
@@ -2153,30 +2407,34 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter,Game.Framework.Network.ClientWebSocketProvider.<CloseAsync>d__5>(System.Runtime.CompilerServices.TaskAwaiter&,Game.Framework.Network.ClientWebSocketProvider.<CloseAsync>d__5&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter,Game.Framework.Network.ClientWebSocketProvider.<ConnectAsync>d__2>(System.Runtime.CompilerServices.TaskAwaiter&,Game.Framework.Network.ClientWebSocketProvider.<ConnectAsync>d__2&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter,Game.Framework.Network.ClientWebSocketProvider.<SendAsync>d__3>(System.Runtime.CompilerServices.TaskAwaiter&,Game.Framework.Network.ClientWebSocketProvider.<SendAsync>d__3&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__26>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__26&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__25>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__25&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object,object>>,Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__25>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object,object>>&,Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__25&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__22>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__22&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__21>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__21&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<Game.Framework.UI.LoadingHandle>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<AcquireLoading>d__30>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<AcquireLoading>d__30&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__31>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__31&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__30>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__30&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object,object>>,Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__30>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<byte,object,object>>&,Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__30&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__27>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__27&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__26>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__26&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<byte>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetDownloader.<RunDownloadOwner>d__17>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetDownloader.<RunDownloadOwner>d__17&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<byte>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooPackageOperationCoordinator.<>c__DisplayClass13_0.<<RunWriter>b__0>d>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooPackageOperationCoordinator.<>c__DisplayClass13_0.<<RunWriter>b__0>d&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<byte>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Outpost.Save.SubmitRunResultCommand.<ExecuteAsync>d__2>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Outpost.Save.SubmitRunResultCommand.<ExecuteAsync>d__2&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<int>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Diagnostics.FrameworkSelfCheck.EchoAsyncCommand.<ExecuteAsync>d__1>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Diagnostics.FrameworkSelfCheck.EchoAsyncCommand.<ExecuteAsync>d__1&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<LoadBytes>d__42>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<LoadBytes>d__42&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<LoadInternal>d__65>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<LoadInternal>d__65&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<LoadScene>d__38>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<LoadScene>d__38&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<LoadText>d__40>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<LoadText>d__40&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<LoadBytes>d__39>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<LoadBytes>d__39&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<LoadInternal>d__61>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<LoadInternal>d__61&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<LoadScene>d__35>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<LoadScene>d__35&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetUtility.<LoadText>d__37>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetUtility.<LoadText>d__37&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Storage.StorageUtility.<Enqueue>d__13<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Storage.StorageUtility.<Enqueue>d__13<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<LoadAssetAsync>d__4>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<LoadAssetAsync>d__4&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<LoadSceneAsync>d__5>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<LoadSceneAsync>d__5&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<object,object>>,Game.Framework.YooAssetProvider.<LoadBytesAsync>d__7>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<object,object>>&,Game.Framework.YooAssetProvider.<LoadBytesAsync>d__7&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<object,object>>,Game.Framework.YooAssetProvider.<LoadTextAsync>d__6>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<object,object>>&,Game.Framework.YooAssetProvider.<LoadTextAsync>d__6&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<LoadAssetCoreAsync>d__6>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<LoadAssetCoreAsync>d__6&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooAssetProvider.<LoadSceneCoreAsync>d__8>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooAssetProvider.<LoadSceneCoreAsync>d__8&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.YooPackageOperationCoordinator.OperationOwner.<WaitCore>d__15<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.YooPackageOperationCoordinator.OperationOwner.<WaitCore>d__15<object>&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<object,object>>,Game.Framework.YooAssetProvider.<LoadBytesCoreAsync>d__12>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<object,object>>&,Game.Framework.YooAssetProvider.<LoadBytesCoreAsync>d__12&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<object,object>>,Game.Framework.YooAssetProvider.<LoadTextCoreAsync>d__10>(Cysharp.Threading.Tasks.UniTask.Awaiter<System.ValueTuple<object,object>>&,Game.Framework.YooAssetProvider.<LoadTextCoreAsync>d__10&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetReference.<Get>d__13<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetReference.<Get>d__13<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetReferenceList.<GetAll>d__8<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetReferenceList.<GetAll>d__8<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<Load>d__34<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<Load>d__34<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadByGuid>d__36<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadByGuid>d__36<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadBytes>d__42>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadBytes>d__42&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadInternal>d__65>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadInternal>d__65&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadScene>d__38>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadScene>d__38&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadText>d__40>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadText>d__40&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<Load>d__31<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<Load>d__31<object>&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadByGuid>d__33<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadByGuid>d__33<object>&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadBytes>d__39>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadBytes>d__39&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadInternal>d__61>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadInternal>d__61&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadScene>d__35>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadScene>d__35&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.AssetUtility.<LoadText>d__37>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.AssetUtility.<LoadText>d__37&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__5<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__5<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__6<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__6<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__7<object,object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__7<object,object>&)
@@ -2205,19 +2463,26 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.Systems.LoggingCommandSystem.<Await>d__18<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.Systems.LoggingCommandSystem.<Await>d__18<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.Toolkit.ToolkitBackend.<CreateWindow>d__9>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.Toolkit.ToolkitBackend.<CreateWindow>d__9&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UGui.UGuiBackend.<CreateWindow>d__9>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UGui.UGuiBackend.<CreateWindow>d__9&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<Open>d__13<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<Open>d__13<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<OpenCore>d__14>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<OpenCore>d__14&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<Open>d__18<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<Open>d__18<object>&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.UI.UIUtility.<OpenCore>d__19>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.UI.UIUtility.<OpenCore>d__19&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.YooAssetProvider.<LoadAssetAsync>d__5>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.YooAssetProvider.<LoadAssetAsync>d__5&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.YooAssetProvider.<LoadBytesAsync>d__11>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.YooAssetProvider.<LoadBytesAsync>d__11&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.YooAssetProvider.<LoadSceneAsync>d__7>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.YooAssetProvider.<LoadSceneAsync>d__7&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Framework.YooAssetProvider.<LoadTextAsync>d__9>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Framework.YooAssetProvider.<LoadTextAsync>d__9&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter,Game.Framework.Network.ClientWebSocketProvider.<ReceiveAsync>d__4>(System.Runtime.CompilerServices.TaskAwaiter&,Game.Framework.Network.ClientWebSocketProvider.<ReceiveAsync>d__4&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter<object>,Game.Framework.Network.ClientWebSocketProvider.<ReceiveAsync>d__4>(System.Runtime.CompilerServices.TaskAwaiter<object>&,Game.Framework.Network.ClientWebSocketProvider.<ReceiveAsync>d__4&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetDownloader.<Download>d__12>(Game.Framework.AssetDownloader.<Download>d__12&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetDownloader.<Download>d__16>(Game.Framework.AssetDownloader.<Download>d__16&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetPackageOperationLane.<Drain>d__3>(Game.Framework.AssetPackageOperationLane.<Drain>d__3&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetPackageOperationLane.Entry.<Wait>d__8>(Game.Framework.AssetPackageOperationLane.Entry.<Wait>d__8&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetReference.<RunLoad>d__16<object>>(Game.Framework.AssetReference.<RunLoad>d__16<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<ClearCache>d__55>(Game.Framework.AssetUtility.<ClearCache>d__55&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<ClearCacheByLocations>d__59>(Game.Framework.AssetUtility.<ClearCacheByLocations>d__59&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<ClearCacheByTags>d__57>(Game.Framework.AssetUtility.<ClearCacheByTags>d__57&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<EnsureInitialized>d__31>(Game.Framework.AssetUtility.<EnsureInitialized>d__31&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<Initialize>d__32>(Game.Framework.AssetUtility.<Initialize>d__32&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<InitializePackageAsync>d__24>(Game.Framework.AssetUtility.<InitializePackageAsync>d__24&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<UnloadUnusedAssets>d__61>(Game.Framework.AssetUtility.<UnloadUnusedAssets>d__61&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<ClearCache>d__50>(Game.Framework.AssetUtility.<ClearCache>d__50&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<ClearCacheByLocations>d__54>(Game.Framework.AssetUtility.<ClearCacheByLocations>d__54&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<ClearCacheByTags>d__52>(Game.Framework.AssetUtility.<ClearCacheByTags>d__52&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<EnsureInitialized>d__28>(Game.Framework.AssetUtility.<EnsureInitialized>d__28&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<Initialize>d__29>(Game.Framework.AssetUtility.<Initialize>d__29&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<InitializePackageAsync>d__20>(Game.Framework.AssetUtility.<InitializePackageAsync>d__20&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<RunInitializationOwner>d__21>(Game.Framework.AssetUtility.<RunInitializationOwner>d__21&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.AssetUtility.<UnloadUnusedAssets>d__56>(Game.Framework.AssetUtility.<UnloadUnusedAssets>d__56&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__3<Game.Outpost.Save.SaveSettingsCommand>>(Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__3<Game.Outpost.Save.SaveSettingsCommand>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__3<object>>(Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__3<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__4<object>>(Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__4<object>&)
@@ -2238,14 +2503,21 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.Storage.StorageUtility.<Enqueue>d__12>(Game.Framework.Storage.StorageUtility.<Enqueue>d__12&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.Storage.StorageUtility.<Save>d__5<object>>(Game.Framework.Storage.StorageUtility.<Save>d__5<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.Systems.LoggingCommandSystem.<Await>d__17>(Game.Framework.Systems.LoggingCommandSystem.<Await>d__17&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.UI.UIUtility.<ShowLoading>d__25>(Game.Framework.UI.UIUtility.<ShowLoading>d__25&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.UI.UIUtility.<ShowToast>d__24>(Game.Framework.UI.UIUtility.<ShowToast>d__24&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<ClearCacheAsync>d__14>(Game.Framework.YooAssetProvider.<ClearCacheAsync>d__14&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__16>(Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__16&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__15>(Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__15&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.UI.UIUtility.<ShowLoading>d__31>(Game.Framework.UI.UIUtility.<ShowLoading>d__31&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.UI.UIUtility.<ShowToast>d__29>(Game.Framework.UI.UIUtility.<ShowToast>d__29&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<>c__DisplayClass19_0.<<ClearCacheAsync>b__0>d>(Game.Framework.YooAssetProvider.<>c__DisplayClass19_0.<<ClearCacheAsync>b__0>d&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<>c__DisplayClass20_0.<<ClearCacheByTagsAsync>b__0>d>(Game.Framework.YooAssetProvider.<>c__DisplayClass20_0.<<ClearCacheByTagsAsync>b__0>d&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<>c__DisplayClass21_0.<<ClearCacheByLocationsAsync>b__0>d>(Game.Framework.YooAssetProvider.<>c__DisplayClass21_0.<<ClearCacheByLocationsAsync>b__0>d&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<>c__DisplayClass22_0.<<UnloadUnusedAssetsAsync>b__0>d>(Game.Framework.YooAssetProvider.<>c__DisplayClass22_0.<<UnloadUnusedAssetsAsync>b__0>d&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<ClearCacheAsync>d__19>(Game.Framework.YooAssetProvider.<ClearCacheAsync>d__19&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__21>(Game.Framework.YooAssetProvider.<ClearCacheByLocationsAsync>d__21&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__20>(Game.Framework.YooAssetProvider.<ClearCacheByTagsAsync>d__20&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<InitializeAsync>d__2>(Game.Framework.YooAssetProvider.<InitializeAsync>d__2&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__17>(Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__17&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__24>(Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__24&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<InitializePackageCoreAsync>d__3>(Game.Framework.YooAssetProvider.<InitializePackageCoreAsync>d__3&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__22>(Game.Framework.YooAssetProvider.<UnloadUnusedAssetsAsync>d__22&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__29>(Game.Framework.YooAssetProvider.<UpdateManifestAsync>d__29&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooPackageOperationCoordinator.<WaitForWriter>d__14>(Game.Framework.YooPackageOperationCoordinator.<WaitForWriter>d__14&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooPackageOperationCoordinator.OperationOwner.<Run>d__16<object>>(Game.Framework.YooPackageOperationCoordinator.OperationOwner.<Run>d__16<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Framework.YooSceneHandle.<Unload>d__9>(Game.Framework.YooSceneHandle.<Unload>d__9&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Main.GameEntry.<Boot>d__4>(Game.Main.GameEntry.<Boot>d__4&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Outpost.Battle.BattleDirectorSystem.<FastForwardTo>d__105>(Game.Outpost.Battle.BattleDirectorSystem.<FastForwardTo>d__105&)
@@ -2256,21 +2528,24 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Outpost.Save.LoadPlayerRecordCommand.<ExecuteAsync>d__0>(Game.Outpost.Save.LoadPlayerRecordCommand.<ExecuteAsync>d__0&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Outpost.Save.LoadSettingsCommand.<ExecuteAsync>d__0>(Game.Outpost.Save.LoadSettingsCommand.<ExecuteAsync>d__0&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder.Start<Game.Outpost.Save.SaveSettingsCommand.<ExecuteAsync>d__0>(Game.Outpost.Save.SaveSettingsCommand.<ExecuteAsync>d__0&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object,object>>.Start<Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__26>(Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__26&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object>>.Start<Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__25>(Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__25&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>.Start<Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__22>(Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__22&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>.Start<Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__21>(Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__21&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<Game.Framework.UI.LoadingHandle>.Start<Game.Framework.UI.UIUtility.<AcquireLoading>d__30>(Game.Framework.UI.UIUtility.<AcquireLoading>d__30&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object,object>>.Start<Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__31>(Game.Framework.YooAssetProvider.<TryReadBuiltinVersionAsync>d__31&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<byte,object>>.Start<Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__30>(Game.Framework.YooAssetProvider.<TryLoadBuiltinManifestAsync>d__30&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>.Start<Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__27>(Game.Framework.YooAssetProvider.<LoadRawFileObjectAsync>d__27&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<System.ValueTuple<object,object>>.Start<Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__26>(Game.Framework.YooAssetProvider.<LoadTextAssetAsync>d__26&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<byte>.Start<Game.Framework.AssetDownloader.<RunDownloadOwner>d__17>(Game.Framework.AssetDownloader.<RunDownloadOwner>d__17&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<byte>.Start<Game.Framework.YooPackageOperationCoordinator.<>c__DisplayClass13_0.<<RunWriter>b__0>d>(Game.Framework.YooPackageOperationCoordinator.<>c__DisplayClass13_0.<<RunWriter>b__0>d&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<byte>.Start<Game.Outpost.Save.SubmitRunResultCommand.<ExecuteAsync>d__2>(Game.Outpost.Save.SubmitRunResultCommand.<ExecuteAsync>d__2&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<int>.Start<Game.Framework.Diagnostics.FrameworkSelfCheck.EchoAsyncCommand.<ExecuteAsync>d__1>(Game.Framework.Diagnostics.FrameworkSelfCheck.EchoAsyncCommand.<ExecuteAsync>d__1&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Cysharp.Threading.Tasks.UniTask.<RunOnThreadPool>d__86<object>>(Cysharp.Threading.Tasks.UniTask.<RunOnThreadPool>d__86<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetReference.<Get>d__13<object>>(Game.Framework.AssetReference.<Get>d__13<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetReferenceList.<GetAll>d__8<object>>(Game.Framework.AssetReferenceList.<GetAll>d__8<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<Load>d__34<object>>(Game.Framework.AssetUtility.<Load>d__34<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadByGuid>d__36<object>>(Game.Framework.AssetUtility.<LoadByGuid>d__36<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadBytes>d__42>(Game.Framework.AssetUtility.<LoadBytes>d__42&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadInternal>d__65>(Game.Framework.AssetUtility.<LoadInternal>d__65&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadScene>d__38>(Game.Framework.AssetUtility.<LoadScene>d__38&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadText>d__40>(Game.Framework.AssetUtility.<LoadText>d__40&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<Load>d__31<object>>(Game.Framework.AssetUtility.<Load>d__31<object>&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadByGuid>d__33<object>>(Game.Framework.AssetUtility.<LoadByGuid>d__33<object>&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadBytes>d__39>(Game.Framework.AssetUtility.<LoadBytes>d__39&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadInternal>d__61>(Game.Framework.AssetUtility.<LoadInternal>d__61&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadScene>d__35>(Game.Framework.AssetUtility.<LoadScene>d__35&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.AssetUtility.<LoadText>d__37>(Game.Framework.AssetUtility.<LoadText>d__37&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__5<object>>(Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__5<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__6<object>>(Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__6<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__7<object,object>>(Game.Framework.Common.ViewExtensions.<ExecuteCommandAsync>d__7<object,object>&)
@@ -2300,23 +2575,28 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.Systems.LoggingCommandSystem.<Await>d__18<object>>(Game.Framework.Systems.LoggingCommandSystem.<Await>d__18<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.UI.Toolkit.ToolkitBackend.<CreateWindow>d__9>(Game.Framework.UI.Toolkit.ToolkitBackend.<CreateWindow>d__9&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.UI.UGui.UGuiBackend.<CreateWindow>d__9>(Game.Framework.UI.UGui.UGuiBackend.<CreateWindow>d__9&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.UI.UIUtility.<Open>d__13<object>>(Game.Framework.UI.UIUtility.<Open>d__13<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.UI.UIUtility.<OpenCore>d__14>(Game.Framework.UI.UIUtility.<OpenCore>d__14&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadAssetAsync>d__4>(Game.Framework.YooAssetProvider.<LoadAssetAsync>d__4&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadBytesAsync>d__7>(Game.Framework.YooAssetProvider.<LoadBytesAsync>d__7&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadSceneAsync>d__5>(Game.Framework.YooAssetProvider.<LoadSceneAsync>d__5&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadTextAsync>d__6>(Game.Framework.YooAssetProvider.<LoadTextAsync>d__6&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.UI.UIUtility.<Open>d__18<object>>(Game.Framework.UI.UIUtility.<Open>d__18<object>&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.UI.UIUtility.<OpenCore>d__19>(Game.Framework.UI.UIUtility.<OpenCore>d__19&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadAssetAsync>d__5>(Game.Framework.YooAssetProvider.<LoadAssetAsync>d__5&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadAssetCoreAsync>d__6>(Game.Framework.YooAssetProvider.<LoadAssetCoreAsync>d__6&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadBytesAsync>d__11>(Game.Framework.YooAssetProvider.<LoadBytesAsync>d__11&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadBytesCoreAsync>d__12>(Game.Framework.YooAssetProvider.<LoadBytesCoreAsync>d__12&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadSceneAsync>d__7>(Game.Framework.YooAssetProvider.<LoadSceneAsync>d__7&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadSceneCoreAsync>d__8>(Game.Framework.YooAssetProvider.<LoadSceneCoreAsync>d__8&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadTextAsync>d__9>(Game.Framework.YooAssetProvider.<LoadTextAsync>d__9&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooAssetProvider.<LoadTextCoreAsync>d__10>(Game.Framework.YooAssetProvider.<LoadTextCoreAsync>d__10&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder<object>.Start<Game.Framework.YooPackageOperationCoordinator.OperationOwner.<WaitCore>d__15<object>>(Game.Framework.YooPackageOperationCoordinator.OperationOwner.<WaitCore>d__15<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.SwitchToMainThreadAwaitable.Awaiter,Game.Framework.Network.WebSocketUtility.<ReceiveLoop>d__25>(Cysharp.Threading.Tasks.SwitchToMainThreadAwaitable.Awaiter&,Game.Framework.Network.WebSocketUtility.<ReceiveLoop>d__25&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.AssetInitSystem.<InitAsync>d__5>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.AssetInitSystem.<InitAsync>d__5&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Audio.AudioUtility.<RunDriver>d__45>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Audio.AudioUtility.<RunDriver>d__45&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Audio.AudioUtility.<RunFade>d__40>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Audio.AudioUtility.<RunFade>d__40&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Flow.GameFlow.<RunTransitions>d__16>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Flow.GameFlow.<RunTransitions>d__16&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.MonoConfigUtilityBase.<LoadAsync>d__14<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.MonoConfigUtilityBase.<LoadAsync>d__14<object>&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__11>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__11&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__9>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__9&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.UI.Toolkit.ToolkitToastWindow.<AutoClose>d__5>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.UI.Toolkit.ToolkitToastWindow.<AutoClose>d__5&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.UI.UGui.UGuiToastWindow.<AutoClose>d__5>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.UI.UGui.UGuiToastWindow.<AutoClose>d__5&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.UI.UIUtility.<RunCloseTransition>d__29>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.UI.UIUtility.<RunCloseTransition>d__29&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.UI.UIUtility.<RunOpenTransition>d__32>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.UI.UIUtility.<RunOpenTransition>d__32&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.UI.UIUtility.<RunCloseTransition>d__43>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.UI.UIUtility.<RunCloseTransition>d__43&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Framework.UI.UIUtility.<RunOpenTransition>d__46>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Framework.UI.UIUtility.<RunOpenTransition>d__46&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Outpost.Battle.BattleDirectorSystem.<SetupAsync>d__102>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Outpost.Battle.BattleDirectorSystem.<SetupAsync>d__102&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Outpost.Flow.FlowNav.<<Go>g__GoAsync|0_0>d>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Outpost.Flow.FlowNav.<<Go>g__GoAsync|0_0>d&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter,Game.Outpost.Windows.SettingsWindow.<DownloadExpansion>d__13>(Cysharp.Threading.Tasks.UniTask.Awaiter&,Game.Outpost.Windows.SettingsWindow.<DownloadExpansion>d__13&)
@@ -2325,7 +2605,7 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Outpost.Battle.BattleDirectorSystem.<SetupAsync>d__102>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Outpost.Battle.BattleDirectorSystem.<SetupAsync>d__102&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Outpost.Systems.OutpostAudioSystem.<InitAsync>d__5>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Outpost.Systems.OutpostAudioSystem.<InitAsync>d__5&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Outpost.Systems.OutpostAudioSystem.<PlayBattleMusic>d__7>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Outpost.Systems.OutpostAudioSystem.<PlayBattleMusic>d__7&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__9>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__9&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__10>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__10&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.AwaitUnsafeOnCompleted<Cysharp.Threading.Tasks.UniTask.Awaiter<object>,Game.Outpost.Windows.SettingsWindow.<PreloadAuditionAsync>d__17>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>&,Game.Outpost.Windows.SettingsWindow.<PreloadAuditionAsync>d__17&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.AssetInitSystem.<InitAsync>d__5>(Game.Framework.AssetInitSystem.<InitAsync>d__5&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.Audio.AudioUtility.<RunDriver>d__45>(Game.Framework.Audio.AudioUtility.<RunDriver>d__45&)
@@ -2333,16 +2613,16 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.Flow.GameFlow.<RunTransitions>d__16>(Game.Framework.Flow.GameFlow.<RunTransitions>d__16&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.MonoConfigUtilityBase.<LoadAsync>d__14<object>>(Game.Framework.MonoConfigUtilityBase.<LoadAsync>d__14<object>&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.Network.WebSocketUtility.<ReceiveLoop>d__25>(Game.Framework.Network.WebSocketUtility.<ReceiveLoop>d__25&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__11>(Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__11&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__9>(Game.Framework.Pool.MonoPoolUtility.<PrewarmAsync>d__9&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.UI.Toolkit.ToolkitToastWindow.<AutoClose>d__5>(Game.Framework.UI.Toolkit.ToolkitToastWindow.<AutoClose>d__5&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.UI.UGui.UGuiToastWindow.<AutoClose>d__5>(Game.Framework.UI.UGui.UGuiToastWindow.<AutoClose>d__5&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.UI.UIUtility.<RunCloseTransition>d__29>(Game.Framework.UI.UIUtility.<RunCloseTransition>d__29&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.UI.UIUtility.<RunOpenTransition>d__32>(Game.Framework.UI.UIUtility.<RunOpenTransition>d__32&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.UI.UIUtility.<RunCloseTransition>d__43>(Game.Framework.UI.UIUtility.<RunCloseTransition>d__43&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Framework.UI.UIUtility.<RunOpenTransition>d__46>(Game.Framework.UI.UIUtility.<RunOpenTransition>d__46&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Outpost.Battle.BattleDirectorSystem.<SetupAsync>d__102>(Game.Outpost.Battle.BattleDirectorSystem.<SetupAsync>d__102&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Outpost.Flow.FlowNav.<<Go>g__GoAsync|0_0>d>(Game.Outpost.Flow.FlowNav.<<Go>g__GoAsync|0_0>d&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Outpost.Systems.OutpostAudioSystem.<InitAsync>d__5>(Game.Outpost.Systems.OutpostAudioSystem.<InitAsync>d__5&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Outpost.Systems.OutpostAudioSystem.<PlayBattleMusic>d__7>(Game.Outpost.Systems.OutpostAudioSystem.<PlayBattleMusic>d__7&)
-		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__9>(Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__9&)
+		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__10>(Game.Outpost.Windows.LeaderboardWindow.<Refresh>d__10&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Outpost.Windows.SettingsWindow.<DownloadExpansion>d__13>(Game.Outpost.Windows.SettingsWindow.<DownloadExpansion>d__13&)
 		// System.Void Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskVoidMethodBuilder.Start<Game.Outpost.Windows.SettingsWindow.<PreloadAuditionAsync>d__17>(Game.Outpost.Windows.SettingsWindow.<PreloadAuditionAsync>d__17&)
 		// Cysharp.Threading.Tasks.Internal.StateTuple<Cysharp.Threading.Tasks.UniTask.Awaiter<object>> Cysharp.Threading.Tasks.Internal.StateTuple.Create<Cysharp.Threading.Tasks.UniTask.Awaiter<object>>(Cysharp.Threading.Tasks.UniTask.Awaiter<object>)
@@ -2354,25 +2634,20 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void Cysharp.Threading.Tasks.UniTaskExtensions.Forget<object>(Cysharp.Threading.Tasks.UniTask<object>)
 		// R3.Observable<ObservableCollections.CollectionChangedEvent<object>> ObservableCollections.ObservableCollectionR3Extensions.ObserveChanged<object>(ObservableCollections.IObservableCollection<object>,System.Threading.CancellationToken)
 		// R3.Observable<System.ValueTuple<float,float>> R3.Observable.CombineLatest<float,float,System.ValueTuple<float,float>>(R3.Observable<float>,R3.Observable<float>,System.Func<float,float,System.ValueTuple<float,float>>)
-		// R3.Observable<byte> R3.Observable.CombineLatest<byte,object,byte>(R3.Observable<byte>,R3.Observable<object>,System.Func<byte,object,byte>)
-		// R3.Observable<float> R3.Observable.CombineLatest<float,object,float>(R3.Observable<float>,R3.Observable<object>,System.Func<float,object,float>)
-		// R3.Observable<int> R3.Observable.CombineLatest<int,object,int>(R3.Observable<int>,R3.Observable<object>,System.Func<int,object,int>)
+		// R3.Observable<byte> R3.Observable.CombineLatest<byte,int,byte>(R3.Observable<byte>,R3.Observable<int>,System.Func<byte,int,byte>)
+		// R3.Observable<float> R3.Observable.CombineLatest<float,int,float>(R3.Observable<float>,R3.Observable<int>,System.Func<float,int,float>)
+		// R3.Observable<int> R3.Observable.CombineLatest<int,int,int>(R3.Observable<int>,R3.Observable<int>,System.Func<int,int,int>)
 		// R3.Observable<object> R3.Observable.Create<object,object>(object,System.Func<R3.Observer<object>,object,System.IDisposable>,bool)
+		// R3.Observable<R3.Unit> R3.ObservableExtensions.Select<int,R3.Unit>(R3.Observable<int>,System.Func<int,R3.Unit>)
 		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<Game.Framework.DownloadProgressReport>(R3.Observable<Game.Framework.DownloadProgressReport>,System.Action<Game.Framework.DownloadProgressReport>)
 		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<ObservableCollections.CollectionChangedEvent<object>>(R3.Observable<ObservableCollections.CollectionChangedEvent<object>>,System.Action<ObservableCollections.CollectionChangedEvent<object>>)
+		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<R3.Unit>(R3.Observable<R3.Unit>,System.Action<R3.Unit>)
 		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<System.ValueTuple<float,float>>(R3.Observable<System.ValueTuple<float,float>>,System.Action<System.ValueTuple<float,float>>)
 		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<byte>(R3.Observable<byte>,System.Action<byte>)
 		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<float>(R3.Observable<float>,System.Action<float>)
 		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<int>(R3.Observable<int>,System.Action<int>)
 		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<long>(R3.Observable<long>,System.Action<long>)
 		// System.IDisposable R3.ObservableSubscribeExtensions.Subscribe<object>(R3.Observable<object>,System.Action<object>)
-		// object Sirenix.Serialization.SerializationUtility.DeserializeValue<object>(Sirenix.Serialization.IDataReader)
-		// object Sirenix.Serialization.SerializationUtility.DeserializeValue<object>(System.IO.Stream,Sirenix.Serialization.DataFormat,Sirenix.Serialization.DeserializationContext)
-		// object Sirenix.Serialization.SerializationUtility.DeserializeValue<object>(byte[],Sirenix.Serialization.DataFormat,Sirenix.Serialization.DeserializationContext)
-		// System.Void Sirenix.Serialization.SerializationUtility.SerializeValue<object>(object,Sirenix.Serialization.IDataWriter)
-		// System.Void Sirenix.Serialization.SerializationUtility.SerializeValue<object>(object,System.IO.Stream,Sirenix.Serialization.DataFormat,Sirenix.Serialization.SerializationContext)
-		// byte[] Sirenix.Serialization.SerializationUtility.SerializeValue<object>(object,Sirenix.Serialization.DataFormat,Sirenix.Serialization.SerializationContext)
-		// Sirenix.Serialization.Serializer<object> Sirenix.Serialization.Serializer.Get<object>()
 		// object System.Activator.CreateInstance<object>()
 		// UnityEngine.Vector2[] System.Array.Empty<UnityEngine.Vector2>()
 		// byte[] System.Array.Empty<byte>()
@@ -2384,6 +2659,12 @@ public class AOTGenericReferences : UnityEngine.MonoBehaviour
 		// System.Void System.Array.Resize<UnityEngine.Vector2>(UnityEngine.Vector2[]&,int)
 		// System.Void System.Array.Resize<float>(float[]&,int)
 		// System.Void System.Array.Resize<int>(int[]&,int)
+		// System.Collections.Generic.IEnumerable<object> System.Linq.Enumerable.Cast<object>(System.Collections.IEnumerable)
+		// System.Collections.Generic.IEnumerable<object> System.Linq.Enumerable.CastIterator<object>(System.Collections.IEnumerable)
+		// System.Linq.IOrderedEnumerable<object> System.Linq.Enumerable.OrderBy<object,object>(System.Collections.Generic.IEnumerable<object>,System.Func<object,object>,System.Collections.Generic.IComparer<object>)
+		// System.Collections.Generic.IEnumerable<object> System.Linq.Enumerable.Select<object,object>(System.Collections.Generic.IEnumerable<object>,System.Func<object,object>)
+		// object[] System.Linq.Enumerable.ToArray<object>(System.Collections.Generic.IEnumerable<object>)
+		// System.Collections.Generic.IEnumerable<object> System.Linq.Enumerable.Iterator<object>.Select<object>(System.Func<object,object>)
 		// object& System.Runtime.CompilerServices.Unsafe.As<object,object>(object&)
 		// System.Void* System.Runtime.CompilerServices.Unsafe.AsPointer<object>(object&)
 		// object UnityEngine.Component.GetComponent<object>()

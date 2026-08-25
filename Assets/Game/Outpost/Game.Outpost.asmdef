@@ -13,16 +13,18 @@
         "Game.Outpost.Sim.Ecs",
         "Luban.Runtime",
         "UniTask",
-        "R3",
         "R3.Unity",
-        "ObservableCollections",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "R3.dll",
+        "ObservableCollections.dll",
+        "Google.Protobuf.dll"
+    ],
     "autoReferenced": false,
     "defineConstraints": [],
     "versionDefines": [],
