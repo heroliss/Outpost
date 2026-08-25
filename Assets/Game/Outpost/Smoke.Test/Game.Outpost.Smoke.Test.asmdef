@@ -15,8 +15,7 @@
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll",
-        "R3.dll",
-        "Sirenix.Serialization.dll"
+        "R3.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

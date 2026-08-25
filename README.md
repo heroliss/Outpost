@@ -1,6 +1,6 @@
 # 🎮 SSFramework
 
-> 这是一个自研的 Unity 游戏开发框架，采用创新的 MVC 变体代码架构。秉持"站在巨人肩膀上"的开发理念，把 UniTask、R3、YooAsset、Odin Inspector 等成熟优秀第三方工具与 Unity 编辑器等全部深度融合在一起，充分发挥各自的价值，让编译器替你守住代码边界、让 Inspector 替你看穿运行状态，让数据流理念把你的思路理清。灵活且强大的框架设计让你在规范代码的同时可以应对各种情况。
+> 这是一个自研的 Unity 游戏开发框架，采用创新的 MVC 变体代码架构。秉持"站在巨人肩膀上"的开发理念，把 UniTask、R3、YooAsset 等成熟开源库与 Unity 编辑器深度融合，同时把 Odin Inspector 这类专业付费工具保留为可选增强。让编译器替你守住代码边界、让 Inspector 替你看穿运行状态，让数据流理念把你的思路理清；需要轻量包体或未购买插件的项目也能按 Module 自由取舍。
 
 框架特性：把传统 MVC 中臃肿的 Controller 一分为二（**System** 负责"怎么做"、**Command** 负责"做什么"），用 DI 容器和接口约束各层权限，配合 Unity 的 Hierarchy 直接表达上下文与模块关系——所有运行时状态在 Inspector 一眼看穿，所有依赖在编译期就能查验。
 
@@ -132,7 +132,7 @@ public class HudView : MonoViewBase
 | [YooAsset](https://github.com/tuyoogame/YooAsset) | 资源 provider | 当前默认 provider 实现（经 `IAssetProvider` 隔离，可整体替换） |
 | [HybridCLR](https://github.com/focus-creative-games/hybridclr) | 代码热更 | 列表驱动的热更范围 + Boot 引导（ADR-0008） |
 | [Luban](https://github.com/focus-creative-games/luban) | 配置表 | 构建期生成代码/数据/清单，运行期自加载配置服务（ADR-0009） |
-| [Odin Inspector](https://odininspector.com) | Inspector 扩展 | 接口类型字段序列化、自定义绘制器 |
+| [Odin Inspector](https://odininspector.com) | 可选专业 Inspector | 项目级增强；Framework 原生基线不依赖、不随包分发（[移除与集成指南](docs/optional-odin-integration.md)） |
 | [AnkleBreaker Unity MCP](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin) | 编辑器自动化 | 让 AI 经带队列与 Undo 的结构化工具安全操作 Unity Editor |
 
 <img src="https://raw.githubusercontent.com/AnkleBreaker-Studio/unity-mcp-plugin/main/icon.png" alt="AnkleBreaker MCP logo" width="24"> **Powered by AnkleBreaker MCP**。
@@ -145,7 +145,8 @@ public class HudView : MonoViewBase
 |---|---|---|
 | **[用户手册](docs/framework-guide.md)** | 框架使用者 | 28 章完整教程，从理念到 API 速查 |
 | [持续完善计划](docs/project-improvement-plan.md) | 维护者 / 评审者 | 当前健康基线、已完成闭环与下一批优先级 |
-| [Framework Module 地图](docs/framework-module-map.md) | 架构维护者 | 23 个 asmdef 的职责、依赖方向与删除测试 |
+| [Framework Module 地图](docs/framework-module-map.md) | 架构维护者 | 25 个 asmdef 的职责、依赖方向与删除测试 |
+| [Odin 可选集成与移除](docs/optional-odin-integration.md) | 框架使用者 / 包维护者 | 原生基线、授权边界、迁移步骤与未来 Adapter 准入条件 |
 | [架构决策记录](docs/adr/README.md) | 设计评审者 | 关键决策的 Context / Decision / Consequences |
 | [框架使用规则](Assets/Game/AGENTS.md) | AI Agent / 团队成员 | 业务代码遵循的核心约定 |
 | [框架内部编码规则](Assets/Game/Framework/AGENTS.md) | 框架维护者 | 改框架源码时的内部规范 |

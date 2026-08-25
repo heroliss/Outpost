@@ -256,18 +256,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d273b8a3abca6c34ca7587bae2e511e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Framework.UI.Toolkit::Game.Framework.UI.Toolkit.MonoToolkitUI
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _document: {fileID: 189406431}
 --- !u!114 &189406431
 MonoBehaviour:
@@ -336,18 +325,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46dff7ad211ab314e936e07232f79205, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Framework.Fonts::Game.Framework.Fonts.MonoLocaleFonts
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _tmpMainFonts:
   - {fileID: 11400000, guid: 69637c3a9fd3905468eb01d1bd02df11, type: 2}
   _toolkitMainFonts: []
@@ -410,18 +388,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a4d087758a34164ca175b0304373913, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Framework::Game.Framework.AssetInitSystem
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
 --- !u!114 &717767610
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -434,18 +401,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c70828e016ec41bcaac22b9924dece11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Framework::Game.Framework.AssetUtility
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _simulateOffline:
     value: 0
 --- !u!114 &717767611
@@ -460,18 +416,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5f5650a4a5040c46ba6789cd530ffbe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Framework::Game.Framework.AssetSystemConfigModel
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _packages:
   - _name: DefaultPackage
     _autoInitialize: 1
@@ -531,18 +476,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e917691dbe3c1b46851d497ca2ed6f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Config.OutpostConfigUtility
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _packageName: 
   _initializePackageIfIdle: 0
 --- !u!1 &1935668869
@@ -591,18 +525,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5054b408949c39e4fbfced2a90c63f34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Systems.OutpostBootSystem
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
 --- !u!114 &1935668872
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -615,18 +538,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27770e4fd8ae57b4580b2b20f6485231, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Systems.OutpostAudioSystem
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
 --- !u!114 &1935668873
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -639,18 +551,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c470f2b341f7d9a4fb0b80b8e54f900c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Systems.OutpostNetSystem
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
 --- !u!1 &2042817418
 GameObject:
   m_ObjectHideFlags: 0
@@ -680,20 +581,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80b12f66915157342a51e854ef2cb1f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.OutpostContext
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _parentContext
-      Entry: 6
-      Data: 
+  _parentContextHost: {fileID: 0}
   _inheritFromParent: 1
   _inheritFromGlobal: 1
+  _remoteHttpBaseUrl: 
+  _remoteWsUrl: 
 --- !u!4 &2042817420
 Transform:
   m_ObjectHideFlags: 0

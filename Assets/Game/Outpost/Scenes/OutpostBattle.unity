@@ -883,18 +883,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f20adc8470a880248b04085a5eec04d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.GameSpeedButtonView
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _button: {fileID: 728145937}
   _label: {fileID: 663781416}
   _background: {fileID: 728145938}
@@ -2098,18 +2087,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3712ca5683d99449af2c14535f597d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.AutoManageToggleView
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _button: {fileID: 1132230399}
   _label: {fileID: 788254179}
   _background: {fileID: 1132230400}
@@ -2525,18 +2503,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97e0d25cec8915545aaa5dbe34e10f0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.RetreatButtonView
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _button: {fileID: 1189920706}
   _label: {fileID: 793475163}
 --- !u!114 &1189920706
@@ -2863,18 +2830,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed30485af7ee6ab4291c0398c2ec5ab0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.BattleDirector
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _backend: 1
   _arenaRoot: {fileID: 1298697657}
   _swarm: {fileID: 1298697659}
@@ -2915,18 +2871,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d54404e12435114a8de60fa6bd17ae1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.BattleContext
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _parentContext
-      Entry: 6
-      Data: 
+  _parentContextHost: {fileID: 0}
   _inheritFromParent: 1
   _inheritFromGlobal: 1
 --- !u!4 &1398640618
@@ -3044,18 +2989,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e357319738364d49bc7e465c828d7a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.BattleHudView
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _hpFill: {fileID: 881830939}
   _hpText: {fileID: 1094767885}
   _waveText: {fileID: 1211448555}
@@ -3176,18 +3110,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a253ce8a5c4e5c0419b60a37ab23b34b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.UpgradeChoiceView
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _content: {fileID: 359431698}
   _cardContainer: {fileID: 402412011}
   _cardPrefab: {fileID: 6989104054292238406, guid: 65ef9bf4ee9b89542845dff550025bce, type: 3}
@@ -3245,18 +3168,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a5c2605982dca94b93d8b4e65b03c19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.HeatmapToggleView
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: _targetContext
-      Entry: 6
-      Data: 
+  _targetContext: {fileID: 0}
   _button: {fileID: 1883013254}
   _label: {fileID: 23903359}
   _background: {fileID: 1883013255}
