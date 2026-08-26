@@ -113,7 +113,7 @@ public class HudView : MonoViewBase
 
 以下不是愿景，是当前仓库里**可复核**的维护纪律：
 
-- **测试**：400+ 条 PlayMode 测试 + EditMode 编辑器测试（2026-08-24 基线：422 + 102，全绿）——覆盖容器解析契约、命令分发（含 struct 零装箱路径）、事件总线、初始化失败事务与生命周期级联、AI PlayMode 无弹窗预检、诊断面板编辑态防误报、Editor 窄窗口响应式布局、资源四态查询 / 原生操作所有权与跨 Provider 包级并发、内嵌服务器端口回退、Demo 章节同实例生命周期、真实 DemoScene 逐章 Build、教学语义/降级契约与源码跳转防腐、ReactiveList 行身份 / 逐行释放、真实 Toolkit Cache/Destroy 重开语义、异步按钮取消/异常/防重入、本地化延迟 Source 失效刷新、对象池、UI Loading 并发所有权与窗口栈、UI 嵌入桥低清等比降采样，以及 Outpost 双后端确定性回归与“标题 → 战斗 → 撤离 → 结算 → 回标题”的真实玩家路径。核心编排（如 `UIUtility`）刻意做成渲染中立的纯 C#，可脱离场景单测。交互式 Editor 经 `SSFramework/诊断/AI 自动化/PlayMode 测试预检（保存脏场景）` 后可由 MCP 无弹窗启动；命令行护栏则在关闭本工程 Editor 后由 `Tools/run-tests.ps1` 默认顺序跑 EditMode + PlayMode，并分别保留 NUnit XML / Editor 日志（CI / 推送前用）。
+- **测试**：400+ 条 PlayMode 测试 + EditMode 编辑器测试（2026-08-26 基线：436 + 244，全绿）——覆盖容器解析契约、命令分发（含 struct 零装箱路径）、事件总线、初始化失败事务与生命周期级联、AI PlayMode 无弹窗预检、诊断面板编辑态防误报、Editor 窄窗口响应式布局、资源四态查询 / 原生操作所有权与跨 Provider 包级并发、配置就绪 / 原始失败 / waiter-owner 取消、内嵌服务器端口回退、Demo 章节同实例生命周期、真实 DemoScene 逐章 Build、教学语义/降级契约与源码跳转防腐、ReactiveList 行身份 / 逐行释放、真实 Toolkit Cache/Destroy 重开语义、异步按钮取消/异常/防重入、本地化延迟 Source 失效刷新、对象池、UI Loading 并发所有权与窗口栈、UI 嵌入桥低清等比降采样，以及 Outpost 双后端确定性回归与“标题 → 战斗 → 撤离 → 结算 → 回标题”的真实玩家路径。核心编排（如 `UIUtility`）刻意做成渲染中立的纯 C#，可脱离场景单测。交互式 Editor 经 `SSFramework/诊断/AI 自动化/PlayMode 测试预检（保存脏场景）` 后可由 MCP 无弹窗启动；命令行护栏则在关闭本工程 Editor 后由 `Tools/run-tests.ps1` 默认顺序跑 EditMode + PlayMode，并分别保留 NUnit XML / Editor 日志（CI / 推送前用）。
 - **文档四层，且与代码同步维护**：本 README（门面）→ [用户手册 28 章](docs/framework-guide.md)（心智模型 + API）→ [ADR](docs/adr/README.md)（每个关键决策的“为什么”与代价）→ 分层 `AGENTS.md`（就近自动加载的协作约束）。改设计必须同步改文档是硬规矩，不留“文档说 A、代码做 B”。
 - **权限双保险**：编译期 `ICanXxx` 接口约束 + `[Inject]` 注入期同源镜像校验（`InjectionPlan`），两条路径共用一套权限模型，堵住"扩展方法编译不过就换注入绕过"的口子。
 - **防泄漏是设计目标不是补丁**：linked CTS 单槽缓存与移交释放、池租借登记的提前归还摘除、停放节点自愈重建、Dispose 幂等与逆序释放——这些边界行为都有注释解释"为什么"并有测试盯着。
@@ -145,7 +145,7 @@ public class HudView : MonoViewBase
 |---|---|---|
 | **[用户手册](docs/framework-guide.md)** | 框架使用者 | 28 章完整教程，从理念到 API 速查 |
 | [持续完善计划](docs/project-improvement-plan.md) | 维护者 / 评审者 | 当前健康基线、已完成闭环与下一批优先级 |
-| [Framework Module 地图](docs/framework-module-map.md) | 架构维护者 | 25 个 asmdef 的职责、依赖方向与删除测试 |
+| [Framework Module 地图](docs/framework-module-map.md) | 架构维护者 | 26 个 asmdef 的职责、依赖方向与删除测试 |
 | [Odin 可选集成与移除](docs/optional-odin-integration.md) | 框架使用者 / 包维护者 | 原生基线、授权边界、迁移步骤与未来 Adapter 准入条件 |
 | [架构决策记录](docs/adr/README.md) | 设计评审者 | 关键决策的 Context / Decision / Consequences |
 | [框架使用规则](Assets/Game/AGENTS.md) | AI Agent / 团队成员 | 业务代码遵循的核心约定 |

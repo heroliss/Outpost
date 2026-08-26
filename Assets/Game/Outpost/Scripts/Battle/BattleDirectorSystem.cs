@@ -4,12 +4,15 @@ using Game.Framework;
 using Game.Framework.Audio;
 using Game.Framework.Common;
 using Game.Framework.Flow;
+using Game.Framework.Logging;
 using Game.Framework.Model;
 using Game.Framework.Systems;
 using Game.Outpost.Flow;
 using Game.Outpost.Sim;
 using OutpostCfg;
 using UnityEngine;
+using Exception = System.Exception;
+using OperationCanceledException = System.OperationCanceledException;
 
 namespace Game.Outpost.Battle
 {
@@ -235,17 +238,25 @@ namespace Game.Outpost.Battle
         private async UniTaskVoid SetupAsync()
         {
             var config = this.GetUtility<IConfigUtility<Tables>>();
-            // 配置在根 Context 启动即异步预载，进战斗时通常已就绪；仍等一手，避免竞态。
-            await UniTask.WaitUntil(
-                () => config.State.CurrentValue is ConfigInitState.Ready or ConfigInitState.Failed,
-                cancellationToken: this.GetCancellationTokenOnDestroy());
-            if (config.State.CurrentValue != ConfigInitState.Ready)
+            try
             {
-                Debug.LogError("[BattleDirectorSystem] 配置未就绪，无法开始战斗。");
+                // 配置通常在根 Context 已就绪；Interface 仍统一处理竞态、调用方取消与原始加载异常，
+                // 避免业务自己轮询 State 后只得到一个没有根因的 Failed。
+                _cfg = await config.EnsureReady(this.GetCancellationTokenOnDestroy());
+            }
+            catch (OperationCanceledException)
+            {
+                // 战斗节点销毁是正常离场；配置的共享加载仍由其自身组件 / Context 决定是否继续。
+                return;
+            }
+            catch (Exception)
+            {
+                // ConfigUtility 已把原始异常写入统一日志接缝；这里补充受影响的业务动作，避免重复打印同一堆栈。
+                Log.Error("Battle setup cannot start because configuration tables failed to load.",
+                    category: nameof(BattleDirectorSystem), context: this);
                 return;
             }
 
-            _cfg = config.Tables;
             var g = _cfg.TbBattleGlobal.Data;
             _resultDelay = g.ResultDelay;
             _interWaveDelay = g.InterWaveDelay;
