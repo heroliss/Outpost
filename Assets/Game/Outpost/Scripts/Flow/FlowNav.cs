@@ -1,7 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Framework.Flow;
-using UnityEngine;
+using Game.Framework.Logging;
 
 namespace Game.Outpost.Flow
 {
@@ -16,7 +16,7 @@ namespace Game.Outpost.Flow
         {
             GoAsync(flow, next).Forget();
 
-            static async UniTaskVoid GoAsync(IGameFlow flow, FlowState next)
+            static async UniTask GoAsync(IGameFlow flow, FlowState next)
             {
                 try
                 {
@@ -28,7 +28,7 @@ namespace Game.Outpost.Flow
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[OutpostFlow] 进入「{next}」失败：{e}");
+                    Log.Error($"Failed to enter flow state '{next}'.", e, "OutpostFlow");
                 }
             }
         }
