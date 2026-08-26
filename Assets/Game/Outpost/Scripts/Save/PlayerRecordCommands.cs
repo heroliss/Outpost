@@ -2,10 +2,10 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Framework.Command;
+using Game.Framework.Logging;
 using Game.Framework.Storage;
 using Game.Outpost.Flow;
 using R3;
-using UnityEngine;
 
 namespace Game.Outpost.Save
 {
@@ -33,7 +33,7 @@ namespace Game.Outpost.Save
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                Debug.LogException(e); // 载入失败按新档继续，不把玩家卡在启动
+                Log.Error("玩家战绩载入失败，将按新档继续。", e, nameof(LoadPlayerRecordCommand));
             }
         }
     }
@@ -59,7 +59,7 @@ namespace Game.Outpost.Save
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                Debug.LogException(e); // 落盘失败仅记录：本局 Model 已更新，结算展示与本次会话不受影响
+                Log.Error("玩家战绩落盘失败；本局内存状态仍保留。", e, nameof(SubmitRunResultCommand));
             }
             return newBest;
         }

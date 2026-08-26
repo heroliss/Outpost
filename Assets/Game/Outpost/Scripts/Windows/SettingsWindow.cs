@@ -5,6 +5,7 @@ using Game.Framework.Audio;
 using Game.Framework.Command;
 using Game.Framework.Common;
 using Game.Framework.Localization;
+using Game.Framework.Logging;
 using Game.Framework.UI;
 using Game.Framework.UI.Toolkit;
 using Game.Main;
@@ -74,7 +75,7 @@ namespace Game.Outpost.Windows
                 audio.SetGroupVolume(AudioGroups.Sfx, e.newValue);
                 PlayAudition(audio); // 音效组没有常驻在播的声音，给一声试听反馈才听得出改了什么
             });
-            PreloadAuditionAsync().Forget();
+            PreloadAuditionAsync().Forget(LogUnexpectedPreloadFailure);
 
             // 语言切换：直调 SetLocale（同值 no-op 不重刷）；当前语言按钮描边高亮。按钮文案是语言自称，不本地化。
             var zh = Root.Q<Button>("lang-zh");
@@ -110,8 +111,8 @@ namespace Game.Outpost.Windows
         {
             _closed = true;
             // 收口落盘：改动早已在 Utility 上生效，这里只存快照。无参调用的取消令牌绑根 Context（窗口非 Mono），
-            // 窗口关闭不打断保存；落盘失败命令内部已兜底记录。
-            this.ExecuteCommandAsync(new SaveSettingsCommand()).Forget();
+            // 窗口关闭不打断保存；同步 hook 无法 await，故用显式 observer 记录存储失败。
+            this.ExecuteCommandAsync(new SaveSettingsCommand()).Forget(LogUnexpectedSaveFailure);
         }
 
         // ── 扩展内容（OutpostExpansionPackage · 增援电台）────────────────────────
@@ -147,14 +148,16 @@ namespace Game.Outpost.Windows
             });
 
             _expBar.style.display = DisplayStyle.None;
-            Bag.SubscribeClick(_expButton, () => DownloadExpansion(loc).Forget());
+            // 包下载是物理操作：窗口关闭只取消 UI 绑定，不取消已经开始的下载。
+            // 因此 handler 明确忽略 View token，但 SubscribeClickAsync 仍会持续观察它直到终态。
+            Bag.SubscribeClickAsync(_expButton, _ => DownloadExpansion(loc));
 
             // 开窗时的初始态：已安装（Ready 且无缺失下载）显示「已启用」，否则保持下载按钮。
             if (SaveSettingsCommand.IsExpansionInstalled(this.GetUtility<IAssetUtility>()))
                 ShowExpansionReady(loc);
         }
 
-        private async UniTaskVoid DownloadExpansion(ILocalizationUtility loc)
+        private async UniTask DownloadExpansion(ILocalizationUtility loc)
         {
             var assets = this.GetUtility<IAssetUtility>();
             _expButton.SetEnabled(false);
@@ -180,12 +183,17 @@ namespace Game.Outpost.Windows
                 }
 
                 // 下载成功即固化安装标记（不等关窗）：即刻落盘一次设置快照，防止「下完就退进程」丢标记。
-                this.ExecuteCommandAsync(new SaveSettingsCommand()).Forget();
+                await this.ExecuteCommandAsync(new SaveSettingsCommand());
                 if (!_closed) ShowExpansionReady(loc);
+            }
+            catch (OperationCanceledException)
+            {
+                // Context 退出属于正常收口；交回 SubscribeClickAsync 按生命周期取消处理。
+                throw;
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[Settings] 扩展包下载失败：{e.Message}");
+                Log.Warning($"扩展包下载或安装状态保存失败：{e.Message}", nameof(SettingsWindow));
                 if (_closed) return;
                 _expBar.style.display = DisplayStyle.None;
                 _expButton.SetEnabled(true);
@@ -211,8 +219,21 @@ namespace Game.Outpost.Windows
             => _expStatus.text = _expStatusKey.Length == 0 ? string.Empty : loc.Get(_expStatusKey);
 
         // 试听 clip 经资源系统预载（开窗到首次拖动之间足够完成；未就绪时静默跳过一声，无碍）。
-        private async UniTaskVoid PreloadAuditionAsync()
+        private async UniTask PreloadAuditionAsync()
             => _auditionClip = await Bag.Load<AudioClip>("sfx_click");
+
+        private static void LogUnexpectedPreloadFailure(Exception exception)
+        {
+            if (exception is OperationCanceledException) return;
+            Log.Error("设置窗口试听音效预载失败。", exception, nameof(SettingsWindow));
+        }
+
+        private static void LogUnexpectedSaveFailure(Exception exception)
+        {
+            if (exception is OperationCanceledException) return;
+            Log.Error("设置落盘失败；本会话内设置仍已生效，下次启动将回落旧值。",
+                exception, nameof(SettingsWindow));
+        }
 
         private void PlayAudition(IAudioUtility audio)
         {

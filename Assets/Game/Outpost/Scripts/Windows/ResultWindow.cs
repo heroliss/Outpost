@@ -1,4 +1,3 @@
-using Cysharp.Threading.Tasks;
 using Game.Framework.Common;
 using Game.Framework.Localization;
 using Game.Framework.UI;
@@ -45,7 +44,8 @@ namespace Game.Outpost.Windows
             var leaderboard = Root.Q<Button>("leaderboard");
             leaderboard.style.display = OutpostNet.Available ? DisplayStyle.Flex : DisplayStyle.None;
             Bag.BindLocalizedText(leaderboard, "lb/title");
-            Bag.SubscribeClick(leaderboard, () => this.GetUtility<IUIUtility>().Open<LeaderboardWindow>().Forget());
+            Bag.SubscribeClickAsync(leaderboard,
+                async ct => { await this.GetUtility<IUIUtility>().Open<LeaderboardWindow>(ct); });
         }
 
         protected override void OnOpen(object args)

@@ -5,8 +5,8 @@ using Game.Framework;
 using Game.Framework.Audio;
 using Game.Framework.Command;
 using Game.Framework.Localization;
+using Game.Framework.Logging;
 using Game.Framework.Storage;
-using UnityEngine;
 
 namespace Game.Outpost.Save
 {
@@ -44,12 +44,19 @@ namespace Game.Outpost.Save
                 if (settings.ExpansionInstalled)
                     ctx.GetUtility<IAssetUtility>()
                         .Initialize(Game.Main.AssetPackages.OutpostExpansionPackage)
-                        .Forget(static ex => Debug.LogWarning($"[Settings] 扩展包启动初始化失败（内容仍在缓存，下次重试）：{ex.Message}"));
+                        .Forget(LogExpansionInitFailure);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                Debug.LogException(e); // 设置载入失败按默认继续，不把玩家卡在启动
+                Log.Error("设置载入失败，将按默认设置继续。", e, nameof(LoadSettingsCommand));
             }
+        }
+
+        private static void LogExpansionInitFailure(Exception exception)
+        {
+            if (exception is OperationCanceledException) return;
+            Log.Warning($"扩展包启动初始化失败（内容仍在缓存，下次重试）：{exception.Message}",
+                nameof(LoadSettingsCommand));
         }
     }
 
@@ -57,6 +64,7 @@ namespace Game.Outpost.Save
     /// 落盘当前设置：从两个 Utility 的<b>运行时真源</b>收集当前值（音量在 <c>IAudioUtility</c>、语言在
     /// <c>ILocalizationUtility.Locale</c>）拼成 <see cref="OutpostSettings"/> 快照保存。
     /// 由设置窗关闭时触发——改动即时生效在 Utility 上，落盘只在收口时做一次，不随滑条拖动高频写盘。
+    /// 存储失败保持异常传播，由调用方决定只记录（关窗保存）还是呈现可重试失败（扩展包安装终点）。
     /// </summary>
     public readonly struct SaveSettingsCommand : IAsyncCommand
     {
@@ -74,14 +82,7 @@ namespace Game.Outpost.Save
                 WreckHeatmap = ctx.GetModel<Battle.BattlePrefsModel>().ShowWreckHeatmap.CurrentValue,
                 ExpansionBgm = ctx.GetModel<Battle.BattlePrefsModel>().ExpansionBgm.CurrentValue,
             };
-            try
-            {
-                await ctx.GetUtility<IStorageUtility>().Save(StorageKeys.Settings, settings, cancellationToken);
-            }
-            catch (Exception e) when (e is not OperationCanceledException)
-            {
-                Debug.LogException(e); // 落盘失败仅记录：本会话内设置已生效，下次启动回落旧值
-            }
+            await ctx.GetUtility<IStorageUtility>().Save(StorageKeys.Settings, settings, cancellationToken);
         }
 
         /// <summary>扩展包安装态的真源判定：包 Ready 且无缺失下载（EditorSimulate 下天然无下载量 = 初始化过即安装）。</summary>

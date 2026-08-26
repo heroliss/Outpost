@@ -1,8 +1,10 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Game.Framework;
 using Game.Framework.Audio;
 using Game.Framework.Common;
 using Game.Framework.Flow;
+using Game.Framework.Logging;
 using Game.Framework.Model;
 using Game.Framework.Systems;
 using Game.Main;
@@ -29,9 +31,9 @@ namespace Game.Outpost.Systems
         private AudioClip _bgmBattle;
         private AudioClip _bgmBattleAlt; // 扩展包变体：首次需要时按包状态懒加载，载到后整局复用
 
-        private void Start() => InitAsync().Forget();
+        private void Start() => InitAsync().Forget(LogUnexpectedAudioFailure);
 
-        private async UniTaskVoid InitAsync()
+        private async UniTask InitAsync()
         {
             // clip 经资源系统加载后传入播放（加载与播放的生命周期分开管，§27）；句柄进根 Bag 常驻整局游戏。
             _bgmTitle = await Bag.Load<AudioClip>("bgm_title");
@@ -44,7 +46,7 @@ namespace Game.Outpost.Systems
             Bag.Subscribe(this.GetModel<BattlePrefsModel>().ExpansionBgm, _ =>
             {
                 if (this.GetUtility<IGameFlow>().Current is BattleState)
-                    PlayBattleMusic(this.GetUtility<IAudioUtility>()).Forget();
+                    PlayBattleMusic(this.GetUtility<IAudioUtility>()).Forget(LogUnexpectedAudioFailure);
             });
             OnFlowChanged(this.GetUtility<IGameFlow>().Current);
         }
@@ -55,7 +57,7 @@ namespace Game.Outpost.Systems
             switch (state)
             {
                 case BattleState:
-                    PlayBattleMusic(audio).Forget();
+                    PlayBattleMusic(audio).Forget(LogUnexpectedAudioFailure);
                     break;
                 case TitleState or ResultState:
                     audio.PlayMusic(_bgmTitle, fadeSeconds: 1.2f, volume: MusicVolume);
@@ -66,7 +68,7 @@ namespace Game.Outpost.Systems
 
         // 战斗曲选择：偏好开启 + 扩展包 Ready 且变体能载到 → 播变体，否则默认曲。跨包加载失败返回 null
         // （包 Ready 后资源级问题不抛，§13 失败语义），天然容错「初始化了但内容没下完」；下载完成后的下一场战斗自动接上。
-        private async UniTaskVoid PlayBattleMusic(IAudioUtility audio)
+        private async UniTask PlayBattleMusic(IAudioUtility audio)
         {
             bool wantAlt = this.GetModel<BattlePrefsModel>().ExpansionBgm.CurrentValue;
             if (wantAlt && _bgmBattleAlt == null
@@ -81,6 +83,12 @@ namespace Game.Outpost.Systems
 
             var clip = wantAlt && _bgmBattleAlt != null ? _bgmBattleAlt : _bgmBattle;
             audio.PlayMusic(clip, fadeSeconds: 0.8f, volume: MusicVolume);
+        }
+
+        private static void LogUnexpectedAudioFailure(Exception exception)
+        {
+            if (exception is OperationCanceledException) return;
+            Log.Error("Outpost 音频导演异步操作失败。", exception, nameof(OutpostAudioSystem));
         }
     }
 }

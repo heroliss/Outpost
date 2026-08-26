@@ -4,6 +4,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.Framework.Common;
 using Game.Framework.Localization;
+using Game.Framework.Logging;
 using Game.Framework.Network;
 using Game.Framework.UI;
 using Game.Outpost.Net;
@@ -42,20 +43,23 @@ namespace Game.Outpost.Systems
                 var loc = this.GetUtility<ILocalizationUtility>();
                 this.GetUtility<IUIUtility>()
                     .ShowToast(loc.Get("net/new-record-toast", e.Player, e.Score), duration: 3.5f)
-                    .Forget();
+                    .Forget(LogUnexpectedToastFailure);
             });
 
             // 断线自动重连（guide §25 样板）：只处理非用户主动的断开；主动 Disconnect / Context 拆除不追连。
             Bag.Subscribe<WebSocketClosedEvent>(e =>
             {
-                if (!e.ByUser) MaintainConnection().Forget();
+                if (!e.ByUser) StartMaintainingConnection();
             });
 
-            MaintainConnection().Forget();
+            StartMaintainingConnection();
         }
 
+        private void StartMaintainingConnection()
+            => MaintainConnection().Forget(LogUnexpectedConnectionFailure);
+
         /// <summary>连到成功为止的维持循环：指数退避，随宿主销毁取消。已在维持中 / 已连上则直接返回（单飞）。</summary>
-        private async UniTaskVoid MaintainConnection()
+        private async UniTask MaintainConnection()
         {
             if (_maintaining) return;
             _maintaining = true;
@@ -91,6 +95,18 @@ namespace Game.Outpost.Systems
             {
                 _maintaining = false;
             }
+        }
+
+        private static void LogUnexpectedConnectionFailure(Exception exception)
+        {
+            if (exception is OperationCanceledException) return;
+            Log.Error("排行榜长连接维持循环发生未预期异常。", exception, nameof(OutpostNetSystem));
+        }
+
+        private static void LogUnexpectedToastFailure(Exception exception)
+        {
+            if (exception is OperationCanceledException) return;
+            Log.Error("全服纪录 Toast 打开失败。", exception, nameof(OutpostNetSystem));
         }
 #endif
     }

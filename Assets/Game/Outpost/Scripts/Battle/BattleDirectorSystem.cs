@@ -233,9 +233,9 @@ namespace Game.Outpost.Battle
         private const float DebrisZ = -0.3f; // 碎片流 / 炮口闪光层（与 SwarmRenderer 的弹丸层同深度）
         private const float FloaterZ = -0.8f;
 
-        private void Start() => SetupAsync().Forget();
+        private void Start() => SetupAsync().Forget(LogUnexpectedSetupFailure);
 
-        private async UniTaskVoid SetupAsync()
+        private async UniTask SetupAsync()
         {
             var config = this.GetUtility<IConfigUtility<Tables>>();
             try
@@ -339,6 +339,13 @@ namespace Game.Outpost.Battle
             _model.IsReady.Value = true;
         }
 
+        private void LogUnexpectedSetupFailure(Exception exception)
+        {
+            if (exception is OperationCanceledException) return;
+            Log.Error("Battle setup failed outside the handled configuration-readiness path.",
+                exception, nameof(BattleDirectorSystem), this);
+        }
+
         // 接缝的后端工厂：ECS 后端就是多出来的这一个分支（ADR-0030），事件→表现翻译层、Model、HUD 全部零改动。
         private IBattleSim CreateSim() => _backend switch
         {
@@ -384,7 +391,8 @@ namespace Game.Outpost.Battle
                 }
             }
 
-            Debug.Log($"[BattleDirectorSystem] 无头快进至第 {_sim.WaveIndex} 波（击杀 {_sim.Kills}、残骸 {_sim.WreckSlotCount}），耗时 {sw.ElapsedMilliseconds}ms。");
+            Log.Info($"无头快进至第 {_sim.WaveIndex} 波（击杀 {_sim.Kills}、残骸 {_sim.WreckSlotCount}），耗时 {sw.ElapsedMilliseconds}ms。",
+                nameof(BattleDirectorSystem), this);
         }
 
         // 快进版选卡：没有面板与随机三选一，直接从全部未到顶的升级里按托管优先级拿最优——与长跑标定的贪心策略一致。

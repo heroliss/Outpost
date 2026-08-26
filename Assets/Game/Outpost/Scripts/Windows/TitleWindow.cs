@@ -1,4 +1,3 @@
-using Cysharp.Threading.Tasks;
 using Game.Framework.Common;
 using Game.Framework.Localization;
 using Game.Framework.UI;
@@ -36,11 +35,14 @@ namespace Game.Outpost.Windows
             var leaderboard = Root.Q<Button>("leaderboard");
             leaderboard.style.display = OutpostNet.Available ? DisplayStyle.Flex : DisplayStyle.None;
             Bag.BindLocalizedText(leaderboard, "lb/title");
-            Bag.SubscribeClick(leaderboard, () => this.GetUtility<IUIUtility>().Open<LeaderboardWindow>().Forget());
+            Bag.SubscribeClickAsync(leaderboard,
+                async ct => { await this.GetUtility<IUIUtility>().Open<LeaderboardWindow>(ct); });
             // 框架看点：开一个模态弹窗（同一 UI 入口的窗口栈），把玩法接到框架能力 + 指向对照文档。
-            Bag.SubscribeClick(Root.Q<Button>("about"), () => this.GetUtility<IUIUtility>().Open<AboutWindow>().Forget());
+            Bag.SubscribeClickAsync(Root.Q<Button>("about"),
+                async ct => { await this.GetUtility<IUIUtility>().Open<AboutWindow>(ct); });
             // 设置：音量 / 语言（同为 Popup 层模态，压在标题之上——切语言时能看到本页文案跟着变）。
-            Bag.SubscribeClick(Root.Q<Button>("settings"), () => this.GetUtility<IUIUtility>().Open<SettingsWindow>().Forget());
+            Bag.SubscribeClickAsync(Root.Q<Button>("settings"),
+                async ct => { await this.GetUtility<IUIUtility>().Open<SettingsWindow>(ct); });
 
             // 战绩行是「数据 × 文本修订」双源：修订同时覆盖换语言与延迟源就绪；OnOpen 再补一次数据面
             // （存档只在结算变化，每次开窗取最新战绩）。

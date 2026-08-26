@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Framework.Logging;
 using OutpostCfg;
 using UnityEngine;
 
@@ -48,7 +49,8 @@ namespace Game.Outpost.Battle
             {
                 if (!ColorUtility.TryParseHtmlString("#" + e.ColorHex, out var color))
                 {
-                    Debug.LogError($"[EnemyVisuals] 敌人 {e.Id}({e.Name}) 的 colorHex \"{e.ColorHex}\" 解析失败，用白色兜底。");
+                    Log.Error($"敌人 {e.Id}({e.Name}) 的 colorHex \"{e.ColorHex}\" 解析失败，用白色兜底。",
+                        category: nameof(EnemyVisuals));
                     color = Color.white;
                 }
                 var (mesh, faceTravel) = ResolveShape(e.Shape, e.Id, e.Name);
@@ -77,7 +79,8 @@ namespace Game.Outpost.Battle
 
         private static (Mesh, bool) LogUnknownShape(string shape, int id, string name)
         {
-            Debug.LogError($"[EnemyVisuals] 敌人 {id}({name}) 的 shape \"{shape}\" 未知（可选 dart/arrowhead/needle/hexagon/octagon），用六边形兜底。");
+            Log.Error($"敌人 {id}({name}) 的 shape \"{shape}\" 未知（可选 dart/arrowhead/needle/hexagon/octagon），用六边形兜底。",
+                category: nameof(EnemyVisuals));
             return (OutpostMeshes.Hexagon, false);
         }
     }

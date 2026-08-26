@@ -1,14 +1,16 @@
+using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Framework;
 using Game.Framework.Common;
 using Game.Framework.Localization;
+using Game.Framework.Logging;
 using Game.Framework.Network;
 using Game.Framework.UI;
 using Game.Framework.UI.Toolkit;
 using Game.Outpost.Net;
 using Game.Outpost.Save;
 using ObservableCollections;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Game.Outpost.Windows
@@ -51,24 +53,31 @@ namespace Game.Outpost.Windows
             Bag.BindLocalizedText(_refresh, "lb/refresh");
             Bag.BindLocalizedText(Root.Q<Button>("close"), "common/close");
             Bag.SubscribeClick(Root.Q<Button>("close"), () => this.GetUtility<IUIUtility>().Close(this));
-            Bag.SubscribeClick(_refresh, () => Refresh().Forget());
+            Bag.SubscribeClickAsync(_refresh, Refresh);
             Bag.Subscribe(this.GetUtility<ILocalizationUtility>().TextRevision, _ => RefreshStatusText());
 
             Bag.BindList(Root.Q<VisualElement>("list"), _rows, CreateRow);
         }
 
-        protected override void OnOpen(object args) => Refresh().Forget();
+        protected override void OnOpen(object args)
+        {
+            _closed = false;
+            // OnOpen 是同步生命周期 hook，不能 await；Refresh 自己收口可预期网络失败，
+            // 这里的 observer 只兜底生命周期 hook 启动后的未预期异常。
+            Refresh(Bag.DisposeToken).Forget(LogUnexpectedRefreshFailure);
+        }
 
         protected override void OnClose() => _closed = true;
 
-        private async UniTaskVoid Refresh()
+        private async UniTask Refresh(CancellationToken cancellationToken)
         {
             _refresh.SetEnabled(false);
             SetStatus("lb/loading");
             _rows.Clear();
             try
             {
-                var resp = await this.ExecuteCommandAsync(new FetchLeaderboardCommand(TopCount));
+                var resp = await this.ExecuteCommandAsync(
+                    new FetchLeaderboardCommand(TopCount), cancellationToken);
                 if (_closed) return; // 等待期间窗口已被关掉——别再动 UI
 
                 if (resp == null || resp.Entries.Count == 0)
@@ -82,7 +91,7 @@ namespace Game.Outpost.Windows
             }
             catch (NetworkException e)
             {
-                Debug.LogWarning($"[LeaderboardWindow] 拉取排行榜失败（{e.Kind}）：{e.Message}");
+                Log.Warning($"拉取排行榜失败（{e.Kind}）：{e.Message}", nameof(LeaderboardWindow));
                 if (_closed) return;
                 SetStatus("lb/error");
             }
@@ -90,6 +99,12 @@ namespace Game.Outpost.Windows
             {
                 if (!_closed) _refresh.SetEnabled(true);
             }
+        }
+
+        private static void LogUnexpectedRefreshFailure(Exception exception)
+        {
+            if (exception is OperationCanceledException) return;
+            Log.Error("排行榜刷新发生未预期异常。", exception, nameof(LeaderboardWindow));
         }
 
         private VisualElement CreateRow(Row row, DisposableBag rowBag)

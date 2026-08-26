@@ -2,13 +2,13 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Framework.Common;
 using Game.Framework.Flow;
+using Game.Framework.Logging;
 using Game.Framework.Network;
 using Game.Framework.UI;
 using Game.Outpost.Net;
 using Game.Outpost.Save;
 using Game.Outpost.Windows;
 using R3;
-using UnityEngine;
 
 namespace Game.Outpost.Flow
 {
@@ -37,7 +37,8 @@ namespace Game.Outpost.Flow
                 }
                 catch (NetworkException e)
                 {
-                    Debug.LogWarning($"[ResultState] 上传成绩失败（{e.Kind}），结算不展示全服名次：{e.Message}");
+                    Log.Warning($"上传成绩失败（{e.Kind}），结算不展示全服名次：{e.Message}",
+                        nameof(ResultState));
                 }
             }
 

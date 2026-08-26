@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Framework.Logging;
 using Game.Outpost.Sim;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -134,7 +135,8 @@ namespace Game.Outpost.Battle
             var shader = _shader != null ? _shader : Shader.Find("Outpost/SwarmUnlit");
             if (shader == null)
             {
-                Debug.LogError("[SwarmRenderer] 找不到 Outpost/SwarmUnlit shader（场景引用未接线且 Find 失败），敌人将不可见。");
+                Log.Error("找不到 Outpost/SwarmUnlit shader（场景引用未接线且 Find 失败），敌人将不可见。",
+                    category: nameof(SwarmRenderer), context: this);
                 return;
             }
             _material = new Material(shader) { enableInstancing = true };
