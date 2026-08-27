@@ -5,7 +5,7 @@ namespace Game.Outpost.Net
     /// <summary>
     /// Outpost 网络协议常量 + Protobuf 序列化器装配。
     /// <para><b>消息类型由 protoc 生成</b>（<c>Proto~/outpost_net.proto</c> → <c>Scripts/Net/Gen/</c>，
-    /// 菜单 <c>SSFramework/Protobuf/生成全部</c>，路径配置在 Outpost 的 ProtoConfigProfile）：
+    /// 工作台 <c>SSFramework/代码生成/Protobuf</c>，路径配置在 Outpost 的 ProtoConfigProfile）：
     /// <see cref="SubmitScoreRequest"/> / <see cref="SubmitScoreResponse"/> / <see cref="LeaderboardEntry"/> /
     /// <see cref="LeaderboardResponse"/> / <see cref="NewRecordPushEvent"/> 都是 Google.Protobuf 的 <c>IMessage</c>。</para>
     /// <para>序列化经框架模块的 <see cref="GoogleProtobufNetworkSerializer"/> 接进 <c>IWebSocketEnvelopeSerializer</c> 接缝。

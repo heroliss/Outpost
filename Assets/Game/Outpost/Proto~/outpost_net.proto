@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 // Outpost 排行榜网络协议（官方 .proto 契约）。
-// 客户端经 protoc 生成 C#（菜单 SSFramework/Protobuf/生成全部 → Scripts/Net/Gen/，
+// 客户端经 protoc 生成 C#（工作台 SSFramework/代码生成/Protobuf → Scripts/Net/Gen/，
 // 路径配置在 Outpost 的 ProtoConfigProfile），用框架模块 Game.Framework.Network.Proto 的
 // GoogleProtobufNetworkSerializer 走 IWebSocketEnvelopeSerializer 接缝。
 // 服务端（Server~/OutpostServer）与进程内 dev server 也认这份字段号——三端 wire 互通。
