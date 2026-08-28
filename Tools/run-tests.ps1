@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   命令行运行 Unity EditMode + PlayMode 全量测试（CI 护栏）。
 
@@ -14,82 +14,23 @@
     powershell -File Tools/run-tests.ps1 -TestPlatform PlayMode # 只跑一个平台
     powershell -File Tools/run-tests.ps1 -TestPlatform EditMode
 
-  Unity 路径解析顺序：-UnityPath 参数 → $env:UNITY_EDITOR_PATH → Unity Hub 默认目录 →
-  Unity Hub secondaryInstallPath.json → Unity Installer 注册表（按 ProjectVersion 精确匹配）。
+  启动 Adapter 默认自动选择：显式 -UnityPath / UNITY_EDITOR_PATH → 直接 Editor；否则优先使用
+  新版 Unity CLI 精确解析并启动 ProjectVersion 对应版本；CLI 不可用时回退 Hub 目录 / 注册表。
 #>
 param(
     [string]$UnityPath = "",
+    [ValidateSet("Auto", "UnityCli", "Direct")]
+    [string]$Adapter = "Auto",
     [ValidateSet("All", "PlayMode", "EditMode")]
     [string]$TestPlatform = "All"
 )
 
 $ErrorActionPreference = "Stop"
 $projectPath = Split-Path -Parent $PSScriptRoot
-
-# 同一工程不能被交互式 Editor 与 batchmode 同时打开。这里不自动删除锁文件，避免误伤真实会话。
-$lockFile = Join-Path $projectPath "Temp/UnityLockfile"
-if (Test-Path -LiteralPath $lockFile) {
-    Write-Host "[run-tests] 工程正被 Unity 编辑器占用（Temp/UnityLockfile 存在）。" -ForegroundColor Red
-    Write-Host "            请先关闭编辑器；只有确认是崩溃残留时才手动删除锁文件。" -ForegroundColor Red
-    exit 2
-}
-
-$versionLine = Get-Content -LiteralPath (Join-Path $projectPath "ProjectSettings/ProjectVersion.txt") -TotalCount 1
-$projectUnityVersion = ($versionLine -replace "m_EditorVersion:", "").Trim()
-
-function Resolve-UnityEditorPath {
-    param([string]$ExplicitPath, [string]$Version)
-
-    if (-not [string]::IsNullOrWhiteSpace($ExplicitPath)) {
-        if (Test-Path -LiteralPath $ExplicitPath -PathType Leaf) { return (Resolve-Path -LiteralPath $ExplicitPath).Path }
-        throw "指定的 Unity 编辑器不存在：$ExplicitPath"
-    }
-
-    $candidates = [System.Collections.Generic.List[string]]::new()
-    if (-not [string]::IsNullOrWhiteSpace($env:UNITY_EDITOR_PATH)) {
-        $candidates.Add($env:UNITY_EDITOR_PATH)
-    }
-    $candidates.Add("C:\Program Files\Unity\Hub\Editor\$Version\Editor\Unity.exe")
-
-    $hubSecondaryConfig = Join-Path $env:APPDATA "UnityHub/secondaryInstallPath.json"
-    if (Test-Path -LiteralPath $hubSecondaryConfig -PathType Leaf) {
-        try {
-            $hubSecondaryRoot = [System.IO.File]::ReadAllText($hubSecondaryConfig) | ConvertFrom-Json
-            if (-not [string]::IsNullOrWhiteSpace($hubSecondaryRoot)) {
-                $candidates.Add((Join-Path $hubSecondaryRoot "$Version/Editor/Unity.exe"))
-            }
-        }
-        catch {
-            Write-Host "[run-tests] 警告：无法读取 Unity Hub 次级安装目录配置：$($_.Exception.Message)" -ForegroundColor Yellow
-        }
-    }
-
-    foreach ($registryPath in @(
-        "HKLM:\SOFTWARE\Unity Technologies\Installer\Unity $Version",
-        "HKLM:\SOFTWARE\WOW6432Node\Unity Technologies\Installer\Unity $Version"
-    )) {
-        $install = Get-ItemProperty -LiteralPath $registryPath -ErrorAction SilentlyContinue
-        if ($null -ne $install) {
-            $location = $install.'Location x64'
-            if ([string]::IsNullOrWhiteSpace($location)) { $location = $install.Location }
-            if (-not [string]::IsNullOrWhiteSpace($location)) {
-                $candidates.Add((Join-Path $location "Editor/Unity.exe"))
-            }
-        }
-    }
-
-    foreach ($candidate in $candidates) {
-        if (-not [string]::IsNullOrWhiteSpace($candidate) -and
-            (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-            return (Resolve-Path -LiteralPath $candidate).Path
-        }
-    }
-
-    throw "找不到项目要求的 Unity $Version。用 -UnityPath 或 UNITY_EDITOR_PATH 指定 Unity.exe 完整路径。"
-}
+Import-Module (Join-Path $PSScriptRoot 'UnityAutomation.psm1') -Force
 
 try {
-    $UnityPath = Resolve-UnityEditorPath -ExplicitPath $UnityPath -Version $projectUnityVersion
+    $unityEnvironment = Get-UnityAutomationEnvironment -ProjectPath $projectPath -UnityPath $UnityPath -Adapter $Adapter
 }
 catch {
     Write-Host "[run-tests] $($_.Exception.Message)" -ForegroundColor Red
@@ -104,21 +45,20 @@ function Invoke-UnityTestPlatform {
     $platformKey = $Platform.ToLowerInvariant()
     $resultsPath = Join-Path $projectPath "Logs/test-results-$platformKey.xml"
     $logPath = Join-Path $projectPath "Logs/test-run-$platformKey.log"
-    if (Test-Path -LiteralPath $resultsPath) { Remove-Item -LiteralPath $resultsPath -Force }
-    if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force }
-
-    Write-Host "[run-tests] 平台: $Platform（batchmode 启动 Unity，通常需要 1-3 分钟）..."
-    $unityArgs = @(
-        "-batchmode",
-        "-projectPath", "`"$projectPath`"",
-        "-runTests",
-        "-testPlatform", $Platform,
-        "-testResults", "`"$resultsPath`"",
-        "-logFile", "`"$logPath`""
-    )
-
-    $process = Start-Process -FilePath $UnityPath -ArgumentList $unityArgs -PassThru -Wait -NoNewWindow
-    $unityExit = $process.ExitCode
+    try {
+        Write-Host "[run-tests] 平台: $Platform（batchmode 启动 Unity，通常需要 1-3 分钟）..."
+        $invocation = Invoke-UnityTests `
+            -Environment $unityEnvironment `
+            -Platform $Platform `
+            -ResultsPath $resultsPath `
+            -LogPath $logPath
+        $unityExit = $invocation.ExitCode
+    }
+    catch {
+        Write-Host "[run-tests] $Platform 启动失败：$($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "            按基础设施错误处理；日志（若已创建）：$logPath" -ForegroundColor Red
+        return [pscustomobject]@{ Platform = $Platform; ExitCode = 2; Total = 0; Passed = 0; Failed = 0; Skipped = 0; Duration = 0 }
+    }
 
     if (-not (Test-Path -LiteralPath $resultsPath)) {
         Write-Host "[run-tests] $Platform 未产出结果文件（Unity 退出码 $unityExit）。" -ForegroundColor Red
@@ -127,7 +67,14 @@ function Invoke-UnityTestPlatform {
     }
 
     # PS 5.1 的 Get-Content 会把无 BOM UTF-8 按 ANSI 解释；File.ReadAllText 可避免中文 CDATA 破坏 XML。
-    [xml]$xml = [System.IO.File]::ReadAllText($resultsPath)
+    try {
+        [xml]$xml = [System.IO.File]::ReadAllText($resultsPath)
+    }
+    catch {
+        Write-Host "[run-tests] $Platform 结果文件无法解析：$($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "            按基础设施错误处理，查看：$resultsPath / $logPath" -ForegroundColor Red
+        return [pscustomobject]@{ Platform = $Platform; ExitCode = 2; Total = 0; Passed = 0; Failed = 0; Skipped = 0; Duration = 0 }
+    }
     $run = $xml."test-run"
     $total = [int]$run.total
     $passed = [int]$run.passed
@@ -165,7 +112,8 @@ function Invoke-UnityTestPlatform {
 }
 
 $platforms = if ($TestPlatform -eq "All") { @("EditMode", "PlayMode") } else { @($TestPlatform) }
-Write-Host "[run-tests] Unity: $UnityPath"
+Write-Host "[run-tests] Unity: $($unityEnvironment.EditorPath)"
+Write-Host "[run-tests] 启动 Adapter: $($unityEnvironment.Adapter)（ProjectVersion $($unityEnvironment.Version)）"
 Write-Host "[run-tests] 测试范围: $($platforms -join ' + ')"
 
 $summaries = @()

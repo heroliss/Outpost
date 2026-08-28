@@ -50,8 +50,8 @@ jobs:
     runs-on: [self-hosted, windows]
 
     env:
-      # 改成你机器上的 Unity 安装路径（版本须与 ProjectSettings 里的编辑器版本一致）。
-      UNITY_PATH: 'C:\Program Files\Unity\Hub\Editor\6000.3.14f1\Editor\Unity.exe'
+      # 可选：旧 Hub / 特殊安装环境可在 runner 中配置 UNITY_EDITOR_PATH；默认由项目脚本读取
+      # ProjectVersion，并优先用新版 Unity CLI 定位，缺少 CLI 时回退 Hub 目录 / 注册表。
       # 构建产物的 CDN 待上传目录（每个包一个子目录）。
       CDN_OUTPUT: '${{ github.workspace }}\BuildOutput\CDN'
 
@@ -79,6 +79,10 @@ jobs:
       - name: 构建资源包（Unity batchmode）
         shell: pwsh
         run: |
+          Import-Module "$env:GITHUB_WORKSPACE\Tools\UnityAutomation.psm1" -Force
+          $unityEnvironment = Get-UnityAutomationEnvironment -ProjectPath $env:GITHUB_WORKSPACE
+          Write-Host "Unity $($unityEnvironment.Version): $($unityEnvironment.EditorPath)"
+          Write-Host "启动 Adapter: $($unityEnvironment.Adapter)"
           $log = "$env:GITHUB_WORKSPACE\build-assets.log"
           # 基础参数。BuildAll 还认这些可选项（这里没传就走 profile / 默认）：
           #   -packages A,B            只构建指定包（默认＝profile 里启用的全部）
@@ -95,8 +99,8 @@ jobs:
           # 本机构建过程开关（开关式参数：加了才生效，不带值）。仅 workflow_dispatch 勾选时存在，push 标签触发时为空＝不加。
           if ("${{ github.event.inputs.clearBuildCache }}" -eq "true")       { $unityArgs += "-clearBuildCache" }
           if ("${{ github.event.inputs.useAssetDependencyDB }}" -eq "true")  { $unityArgs += "-useAssetDependencyDB" }
-          & "$env:UNITY_PATH" @unityArgs
-          $code = $LASTEXITCODE
+          $invocation = Invoke-UnityEditor -Environment $unityEnvironment -EditorArguments $unityArgs
+          $code = $invocation.ExitCode
           if (Test-Path $log) { Write-Host "----- Unity 日志末尾 -----"; Get-Content $log -Tail 100 }
           if ($code -ne 0) { throw "Unity 资源构建失败，exit=$code" }
 
