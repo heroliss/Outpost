@@ -36,13 +36,13 @@ namespace Game.Outpost.Windows
             leaderboard.style.display = OutpostNet.Available ? DisplayStyle.Flex : DisplayStyle.None;
             Bag.BindLocalizedText(leaderboard, "lb/title");
             Bag.SubscribeClickAsync(leaderboard,
-                async ct => { await this.GetUtility<IUIUtility>().Open<LeaderboardWindow>(ct); });
+                async ct => { await this.GetUtility<IUIUtility>().OpenRequired<LeaderboardWindow>(ct); });
             // 框架看点：开一个模态弹窗（同一 UI 入口的窗口栈），把玩法接到框架能力 + 指向对照文档。
             Bag.SubscribeClickAsync(Root.Q<Button>("about"),
-                async ct => { await this.GetUtility<IUIUtility>().Open<AboutWindow>(ct); });
+                async ct => { await this.GetUtility<IUIUtility>().OpenRequired<AboutWindow>(ct); });
             // 设置：音量 / 语言（同为 Popup 层模态，压在标题之上——切语言时能看到本页文案跟着变）。
             Bag.SubscribeClickAsync(Root.Q<Button>("settings"),
-                async ct => { await this.GetUtility<IUIUtility>().Open<SettingsWindow>(ct); });
+                async ct => { await this.GetUtility<IUIUtility>().OpenRequired<SettingsWindow>(ct); });
 
             // 战绩行是「数据 × 文本修订」双源：修订同时覆盖换语言与延迟源就绪；OnOpen 再补一次数据面
             // （存档只在结算变化，每次开窗取最新战绩）。

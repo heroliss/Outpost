@@ -23,7 +23,8 @@ namespace Game.Outpost.Windows
     /// 的包状态；改动即时生效在各真源上，关窗时一次 <see cref="SaveSettingsCommand"/> 收口落盘（不随滑条拖动高频写盘）。
     /// View 直连 Utility 是合法权限（<c>ICanGetUtility</c>，与开窗 / <c>Bag.Load</c> 同心智，§27/§29 demo 同款姿势）。
     /// <para>扩展区演示「不自动初始化的第二资源包」消费全流程（§13 多包 / 按需下载）：
-    /// Initialize（拉清单）→ <c>CreateAllDownloader</c>（显式下载器带进度）→ 完成即落盘安装标记；
+    /// Initialize（拉清单）→ <c>EnsureInitialized</c>（失败时保留原始根因）→
+    /// <c>CreateAllDownloader</c>（显式下载器带进度）→ 完成即落盘安装标记；
     /// 下载刻意不随窗口关闭取消（包级内容不是窗口私有物），关窗后静默完成、下次开窗见「已启用」。</para>
     /// </summary>
     [UIWindow(Layer = UILayer.Popup, Modal = true, Asset = "SettingsWindow")]
@@ -164,10 +165,9 @@ namespace Game.Outpost.Windows
             SetExpansionStatus("settings/expansion-downloading", loc);
             try
             {
-                // Initialize 幂等且普通失败不抛（结果写包状态）；调用者取消仍保持 OCE。
+                // Initialize 负责启动/重试且普通失败写状态；EnsureInitialized 再把当前失败 attempt 的原始异常交还调用方。
                 await assets.Initialize(AssetPackages.OutpostExpansionPackage);
-                if (assets.GetInitState(AssetPackages.OutpostExpansionPackage).CurrentValue != AssetInitState.Ready)
-                    throw new InvalidOperationException("扩展包初始化未就绪（拉取版本/清单失败）。");
+                await assets.EnsureInitialized(AssetPackages.OutpostExpansionPackage);
 
                 var downloader = assets.CreateAllDownloader(AssetPackages.OutpostExpansionPackage);
                 if (downloader.TotalCount > 0)
@@ -193,7 +193,11 @@ namespace Game.Outpost.Windows
             }
             catch (Exception e)
             {
-                Log.Warning($"扩展包下载或安装状态保存失败：{e.Message}", nameof(SettingsWindow));
+                Log.Write(
+                    LogLevel.Warning,
+                    "扩展包下载或安装状态保存失败，可重新尝试。",
+                    category: nameof(SettingsWindow),
+                    exception: e);
                 if (_closed) return;
                 _expBar.style.display = DisplayStyle.None;
                 _expButton.SetEnabled(true);

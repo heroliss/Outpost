@@ -28,7 +28,7 @@ namespace Game.Outpost.Flow
                 }
                 catch (Exception e)
                 {
-                    Log.Error($"Failed to enter flow state '{next}'.", e, "OutpostFlow");
+                    Log.Error($"进入流程状态 '{next}' 失败。", e, "OutpostFlow");
                 }
             }
         }

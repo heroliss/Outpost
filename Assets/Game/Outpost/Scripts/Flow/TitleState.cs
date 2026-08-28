@@ -20,7 +20,7 @@ namespace Game.Outpost.Flow
         protected override async UniTask OnEnter(CancellationToken ct)
         {
             var ui = Context.GetUtility<IUIUtility>();
-            await ui.Open<TitleWindow>(ct);
+            await ui.OpenRequired<TitleWindow>(ct);
             Bag.Add(Disposable.Create(() => ui.Close<TitleWindow>()));
         }
     }

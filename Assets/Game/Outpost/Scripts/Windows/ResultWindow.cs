@@ -45,7 +45,7 @@ namespace Game.Outpost.Windows
             leaderboard.style.display = OutpostNet.Available ? DisplayStyle.Flex : DisplayStyle.None;
             Bag.BindLocalizedText(leaderboard, "lb/title");
             Bag.SubscribeClickAsync(leaderboard,
-                async ct => { await this.GetUtility<IUIUtility>().Open<LeaderboardWindow>(ct); });
+                async ct => { await this.GetUtility<IUIUtility>().OpenRequired<LeaderboardWindow>(ct); });
         }
 
         protected override void OnOpen(object args)

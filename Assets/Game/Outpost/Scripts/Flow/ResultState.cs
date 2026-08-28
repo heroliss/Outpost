@@ -37,13 +37,16 @@ namespace Game.Outpost.Flow
                 }
                 catch (NetworkException e)
                 {
-                    Log.Warning($"上传成绩失败（{e.Kind}），结算不展示全服名次：{e.Message}",
-                        nameof(ResultState));
+                    Log.Write(
+                        LogLevel.Warning,
+                        $"上传成绩失败（{e.Kind}），结算将不展示全服名次。",
+                        category: nameof(ResultState),
+                        exception: e);
                 }
             }
 
             var ui = Context.GetUtility<IUIUtility>();
-            await ui.Open<ResultWindow>(new ResultArgs(_result, newBest, serverRank), ct);
+            await ui.OpenRequired<ResultWindow>(new ResultArgs(_result, newBest, serverRank), ct);
             Bag.Add(Disposable.Create(() => ui.Close<ResultWindow>()));
         }
     }
