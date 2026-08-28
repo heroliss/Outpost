@@ -10,7 +10,7 @@
 # 默认用「自托管 Windows runner」：机器上已装好 Unity（无需在 CI 里激活授权）、Library 缓存常驻、
 # 增量构建快——对个人 / 小团队最省心。想用 GitHub 托管 runner 见文件最下方 GameCI 备选方案。
 
-name: Build Assets (YooAsset)
+name: 构建资源包（YooAsset）
 
 on:
   # 手动触发：填版本号 + 选平台
@@ -56,7 +56,7 @@ jobs:
       CDN_OUTPUT: '${{ github.workspace }}\BuildOutput\CDN'
 
     steps:
-      - name: Checkout（含 Git LFS）
+      - name: 检出仓库（含 Git LFS）
         uses: actions/checkout@v4
         with:
           lfs: true
@@ -74,15 +74,15 @@ jobs:
           }
           "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "target=$t"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          Write-Host "version=$v  target=$t"
+          Write-Host "资源版本=$v  构建平台=$t"
 
       - name: 构建资源包（Unity batchmode）
         shell: pwsh
         run: |
           Import-Module "$env:GITHUB_WORKSPACE\Tools\UnityAutomation.psm1" -Force
           $unityEnvironment = Get-UnityAutomationEnvironment -ProjectPath $env:GITHUB_WORKSPACE
-          Write-Host "Unity $($unityEnvironment.Version): $($unityEnvironment.EditorPath)"
-          Write-Host "启动 Adapter: $($unityEnvironment.Adapter)"
+          Write-Host "Unity 版本 $($unityEnvironment.Version)：$($unityEnvironment.EditorPath)"
+          Write-Host "启动适配器（Adapter）：$($unityEnvironment.Adapter)"
           $log = "$env:GITHUB_WORKSPACE\build-assets.log"
           # 基础参数。BuildAll 还认这些可选项（这里没传就走 profile / 默认）：
           #   -packages A,B            只构建指定包（默认＝profile 里启用的全部）
