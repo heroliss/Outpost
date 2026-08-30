@@ -237,12 +237,11 @@ namespace Game.Outpost.Battle
 
         private async UniTask SetupAsync()
         {
-            var config = this.GetUtility<IConfigUtility<Tables>>();
             try
             {
                 // 配置通常在根 Context 已就绪；Interface 仍统一处理竞态、调用方取消与原始加载异常，
                 // 避免业务自己轮询 State 后只得到一个没有根因的 Failed。
-                _cfg = await config.EnsureReady(this.GetCancellationTokenOnDestroy());
+                _cfg = await this.EnsureConfig<Tables>(this.GetCancellationTokenOnDestroy());
             }
             catch (OperationCanceledException)
             {
