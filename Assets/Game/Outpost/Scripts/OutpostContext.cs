@@ -39,20 +39,21 @@ namespace Game.Outpost
             // 命令分发：LoggingCommandSystem 装饰默认实现——开发期「SSFramework/诊断与分析/运行时诊断」可看命令流水。
             builder.RegisterValue(new LoggingCommandSystem(), typeof(ICommandSystem));
 
-            // 游戏宏观流程 System（启动/标题/战斗/结算）。RegisterOwned：随本 Context 销毁，连同当前状态子 Context 一并撤。
-            builder.RegisterOwned(new GameFlow(), typeof(IGameFlow));
+            // 游戏宏观流程 System（启动/标题/战斗/结算）。层感知注册会自动登记 GameFlow + IGameFlow；
+            // Owned 表示随本 Context 销毁，连同当前状态子 Context 一并撤。
+            builder.RegisterOwnedSystem(new GameFlow());
 
             // 本地存档（历史战绩）：跨局常驻服务与数据都挂根 Context——战斗子 Context 撤了它们还在。
             // StorageUtility 默认走 persistentDataPath/storage + JSON；RegisterOwned 随根 Context 释放 provider（§26 推荐）。
-            builder.RegisterOwned(new StorageUtility(), typeof(IStorageUtility));
-            builder.RegisterValue(new PlayerRecordModel(), typeof(PlayerRecordModel));
+            builder.RegisterOwnedUtility(new StorageUtility());
+            builder.RegisterModel(new PlayerRecordModel());
 
             // 战斗偏好（模拟后端选择，ADR-0030 的双后端切换入口）：跨局常驻挂根，设置窗写、导演每局开局采样。
-            builder.RegisterValue(new Battle.BattlePrefsModel(), typeof(Battle.BattlePrefsModel));
+            builder.RegisterModel(new Battle.BattlePrefsModel());
 
             // 音频：全局播放编排（BGM 单通道 + 池化音效 + 分组音量）。RegisterOwned：随根 Context 销毁全停（§27 推荐）。
             // 音量初始全 1，启动时 LoadSettingsCommand 从设置存档回灌（持久化归业务，ADR-0022）。
-            builder.RegisterOwned(new AudioUtility(), typeof(IAudioUtility));
+            builder.RegisterOwnedUtility(new AudioUtility());
 
             // 本地化：文本源 = 业务 adapter 包自己的 Luban 表（TbL10N）。文本源要吃配置表服务（场景组件 Awake 注册），
             // 用 RegisterOwnedFactory 让容器解决依赖顺序——首次解析（进标题开窗绑定文本）时配置服务早已注册；
@@ -86,13 +87,11 @@ namespace Game.Outpost
                         "OutpostContext：配置了真后端 HTTP 基地址但缺 WS 地址——两个地址要么都填（连独立服务端），要么都留空（进程内 dev server）。");
                 endpoint = new OutpostNetEndpoint(_remoteHttpBaseUrl.TrimEnd('/'), _remoteWsUrl);
             }
-            builder.RegisterValue(endpoint, typeof(OutpostNetEndpoint));
-            builder.RegisterOwned(
-                new HttpUtility(endpoint.HttpBaseUrl, serializer: OutpostNet.CreateSerializer()),
-                typeof(IHttpUtility));
-            builder.RegisterOwned(
-                new WebSocketUtility(serializer: OutpostNet.CreateSerializer()),
-                typeof(IWebSocketUtility));
+            builder.RegisterUtility(endpoint);
+            builder.RegisterOwnedUtility(
+                new HttpUtility(endpoint.HttpBaseUrl, serializer: OutpostNet.CreateSerializer()));
+            builder.RegisterOwnedUtility(
+                new WebSocketUtility(serializer: OutpostNet.CreateSerializer()));
 #endif
         }
     }
