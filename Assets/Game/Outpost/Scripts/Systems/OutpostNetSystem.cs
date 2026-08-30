@@ -14,7 +14,7 @@ namespace Game.Outpost.Systems
 {
     /// <summary>
     /// 排行榜长连接的维持者：启动时连排行对端的 WS（地址取 <c>OutpostNetEndpoint</c>，不关心对端是
-    /// 进程内 dev server 还是独立真后端）、注册「全服纪录刷新」推送并 Toast 提示，
+    /// 进程内 dev server 还是独立真后端）、消费「全服纪录刷新」推送并 Toast 提示，
     /// 断线自动退避重连（guide §25 样板的落地——重连是业务策略，框架只发 <c>WebSocketClosedEvent</c>）。
     /// 挂根 Context 的 Systems 节点、跨局常驻：新纪录广播在标题 / 战斗 / 结算任意阶段都该看得到。
     /// 请求-响应类操作（上传成绩 / 拉榜）不经过本系统——那是命令直达 <c>IHttpUtility</c> 的另一轨（§32）。
@@ -33,9 +33,6 @@ namespace Game.Outpost.Systems
         private void Start()
         {
             var ws = this.GetUtility<IWebSocketUtility>();
-
-            // 推送 type → 强类型事件，注册一次（连接前注册即可，重连不重注册——注册表随 utility 实例活）。
-            ws.RegisterPush<NewRecordPushEvent>(OutpostNet.NewRecordPushType);
 
             // 全服纪录刷新 → 全局 Toast（含自己刷新的——即时正反馈）。文案带参数，用当前语言即时取。
             Bag.Subscribe<NewRecordPushEvent>(e =>

@@ -44,14 +44,14 @@ namespace Game.Outpost
             builder.RegisterOwnedSystem(new GameFlow());
 
             // 本地存档（历史战绩）：跨局常驻服务与数据都挂根 Context——战斗子 Context 撤了它们还在。
-            // StorageUtility 默认走 persistentDataPath/storage + JSON；RegisterOwned 随根 Context 释放 provider（§26 推荐）。
+            // StorageUtility 默认走 persistentDataPath/storage + JSON；RegisterOwnedUtility 随根 Context 释放 provider（§26 推荐）。
             builder.RegisterOwnedUtility(new StorageUtility());
             builder.RegisterModel(new PlayerRecordModel());
 
             // 战斗偏好（模拟后端选择，ADR-0030 的双后端切换入口）：跨局常驻挂根，设置窗写、导演每局开局采样。
             builder.RegisterModel(new Battle.BattlePrefsModel());
 
-            // 音频：全局播放编排（BGM 单通道 + 池化音效 + 分组音量）。RegisterOwned：随根 Context 销毁全停（§27 推荐）。
+            // 音频：全局播放编排（BGM 单通道 + 池化音效 + 分组音量）。RegisterOwnedUtility：随根 Context 销毁全停（§27 推荐）。
             // 音量初始全 1，启动时 LoadSettingsCommand 从设置存档回灌（持久化归业务，ADR-0022）。
             builder.RegisterOwnedUtility(new AudioUtility());
 
@@ -90,8 +90,11 @@ namespace Game.Outpost
             builder.RegisterUtility(endpoint);
             builder.RegisterOwnedUtility(
                 new HttpUtility(endpoint.HttpBaseUrl, serializer: OutpostNet.CreateSerializer()));
-            builder.RegisterOwnedUtility(
-                new WebSocketUtility(serializer: OutpostNet.CreateSerializer()));
+            var webSocket = new WebSocketUtility(serializer: OutpostNet.CreateSerializer());
+            // 推送 type → Event 属于一次性的连接装配；在组合根完成，运行期 System 只负责消费与重连策略。
+            // 先登记所有权再配置，后续配置或 Context 构建失败时 Builder 仍会释放半配置实例。
+            builder.RegisterOwnedUtility(webSocket);
+            webSocket.RegisterPush<NewRecordPushEvent>(OutpostNet.NewRecordPushType);
 #endif
         }
     }

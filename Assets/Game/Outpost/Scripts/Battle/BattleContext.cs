@@ -14,9 +14,9 @@ namespace Game.Outpost.Battle
     {
         protected override void InstallBindings(ContainerBuilder builder)
         {
-            builder.RegisterValue(new BattleModel(), typeof(BattleModel));
-            builder.RegisterValue(new UpgradeModel(), typeof(UpgradeModel));
-            builder.RegisterOwned(new PoolUtility(), typeof(IPoolUtility));
+            builder.RegisterModel(new BattleModel());
+            builder.RegisterModel(new UpgradeModel());
+            builder.RegisterOwnedUtility(new PoolUtility());
         }
     }
 }
