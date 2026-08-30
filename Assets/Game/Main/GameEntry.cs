@@ -10,9 +10,9 @@ namespace Game.Main
     /// <see cref="Enter"/>）；纯 AOT / 不启用热更的项目可绕开 Launcher，直接从随包场景调本方法（见框架手册 §15）。
     ///
     /// <para>这里做的事只有一件：搭一个最小的引导资源栈，把首场景（<c>OutpostGame</c>）从 bundle 拉起来。
-    /// Boot 场景是 AOT 世界、挂不了任何热更组件（框架组件也是热更的），所以资源三件套没法摆在随包场景里——
+    /// Boot 场景是 AOT 世界、挂不了任何热更组件（框架组件也是热更的），所以首场景里的资源运行入口尚不存在——
     /// 由本方法用代码搭（Context + <see cref="AssetUtility"/>），初始化默认包后加载首场景，然后销毁引导物体交棒：
-    /// 首场景根 Context（游戏真正的全局 Context）与其场景内三件套接管一切，provider 对已初始化的包按名复用、不重复拉清单。</para>
+    /// 首场景根 Context（游戏真正的全局 Context）与其场景内 <see cref="AssetUtility"/> 单入口接管一切，provider 对已初始化的包按名复用、不重复拉清单。</para>
     ///
     /// <para>程序集与目录按领域命名（Main / 模块 / DLC），**不按是否热更命名**——热更与否是热更构建配置
     /// （FrameworkHotUpdateProfile 列表）里的部署决策，与代码组织无关（ADR-0008）。</para>
@@ -49,7 +49,7 @@ namespace Game.Main
             var assets = go.AddComponent<AssetUtility>();
 
             // 引导期只认默认包；编辑器从 BootScene 进 Play 走模拟模式（免打包），玩家包走 Host（内置首包 + CDN 热更）。
-            // 首场景内 AssetSystemConfigModel 的配置（含扩展包策略、玩家包模式）在场景起来后由场景三件套接管。
+            // 首场景内 AssetUtility.Settings 的完整配置（含扩展包策略、玩家包模式）在场景起来后由单入口接管。
 #if UNITY_EDITOR
             assets.Configure(AssetPackages.DefaultPackage, new AssetProviderConfig(), AssetPlayMode.EditorSimulate);
 #else

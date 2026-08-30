@@ -351,9 +351,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 717767608}
-  - component: {fileID: 717767611}
   - component: {fileID: 717767610}
-  - component: {fileID: 717767609}
   m_Layer: 0
   m_Name: Asset
   m_TagString: Untagged
@@ -376,19 +374,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2042817420}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &717767609
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 717767607}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a4d087758a34164ca175b0304373913, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.Framework::Game.Framework.AssetInitSystem
-  _targetContext: {fileID: 0}
 --- !u!114 &717767610
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -402,36 +387,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Framework::Game.Framework.AssetUtility
   _targetContext: {fileID: 0}
+  _settings:
+    _packages:
+    - _name: DefaultPackage
+      _autoInitialize: 1
+      _enableOnDemandDownload: 1
+    - _name: OutpostExpansionPackage
+      _autoInitialize: 0
+      _enableOnDemandDownload: 0
+    _defaultPackageName: DefaultPackage
+    _playMode: 0
+    _playerPlayMode: 2
+    _cdnUrls:
+    - http://127.0.0.1:8080/
+    _downloadingMaxNumber: 10
+    _failedTryAgain: 3
+    _fileOffset: 0
   _simulateOffline:
     value: 0
---- !u!114 &717767611
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 717767607}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e5f5650a4a5040c46ba6789cd530ffbe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.Framework::Game.Framework.AssetSystemConfigModel
-  _targetContext: {fileID: 0}
-  _packages:
-  - _name: DefaultPackage
-    _autoInitialize: 1
-    _enableOnDemandDownload: 1
-  - _name: OutpostExpansionPackage
-    _autoInitialize: 0
-    _enableOnDemandDownload: 0
-  _defaultPackageName: DefaultPackage
-  _playMode: 0
-  _playerPlayMode: 2
-  _cdnUrls:
-  - http://127.0.0.1:8080/
-  _downloadingMaxNumber: 10
-  _failedTryAgain: 3
-  _fileOffset: 0
 --- !u!1 &1207823146
 GameObject:
   m_ObjectHideFlags: 0

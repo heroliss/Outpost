@@ -37,7 +37,7 @@
 | 2 | M1 | 停 Play 抛 `YooInternalException` | `YooAssetsDriver.OnApplicationQuit` 先 Destroy，之后 Bag 级联 `YooSceneHandle.Unload` 访问已释放系统 | Unload 开头 `if (!YooAssets.IsInitialized) return` |
 | 3 | M4 | Protobuf 字节经 WS envelope 后损坏 | envelope 把 payload 做 UTF8 文本二次编码 + 只发文本帧，对二进制格式破坏性 | 可选接缝 `IWebSocketEnvelopeSerializer`（实现即接管 envelope 编解码与帧类型）；JSON 老路径 wire 字节不变 |
 | 4 | M5 | 场景配 EditorSimulate 进玩家包 `NotSupportedException`，且编辑器 Play 全程无症状 | 模拟模式分支是 `#if UNITY_EDITOR` 编译的，单一 `_playMode` 字段无法表达「编辑器模拟 + 玩家包 Host」 | `AssetSystemConfigModel` 拆「编辑器 / 玩家包」两模式字段 + `GetConfigError` 启动校验 |
-| 5 | M5 | 热更入口在首场景加载前没有代码化资源初始化路径 | `AssetUtility.Configure` 是 internal（只设计了场景三件套路径），而 Boot 场景只能挂 AOT 组件 | `Configure` 提升 public；引导栈样板固化在 `GameEntry`（guide §15） |
+| 5 | M5 | 热更入口在首场景加载前没有代码化资源初始化路径 | `AssetUtility.Configure` 是 internal（当时只设计了场景三组件路径），而 Boot 场景只能挂 AOT 组件 | `Configure` 提升 public；引导栈样板固化在 `GameEntry`（guide §15）；场景路径后由 ADR-0046 收敛为单 Utility |
 | 6 | M5 | 玩家包（IL2CPP）从 bundle 加载 uxml 失败：`Should not occur! Internal logic error` | UI Toolkit 各元素嵌套的 `UxmlSerializedData` 只被反序列化引用，UnityLinker 静态分析看不到 → 被裁剪（Unity 6 已知问题）；随包场景无任何 Toolkit 组件的项目（热更档位必然如此）必命中 | `Game.Framework.UI.Toolkit/link.xml` 整体 preserve `UnityEngine.UIElementsModule` |
 
 > 共性：#1/#2/#4/#6 都是「demo 覆盖不到的部署路径」——资源系统加载场景、玩家包运行模式、bundle 化 uxml 全部是切片首次真实走通，这正是垂直切片存在的理由。
