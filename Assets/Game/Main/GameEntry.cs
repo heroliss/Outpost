@@ -49,13 +49,31 @@ namespace Game.Main
             var assets = go.AddComponent<AssetUtility>();
 
             // 引导期只认默认包；编辑器从 BootScene 进 Play 走模拟模式（免打包），玩家包走 Host（内置首包 + CDN 热更）。
+            // 首场景 bundle 可能已经按构建 Profile 插入文件头，因此必须在“场景内 AssetUtility 出现之前”就传同一生成常量；
+            // 该常量只属于普通 AssetBundle，不作用于 Boot 已加载的 RawFile CodePackage。
             // 首场景内 AssetUtility.Settings 的完整配置（含扩展包策略、玩家包模式）在场景起来后由单入口接管。
 #if UNITY_EDITOR
-            assets.Configure(AssetPackages.DefaultPackage, new AssetProviderConfig(), AssetPlayMode.EditorSimulate);
+            assets.Configure(
+                AssetPackages.DefaultPackage,
+                new AssetProviderConfig { FileOffset = AssetPackages.AssetBundleFileOffset },
+                AssetPlayMode.EditorSimulate);
+#elif UNITY_WEBGL
+            assets.Configure(
+                AssetPackages.DefaultPackage,
+                new AssetProviderConfig
+                {
+                    CdnUrls = CdnUrls,
+                    FileOffset = AssetPackages.AssetBundleFileOffset,
+                },
+                AssetPlayMode.Web);
 #else
             assets.Configure(
                 AssetPackages.DefaultPackage,
-                new AssetProviderConfig { CdnUrls = CdnUrls },
+                new AssetProviderConfig
+                {
+                    CdnUrls = CdnUrls,
+                    FileOffset = AssetPackages.AssetBundleFileOffset,
+                },
                 AssetPlayMode.Host);
 #endif
             await assets.Initialize();
