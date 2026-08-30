@@ -174,9 +174,9 @@ public class HudView : MonoViewBase
 | 分类 | 章节 |
 |---|---|
 | 入门 | 框架总览 / 最小闭环 / 接入你的项目 |
-| 核心 | Model / Command / System / Event / 双 View 后端 / 多 Context / Container / 服务注册生成 / 生命周期 / 诊断面板 |
+| 核心 | Model / Command / System / Event / 双 View 后端 / 多 Context / Container / 生命周期 / 诊断面板 |
 | 能力 | 对象池 / 资源 / 存储 / 日志 / 音频 / Flow / 本地化 / 字体 / UI 窗口与列表 / UI 嵌入桥 / 网络 |
-| 进阶 | R3 / YooAsset / 资源运营端到端 / HybridCLR / Luban / DOTS-ECS 融合 |
+| 进阶 | R3 / YooAsset / 资源运营端到端 / HybridCLR / Luban / DOTS-ECS 融合 / 服务注册生成 / 模块依赖与裁剪 |
 
 能力点章节的按钮通常保持“一次操作、一个可观察结果”，旁边附「查看源码」跳转以便直接对照因果；端到端工作流章节会明确组合前面已讲过的原语，让读者看到完整编排。
 
