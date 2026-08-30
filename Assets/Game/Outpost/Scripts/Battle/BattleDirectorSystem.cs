@@ -39,7 +39,7 @@ namespace Game.Outpost.Battle
     /// <para><b>海量下的演出纪律</b>：命中/击杀/出生特效各有每帧预算（超出只结算数值不演出），
     /// 击杀的保底反馈是残骸——每具都留存进 <see cref="SwarmRenderer"/> 的残骸层、不占预算；
     /// 玩家受创（漏怪自爆 + 拦截溅射）在短窗口内聚合成一次震屏/红闪/汇总飘字——每秒上百次受创时逐条演出会刷屏。</para>
-    /// <para>System 层不能 ExecuteCommand（防环），故终局直接 <c>GetUtility&lt;IGameFlow&gt;()</c> 驱动流程。</para>
+    /// <para>System 层不能 ExecuteCommand（防环），故终局直接 <c>GetSystem&lt;IGameFlow&gt;()</c> 驱动流程。</para>
     /// </summary>
     public sealed class BattleDirectorSystem : MonoSystemBase
     {
@@ -1033,7 +1033,7 @@ namespace Game.Outpost.Battle
             _ready = false;
             _model.IsReady.Value = false;
             var result = new BattleResult(_sim.WaveIndex, _sim.Score, _sim.Kills, _retreated);
-            FlowNav.Go(this.GetUtility<IGameFlow>(), new ResultState(result));
+            FlowNav.Request(this.GetSystem<IGameFlow>(), new ResultState(result));
         }
 
         private static Vector3 ToWorld(System.Numerics.Vector2 p, float z = 0f) => new(p.X, p.Y, z);

@@ -11,6 +11,6 @@ namespace Game.Outpost.Systems
     /// </summary>
     public sealed class OutpostBootSystem : MonoSystemBase
     {
-        private void Start() => FlowNav.Go(this.GetUtility<IGameFlow>(), new BootState());
+        private void Start() => FlowNav.Request(this.GetSystem<IGameFlow>(), new BootState());
     }
 }

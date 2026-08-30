@@ -45,10 +45,10 @@ namespace Game.Outpost.Systems
             // 订阅即刻回放当前值，但此时多半在 Boot/Title，天然空过。
             Bag.Subscribe(this.GetModel<BattlePrefsModel>().ExpansionBgm, _ =>
             {
-                if (this.GetUtility<IGameFlow>().Current is BattleState)
+                if (this.GetSystem<IGameFlow>().Current is BattleState)
                     PlayBattleMusic(this.GetUtility<IAudioUtility>()).Forget(LogUnexpectedAudioFailure);
             });
-            OnFlowChanged(this.GetUtility<IGameFlow>().Current);
+            OnFlowChanged(this.GetSystem<IGameFlow>().Current);
         }
 
         private void OnFlowChanged(FlowState state)
@@ -77,7 +77,7 @@ namespace Game.Outpost.Systems
             {
                 _bgmBattleAlt = await Bag.Load<AudioClip>(AssetPackages.OutpostExpansionPackage, "bgm_battle_alt");
                 // 异步间隙里阶段可能已切走（秒退结算）、或偏好又被切回：不再抢占音乐通道，交给最新落点。
-                if (this.GetUtility<IGameFlow>().Current is not BattleState) return;
+                if (this.GetSystem<IGameFlow>().Current is not BattleState) return;
                 wantAlt = this.GetModel<BattlePrefsModel>().ExpansionBgm.CurrentValue;
             }
 

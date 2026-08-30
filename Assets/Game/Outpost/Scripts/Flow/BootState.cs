@@ -22,7 +22,7 @@ namespace Game.Outpost.Flow
             await Context.ExecuteCommandAsync(new LoadSettingsCommand(), ct);
 
             // OnEnter 里转向别处：调 GoTo 后直接 return、不要 await 它（互等死锁，guide §20）。
-            FlowNav.Go(Context.GetUtility<IGameFlow>(), new TitleState());
+            FlowNav.Request(Context.GetSystem<IGameFlow>(), new TitleState());
         }
     }
 }

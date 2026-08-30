@@ -39,7 +39,7 @@ namespace Game.Outpost
             // 命令分发：LoggingCommandSystem 装饰默认实现——开发期「SSFramework/诊断与分析/运行时诊断」可看命令流水。
             builder.RegisterValue(new LoggingCommandSystem(), typeof(ICommandSystem));
 
-            // 游戏宏观流程（启动/标题/战斗/结算）。RegisterOwned：随本 Context 销毁，连同当前状态子 Context 一并撤。
+            // 游戏宏观流程 System（启动/标题/战斗/结算）。RegisterOwned：随本 Context 销毁，连同当前状态子 Context 一并撤。
             builder.RegisterOwned(new GameFlow(), typeof(IGameFlow));
 
             // 本地存档（历史战绩）：跨局常驻服务与数据都挂根 Context——战斗子 Context 撤了它们还在。

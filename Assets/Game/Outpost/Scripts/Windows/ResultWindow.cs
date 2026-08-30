@@ -38,7 +38,8 @@ namespace Game.Outpost.Windows
             _rank = Root.Q<Label>("rank");
             Bag.BindLocalizedText(Root.Q<Label>("title"), "result/title");
             Bag.BindLocalizedText(Root.Q<Button>("back"), "result/back");
-            Bag.SubscribeClick(Root.Q<Button>("back"), () => this.ExecuteCommand(new GoToTitleCommand()));
+            Bag.SubscribeClickAsync(Root.Q<Button>("back"),
+                ct => this.ExecuteCommandAsync(new GoToTitleCommand(), ct));
 
             // 全服排行入口（M4）：仅 dev 环境有对端；本局名次行由 OnOpen 按上传结果显隐。
             var leaderboard = Root.Q<Button>("leaderboard");

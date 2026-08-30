@@ -15,7 +15,7 @@
 
 | 你在游戏里看到 | 背后的框架能力 | 落在哪 | 深读 |
 |---|---|---|---|
-| 标题→战斗→结算的界面切换 | **游戏流程状态机** `IGameFlow`（一次性状态、传参走构造） | [`Scripts/Flow/`](../Scripts/Flow/) | guide §20 / [ADR-0023](../../../../docs/adr/0023-game-flow.md) |
+| 标题→战斗→结算的界面切换 | **游戏流程 System** `IGameFlow`（View 经 Command 发意图；一次性状态、传参走构造） | [`Scripts/Flow/`](../Scripts/Flow/) | guide §20 / [ADR-0023](../../../../docs/adr/0023-game-flow.md) |
 | 标题 / 结算 / 看点弹窗三个窗口 | **UXML 窗口**：`[UIWindow(Asset)]` 经资源系统加载 uxml、共享 `Outpost.uss` 主题；弹窗另演示窗口栈 + 模态遮罩 | [`Res/UI/`](../Res/UI/) + [`Scripts/Windows/`](../Scripts/Windows/) | guide §17 / [ADR-0016](../../../../docs/adr/0016-ui-framework.md) |
 | HUD 实时刷血量/波次/击杀/得分/性能行 | **读写分离 + 只读订阅**（View 经查询 Command 拿 `ReadOnlyReactiveProperty`） | [`Battle/BattleHudView.cs`](../Scripts/Battle/BattleHudView.cs) | guide §5 / [ADR-0001](../../../../docs/adr/0001-five-layers-and-permission-interfaces.md) |
 | 波间弹出三选一升级卡片 | **响应式集合增量绑定** `ObservableList` + `Bag.BindList` | [`Battle/UpgradeChoiceView.cs`](../Scripts/Battle/UpgradeChoiceView.cs) | guide §24 / [ADR-0027](../../../../docs/adr/0027-reactive-collections-list-binding.md) |

@@ -29,7 +29,8 @@ namespace Game.Outpost.Windows
             Bag.BindLocalizedText(Root.Q<Button>("about"), "title/about");
             Bag.BindLocalizedText(Root.Q<Button>("settings"), "title/settings");
 
-            Bag.SubscribeClick(Root.Q<Button>("start"), () => this.ExecuteCommand(new StartBattleCommand()));
+            Bag.SubscribeClickAsync(Root.Q<Button>("start"),
+                ct => this.ExecuteCommandAsync(new StartBattleCommand(), ct));
 
             // 全服排行（M4）：仅 dev 环境有对端（进程内 dev server），正式包直接藏入口。
             var leaderboard = Root.Q<Button>("leaderboard");

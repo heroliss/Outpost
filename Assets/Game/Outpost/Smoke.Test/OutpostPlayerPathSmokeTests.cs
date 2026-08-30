@@ -120,7 +120,7 @@ namespace Game.Outpost.Smoke.Test
             {
                 var root = FindOne<OutpostContext>();
                 Assert.IsNotNull(root);
-                var flow = root.GetUtility<IGameFlow>();
+                var flow = root.GetSystem<IGameFlow>();
                 var ui = root.GetUtility<IUIUtility>();
 
                 await WaitUntil(
@@ -130,7 +130,7 @@ namespace Game.Outpost.Smoke.Test
 
                 int runsBefore = root.ExecuteCommand(new GetPlayerRecordCommand()).Runs.CurrentValue;
 
-                root.ExecuteCommand(new StartBattleCommand());
+                await root.ExecuteCommandAsync(new StartBattleCommand());
                 await WaitUntil(
                     () => flow.Current is BattleState &&
                           SceneManager.GetSceneByName(BattleSceneName).isLoaded &&
@@ -168,7 +168,7 @@ namespace Game.Outpost.Smoke.Test
                     root.ExecuteCommand(new GetPlayerRecordCommand()).Runs.CurrentValue,
                     "结算状态应恰好提交一次本局战绩");
 
-                root.ExecuteCommand(new GoToTitleCommand());
+                await root.ExecuteCommandAsync(new GoToTitleCommand());
                 await WaitUntil(
                     () => flow.Current is TitleState &&
                           !flow.IsTransitioning &&

@@ -38,47 +38,91 @@ namespace Game.Outpost.Smoke.Test
         }
 
         [Test]
-        public void Go_Succeeds_DoesNotLog()
+        public void Request_Succeeds_DoesNotLog()
         {
             var flow = new StubFlow { GoToHandler = _ => UniTask.CompletedTask };
 
-            FlowNav.Go(flow, new NamedState());
+            FlowNav.Request(flow, new NamedState());
 
             Assert.AreEqual(1, flow.GoToCount);
             Assert.IsEmpty(_sink.Entries);
         }
 
         [Test]
-        public void Go_IsCanceled_DoesNotLog()
+        public void Request_IsCanceled_DoesNotLog()
         {
             var canceled = new CancellationToken(canceled: true);
             var flow = new StubFlow { GoToHandler = _ => UniTask.FromCanceled(canceled) };
 
-            FlowNav.Go(flow, new NamedState());
+            FlowNav.Request(flow, new NamedState());
 
             Assert.AreEqual(1, flow.GoToCount);
             Assert.IsEmpty(_sink.Entries, "最新意图胜造成的顶替取消是正常控制流，不应制造错误噪音");
         }
 
         [Test]
-        public void Go_TaskFaults_LogsOriginalExceptionExactlyOnce()
+        public void Request_TaskFaults_LogsOriginalExceptionExactlyOnce()
         {
             var expected = new InvalidOperationException("enter-failed");
             var flow = new StubFlow { GoToHandler = _ => UniTask.FromException(expected) };
 
-            FlowNav.Go(flow, new NamedState());
+            FlowNav.Request(flow, new NamedState());
 
             AssertSingleFailure(expected);
         }
 
         [Test]
-        public void Go_GoToThrowsSynchronously_LogsOriginalExceptionExactlyOnce()
+        public void Request_GoToThrowsSynchronously_LogsOriginalExceptionExactlyOnce()
         {
             var expected = new ArgumentException("invalid-state");
             var flow = new StubFlow { GoToHandler = _ => throw expected };
 
-            FlowNav.Go(flow, new NamedState());
+            FlowNav.Request(flow, new NamedState());
 
+            AssertSingleFailure(expected);
+        }
+
+        [Test]
+        public void Request_TaskCompletesAfterReturn_RemainsObservedWithoutLog()
+        {
+            var completion = new UniTaskCompletionSource();
+            var flow = new StubFlow { GoToHandler = _ => completion.Task };
+
+            FlowNav.Request(flow, new NamedState());
+            Assert.IsEmpty(_sink.Entries);
+
+            completion.TrySetResult();
+
+            Assert.AreEqual(1, flow.GoToCount);
+            Assert.IsEmpty(_sink.Entries);
+        }
+
+        [Test]
+        public void Request_TaskCancelsAfterReturn_RemainsObservedWithoutLog()
+        {
+            var completion = new UniTaskCompletionSource();
+            var flow = new StubFlow { GoToHandler = _ => completion.Task };
+
+            FlowNav.Request(flow, new NamedState());
+            completion.TrySetCanceled();
+
+            Assert.AreEqual(1, flow.GoToCount);
+            Assert.IsEmpty(_sink.Entries, "异步到达的顶替取消也应由 Adapter 静默收口");
+        }
+
+        [Test]
+        public void Request_TaskFaultsAfterReturn_LogsOriginalExceptionExactlyOnce()
+        {
+            var completion = new UniTaskCompletionSource();
+            var expected = new InvalidOperationException("deferred-enter-failed");
+            var flow = new StubFlow { GoToHandler = _ => completion.Task };
+
+            FlowNav.Request(flow, new NamedState());
+            Assert.IsEmpty(_sink.Entries, "物理任务尚未完成时不能预先报告失败");
+
+            completion.TrySetException(expected);
+
+            Assert.AreEqual(1, flow.GoToCount);
             AssertSingleFailure(expected);
         }
 
