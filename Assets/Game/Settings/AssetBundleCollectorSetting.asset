@@ -32,7 +32,7 @@ MonoBehaviour:
       AssetTags: framework-test
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/Game/Framework/Test/Res
+      - CollectPath: Assets/Game/Framework/Asset.Yoo/Tests/Fixtures
         CollectorGUID: 763ef90f7679c824c9aaee5452f76a2a
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -40,7 +40,7 @@ MonoBehaviour:
         FilterRuleName: CollectPrefab
         AssetTags:
         UserData:
-      - CollectPath: Assets/Game/Framework/Test/Res
+      - CollectPath: Assets/Game/Framework/Asset.Yoo/Tests/Fixtures
         CollectorGUID: f3b1a899d1bd4ed1a20aa35c0c4d7d6f
         CollectorType: 0
         AddressRuleName: AddressByFileName
