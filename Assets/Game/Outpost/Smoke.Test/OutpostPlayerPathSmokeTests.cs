@@ -6,6 +6,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Framework.Context;
 using Game.Framework.Flow;
+using Game.Framework.Storage;
 using Game.Framework.UI;
 using Game.Outpost.Battle;
 using Game.Outpost.Commands;
@@ -127,6 +128,20 @@ namespace Game.Outpost.Smoke.Test
                     () => flow.Current is TitleState && !flow.IsTransitioning && ui.IsOpen<TitleWindow>(),
                     "Boot → 标题页",
                     60f);
+
+                // 热力图开关来自战斗 HUD，不经过 SettingsWindow。锁定“每次持久化设置变更都安排保存”，
+                // 避免把落盘职责重新退化成只有设置窗 OnClose 才会执行。
+                bool initialHeatmap = root.ExecuteCommand(new GetWreckHeatmapCommand()).CurrentValue;
+                root.ExecuteCommand(new SetWreckHeatmapCommand(!initialHeatmap));
+                var storage = root.GetUtility<IStorageUtility>();
+                await WaitUntil(
+                    () => storage.Exists(StorageKeys.Settings),
+                    "未打开设置窗时，HUD 偏好自动落盘",
+                    10f);
+                var persistedSettings = await storage.Load<OutpostSettings>(StorageKeys.Settings);
+                Assert.IsNotNull(persistedSettings);
+                Assert.AreEqual(!initialHeatmap, persistedSettings.WreckHeatmap,
+                    "HUD 修改的持久化偏好应写入设置快照，不能依赖 SettingsWindow.OnClose");
 
                 int runsBefore = root.ExecuteCommand(new GetPlayerRecordCommand()).Runs.CurrentValue;
 

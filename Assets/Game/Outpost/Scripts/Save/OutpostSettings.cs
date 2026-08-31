@@ -8,7 +8,7 @@ namespace Game.Outpost.Save
     /// </summary>
     /// <remarks>
     /// 音量与语言的<b>运行时真源分别是 <c>IAudioUtility</c> 与 <c>ILocalizationUtility</c> 自身状态</b>——
-    /// 本类只是它们的落盘快照，不做第二份内存状态（设置窗直连两个 Utility，关窗时收集当前值保存）。
+    /// 本类只是它们的落盘快照，不做第二份内存状态；<c>SettingsPersistenceSystem</c> 在变更后从各真源收集并保存。
     /// 框架刻意把「音量 / 语言选择持久化」留给业务（ADR-0022 / 0024），这里就是那个业务落点。
     /// </remarks>
     [Serializable]

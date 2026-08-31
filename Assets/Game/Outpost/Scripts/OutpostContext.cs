@@ -66,6 +66,10 @@ namespace Game.Outpost
                     fallbackLocale: OutpostLocales.ChineseSimplified),
                 typeof(ILocalizationUtility));
 
+            // 设置持久化是跨窗口、跨战斗阶段的业务策略：它从音频 / 本地化 Utility 与战斗偏好 Model
+            // 收集快照，合并滑条连发，并随根 Context 释放。具体类已是唯一实现，不额外制造 Interface。
+            builder.RegisterOwnedSystem(new SettingsPersistenceSystem());
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             // 网络排行（仅 dev 环境）：对端二选一——Inspector 留空 = 进程内 dev server（构造即监听、随本
             // Context Dispose 停）；填了地址 = 直连独立真后端（Server~/OutpostServer），不起 dev server。

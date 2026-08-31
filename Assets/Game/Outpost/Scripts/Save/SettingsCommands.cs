@@ -7,6 +7,7 @@ using Game.Framework.Command;
 using Game.Framework.Localization;
 using Game.Framework.Logging;
 using Game.Framework.Storage;
+using Game.Framework.Systems;
 
 namespace Game.Outpost.Save
 {
@@ -61,33 +62,22 @@ namespace Game.Outpost.Save
     }
 
     /// <summary>
-    /// 落盘当前设置：从两个 Utility 的<b>运行时真源</b>收集当前值（音量在 <c>IAudioUtility</c>、语言在
-    /// <c>ILocalizationUtility.Locale</c>）拼成 <see cref="OutpostSettings"/> 快照保存。
-    /// 由设置窗关闭时触发——改动即时生效在 Utility 上，落盘只在收口时做一次，不随滑条拖动高频写盘。
-    /// 存储失败保持异常传播，由调用方决定只记录（关窗保存）还是呈现可重试失败（扩展包安装终点）。
+    /// 立即落盘当前设置。快照收集与写入策略归 <see cref="SettingsPersistenceSystem"/>；本命令只提供
+    /// View / Flow 可调用、可等待的用户意图入口。存储失败保持异常传播，由调用方决定如何呈现。
     /// </summary>
     public readonly struct SaveSettingsCommand : IAsyncCommand
     {
         public async UniTask ExecuteAsync(ICommandContext ctx, CancellationToken cancellationToken)
-        {
-            var audio = ctx.GetUtility<IAudioUtility>();
-            var settings = new OutpostSettings
-            {
-                MasterVolume = audio.MasterVolume,
-                MusicVolume = audio.GetGroupVolume(AudioGroups.Music),
-                SfxVolume = audio.GetGroupVolume(AudioGroups.Sfx),
-                Locale = ctx.GetUtility<ILocalizationUtility>().Locale.CurrentValue,
-                ExpansionInstalled = IsExpansionInstalled(ctx.GetUtility<IAssetUtility>()),
-                BattleBackend = (int)ctx.GetModel<Battle.BattlePrefsModel>().Backend.CurrentValue,
-                WreckHeatmap = ctx.GetModel<Battle.BattlePrefsModel>().ShowWreckHeatmap.CurrentValue,
-                ExpansionBgm = ctx.GetModel<Battle.BattlePrefsModel>().ExpansionBgm.CurrentValue,
-            };
-            await ctx.GetUtility<IStorageUtility>().Save(StorageKeys.Settings, settings, cancellationToken);
-        }
+            => await ctx.GetSystem<SettingsPersistenceSystem>().SaveNow(cancellationToken);
+    }
 
-        /// <summary>扩展包安装态的真源判定：包 Ready 且无缺失下载（EditorSimulate 下天然无下载量 = 初始化过即安装）。</summary>
-        internal static bool IsExpansionInstalled(IAssetUtility assets)
-            => assets.GetInitState(Game.Main.AssetPackages.OutpostExpansionPackage).CurrentValue == AssetInitState.Ready
-               && assets.CreateAllDownloader(Game.Main.AssetPackages.OutpostExpansionPackage).TotalCount == 0;
+    /// <summary>
+    /// 通知设置持久化 System：某个运行时真源已经变化。调用立即返回，连续变更由 System 合并写盘；
+    /// 用于音量、语言这类 View 可直接修改 Utility、但仍应统一持久化策略的入口。
+    /// </summary>
+    public readonly struct RequestSettingsSaveCommand : ICommand
+    {
+        public void Execute(ICommandContext ctx)
+            => ctx.GetSystem<SettingsPersistenceSystem>().RequestSave();
     }
 }

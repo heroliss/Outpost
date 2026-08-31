@@ -8,7 +8,8 @@ namespace Game.Outpost.Battle
     /// <b>运行时真源</b>：后端在设置窗改（<see cref="SetBattleBackendCommand"/>）、热力图与速度在战斗 HUD 改
     /// （<see cref="SetWreckHeatmapCommand"/> / <see cref="SetSimSpeedCommand"/>）。后端由 <see cref="BattleDirectorSystem"/>
     /// 每局开局采样一次（局中改动下一局生效——模拟是一次性实例，不做热切）；热力图与速度是纯表现、订阅即时生效。
-    /// 后端 / 热力图持久化走 <c>OutpostSettings</c> 快照（真源在运行时对象、存档只是落盘快照），由 Load/SaveSettingsCommand 回灌与收集；
+    /// 后端 / 热力图持久化走 <c>OutpostSettings</c> 快照（真源在运行时对象、存档只是落盘快照）：启动由
+    /// <c>LoadSettingsCommand</c> 回灌，各持久化命令在值变化时通知 <c>SettingsPersistenceSystem</c> 合并写盘；
     /// 速度是临时演示旋钮、<b>不落盘</b>（会话内跨局保持、重启回 1×）。
     /// </summary>
     public sealed class BattlePrefsModel : IModel

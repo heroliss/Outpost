@@ -20,7 +20,8 @@ namespace Game.Outpost.Windows
     /// 设置弹窗（Popup + Modal，压在标题页上）：音量三滑条 + 语言切换 + 战斗后端选择 + 扩展内容下载。
     /// <b>本窗只是遥控器</b>——音量真源在 <c>IAudioUtility</c>、语言真源在 <c>ILocalizationUtility.Locale</c>、
     /// 后端偏好真源在 <c>BattlePrefsModel</c>（经命令读写，下一局生效）、扩展包安装态真源在 <c>IAssetUtility</c>
-    /// 的包状态；改动即时生效在各真源上，关窗时一次 <see cref="SaveSettingsCommand"/> 收口落盘（不随滑条拖动高频写盘）。
+    /// 的包状态；改动即时生效在各真源上，并通知 <see cref="SettingsPersistenceSystem"/> 合并写盘；正常关窗再
+    /// 用一次 <see cref="SaveSettingsCommand"/> 立即刷新，但它不是唯一保存入口。
     /// View 直连 Utility 是合法权限（<c>ICanGetUtility</c>，与开窗 / <c>Bag.Load</c> 同心智，§27/§29 demo 同款姿势）。
     /// <para>扩展区演示「不自动初始化的第二资源包」消费全流程（§13 多包 / 按需下载）：
     /// Initialize（拉清单）→ <c>EnsureInitialized</c>（失败时保留原始根因）→
@@ -69,11 +70,20 @@ namespace Game.Outpost.Windows
             master.value = audio.MasterVolume;
             music.value = audio.GetGroupVolume(AudioGroups.Music);
             sfx.value = audio.GetGroupVolume(AudioGroups.Sfx);
-            master.RegisterValueChangedCallback(e => audio.MasterVolume = e.newValue);
-            music.RegisterValueChangedCallback(e => audio.SetGroupVolume(AudioGroups.Music, e.newValue));
+            master.RegisterValueChangedCallback(e =>
+            {
+                audio.MasterVolume = e.newValue;
+                this.ExecuteCommand(new RequestSettingsSaveCommand());
+            });
+            music.RegisterValueChangedCallback(e =>
+            {
+                audio.SetGroupVolume(AudioGroups.Music, e.newValue);
+                this.ExecuteCommand(new RequestSettingsSaveCommand());
+            });
             sfx.RegisterValueChangedCallback(e =>
             {
                 audio.SetGroupVolume(AudioGroups.Sfx, e.newValue);
+                this.ExecuteCommand(new RequestSettingsSaveCommand());
                 PlayAudition(audio); // 音效组没有常驻在播的声音，给一声试听反馈才听得出改了什么
             });
             PreloadAuditionAsync().Forget(LogUnexpectedPreloadFailure);
@@ -81,8 +91,8 @@ namespace Game.Outpost.Windows
             // 语言切换：直调 SetLocale（同值 no-op 不重刷）；当前语言按钮描边高亮。按钮文案是语言自称，不本地化。
             var zh = Root.Q<Button>("lang-zh");
             var en = Root.Q<Button>("lang-en");
-            Bag.SubscribeClick(zh, () => loc.SetLocale(OutpostLocales.ChineseSimplified));
-            Bag.SubscribeClick(en, () => loc.SetLocale(OutpostLocales.English));
+            Bag.SubscribeClick(zh, () => SetLocale(loc, OutpostLocales.ChineseSimplified));
+            Bag.SubscribeClick(en, () => SetLocale(loc, OutpostLocales.English));
             Bag.Subscribe(loc.Locale, l =>
             {
                 zh.EnableInClassList("op-btn--lang-active", l == OutpostLocales.ChineseSimplified);
@@ -90,7 +100,7 @@ namespace Game.Outpost.Windows
             });
 
             // 战斗模拟后端（ADR-0030 双后端）：写走命令、读走查询命令的只读订阅源（View 不碰 Model，§1.1）。
-            // 改动即写进 BattlePrefsModel（导演每局开局采样，下一局生效），落盘随关窗的设置快照。
+            // 改动即写进 BattlePrefsModel（导演每局开局采样，下一局生效），命令在真变化时请求合并保存。
             Bag.BindLocalizedText(Root.Q<Label>("backend-label"), "settings/backend");
             Bag.BindLocalizedText(Root.Q<Label>("backend-hint"), "settings/backend-hint");
             var ecsBtn = Root.Q<Button>("backend-ecs");
@@ -111,7 +121,9 @@ namespace Game.Outpost.Windows
         protected override void OnClose()
         {
             _closed = true;
-            // 收口落盘：改动早已在 Utility 上生效，这里只存快照。无参调用的取消令牌绑根 Context（窗口非 Mono），
+            // 正常关闭是一个明确提交点：取消尚未开始的合并延迟并立即刷新当前快照。每次变更已经安排过
+            // 自动保存，因此窗口被 Context teardown 直接销毁、OnClose 不运行时也不再靠本 hook 保底。
+            // 无参调用的取消令牌绑根 Context（窗口非 Mono），
             // 窗口关闭不打断保存；同步 hook 无法 await，故用显式 observer 记录存储失败。
             this.ExecuteCommandAsync(new SaveSettingsCommand()).Forget(LogUnexpectedSaveFailure);
         }
@@ -154,7 +166,7 @@ namespace Game.Outpost.Windows
             Bag.SubscribeClickAsync(_expButton, _ => DownloadExpansion(loc));
 
             // 开窗时的初始态：已安装（Ready 且无缺失下载）显示「已启用」，否则保持下载按钮。
-            if (SaveSettingsCommand.IsExpansionInstalled(this.GetUtility<IAssetUtility>()))
+            if (SettingsPersistenceSystem.IsExpansionInstalled(this.GetUtility<IAssetUtility>()))
                 ShowExpansionReady(loc);
         }
 
@@ -221,6 +233,13 @@ namespace Game.Outpost.Windows
 
         private void RefreshExpansionStatusText(ILocalizationUtility loc)
             => _expStatus.text = _expStatusKey.Length == 0 ? string.Empty : loc.Get(_expStatusKey);
+
+        private void SetLocale(ILocalizationUtility localization, string locale)
+        {
+            if (localization.Locale.CurrentValue == locale) return;
+            localization.SetLocale(locale);
+            this.ExecuteCommand(new RequestSettingsSaveCommand());
+        }
 
         // 试听 clip 经资源系统预载（开窗到首次拖动之间足够完成；未就绪时静默跳过一声，无碍）。
         private async UniTask PreloadAuditionAsync()
