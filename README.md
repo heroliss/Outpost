@@ -1,8 +1,10 @@
 # 🎮 SSFramework
 
-> 这是一个自研的 Unity 游戏开发框架，采用创新的 MVC 变体代码架构。秉持"站在巨人肩膀上"的开发理念，把 UniTask、R3、YooAsset 等成熟开源库与 Unity 编辑器深度融合，同时把 Odin Inspector 这类专业付费工具保留为可选增强。让编译器替你守住代码边界、让 Inspector 替你看穿运行状态，让数据流理念把你的思路理清；需要轻量包体或未购买插件的项目也能按 Module 自由取舍。
+**SSFramework 是一套面向真实游戏生产与长期迭代的 Unity 模块化框架，也是一套让人类与 AI Agent 在同一工程事实和验证闭环中协作的开发基线。**
 
-框架特性：把传统 MVC 中臃肿的 Controller 一分为二（**System** 负责"怎么做"、**Command** 负责"做什么"），用 DI 容器和接口约束各层权限，配合 Unity 的 Hierarchy 直接表达上下文与模块关系——所有运行时状态在 Inspector 一眼看穿，所有依赖在编译期就能查验。
+运行时以 Context + MVCS（View / Command / System / Model + Event / Utility）组织单向数据流：Command 表达“做什么”，System 承担“怎么做”，接口和程序集边界让常见越权在编译期暴露。生产侧把资源、配置、热更新、UI、存档、音频、网络、构建和诊断拆成可组合 Module，并通过 Unity Inspector、Editor 工作台和可替换接缝保持可观察、可裁剪。
+
+本仓库不只交付运行时代码：它还包含 35 章可运行 Demo、1396 项回归基线、分层项目规则、5 个 Project Skill，以及把编译、测试、运行、截图、性能和构建证据收口起来的 Unity 验证 Harness。Codex 是当前已验证的主要 Agent，但公共真值保存在 `AGENTS.md`、`.agents/skills/`、文档、测试和项目工具中，未来其他 Agent 可以从同一证据继续承接。
 
 ---
 
@@ -34,6 +36,33 @@
 | **响应式数据流统一** | 事件、属性、UniTask、协程、UnityEvent、C# event 均可互转为 `Observable<T>`；状态对 View 返回 `ReadOnlyReactiveProperty<T>` 等只读类型 |
 | **自动生命周期管理** | `DisposableBag`（`Bag`）统一登记订阅 / 资源句柄 / 池租借，`OnDestroy` 时一并清理，无需手动维护 |
 | **异步取消传导** | Context Dispose 级联取消相关异步操作；Mono View 无参调用自动绑定 destroy token，纯 C# View 用 Bag / host token 明确界面生命周期 |
+| **可删除的模块边界** | 19 个生产程序集把 UI 后端、YooAsset、HybridCLR、Luban、字体与 Protobuf 等能力隔离；主要可选 Module 有独立测试和删除边界 |
+| **AI 可承接开发** | 分层 `AGENTS.md`、开放 Project Skill、领域文档与 Handoff 证据包共同减少隐式记忆和客户端锁定 |
+| **证据驱动 Harness** | 按风险编排编译、EditMode / PlayMode、玩家路径、截图、性能和隔离构建；明确区分“测试通过”与“体验成立” |
+
+---
+
+## 🤖 AI 协作与验证 Harness
+
+这里的 Harness 不是第二套 Unity Test Runner，也不是“让 AI 自动做一切”的宣传词。它是围绕真实任务建立的执行闭环：
+
+```text
+目标与改动
+  → 就近项目规则 / 按需 Project Skill
+  → Unity MCP、Editor Seam 或 CLI 执行
+  → 编译、测试、运行、截图、性能或构建证据
+  → 失败恢复、清理与可复核交付摘要
+```
+
+| 组成 | 当前已落地 |
+|---|---|
+| **共享项目真值** | 根目录与业务 / Framework / Demo 分层规则，CONTEXT、ADR、guide 和测试共同描述当前契约 |
+| **5 个 Project Skill** | 架构深化、规则演进、Unity 后台自动化、截图取证、按风险选择验证范围 |
+| **Unity 执行层** | AnkleBreaker MCP 负责带队列与 Undo 的 Editor 操作；项目 CLI Adapter 负责工程外测试和构建 |
+| **可观察 Oracle** | 1396 项测试、真实玩家路径、Demo 运行、截图检查、隔离构建与逐步增加的性能 / 视觉基线 |
+| **跨 Agent 承接** | 当前以 Codex 为主，其他 Agent 从公共 Markdown、项目工具和 Handoff 清单做能力探针，不复制规则正文 |
+
+AI 可以提高实现、搜索、验证和重复生产的吞吐量，但不能仅凭绿灯或单帧截图证明游戏好玩、审美成立或具备市场。完整设计边界见 [AI 协作方案](docs/ai-collaboration-guide.md)，长期能力补全见 [AI 游戏开发能力图谱](docs/ai-game-development-capability-map.md)。
 
 ---
 
@@ -125,15 +154,25 @@ public class HudView : MonoViewBase
 
 ---
 
-## 🧪 工程质量基线
+## 🧪 可验证工程基线
 
-以下不是愿景，是当前仓库里**可复核**的维护纪律：
+截至 **2026-09-01 Framework Baseline**，以下证据已在当前仓库完成；最新命令、日志与边界见[持续完善计划](docs/project-improvement-plan.md#已验证基线2026-09-01)：
 
-- **测试**：完整 EditMode + PlayMode 基线全绿（最新精确数量见[改进计划的已验证基线](docs/project-improvement-plan.md#已验证基线2026-09-01)）——覆盖容器解析契约、命令分发（含 struct 零装箱路径）、事件总线、初始化失败事务与生命周期级联、AI PlayMode 无弹窗预检、诊断面板编辑态防误报、Editor 窄窗口响应式布局、中文 Inspector / 诊断状态契约、资源四态查询 / 原生操作所有权与跨 Provider 包级并发、配置就绪 / 原始失败 / waiter-owner 取消、内嵌服务器端口回退、Demo 章节同实例生命周期、真实 DemoScene 逐章 Build、教学语义/降级契约与源码跳转防腐、ReactiveList 行身份 / 逐行释放、真实 Toolkit Cache/Destroy 重开语义、异步按钮取消/异常/防重入、本地化延迟 Source 失效刷新、对象池、UI Loading 并发所有权与窗口栈、UI 嵌入桥低清等比降采样，以及 Outpost 双后端确定性回归与“标题 → 战斗 → 撤离 → 结算 → 回标题”的真实玩家路径。核心编排（如 `UIUtility`）刻意做成渲染中立的纯 C#，可脱离场景单测。交互式 Editor 经 `SSFramework/诊断/AI 自动化/PlayMode 测试预检（保存脏场景）` 后可由 MCP 无弹窗启动；关闭本工程 Editor 后，`Tools/run-tests.ps1` 通过 ProjectVersion 驱动 Unity CLI / Direct Adapter，默认顺序跑 EditMode + PlayMode，并分别保留 NUnit XML / Editor 日志（CI / 推送前用）。
-- **文档四层，且与代码同步维护**：本 README（门面）→ [用户手册 28 章](docs/framework-guide.md)（心智模型 + API）→ [ADR](docs/adr/README.md)（每个关键决策的“为什么”与代价）→ 分层 `AGENTS.md`（就近自动加载的协作约束）。公共设计变化时同步受影响层；纯实现细节不制造文档噪音。目标是让文档与代码保持同一事实，而不是机械改遍所有文件。
-- **权限双保险**：编译期 `ICanXxx` 接口约束 + `[Inject]` 注入期同源镜像校验（`InjectionPlan`），两条路径共用一套权限模型，堵住"扩展方法编译不过就换注入绕过"的口子。
-- **防泄漏是设计目标不是补丁**：linked CTS 单槽缓存与移交释放、池租借登记的提前归还摘除、停放节点自愈重建、Dispose 幂等与逆序释放——这些边界行为都有注释解释"为什么"并有测试盯着。
-- **零编译警告**：包括 XML doc 的 cref 完整性（泛型尖括号转义约定见 `AGENTS.md`）。
+| 证据 | 当前基线 |
+|---|---|
+| **Unity 编译** | Unity 6000.3.22f1，0 error / 0 warning |
+| **EditMode** | 622 / 622，通过纯 C# 契约、Editor 工具、生成管线和模块边界 |
+| **PlayMode** | 774 / 774，通过生命周期、UI / 资源 / 网络组合、Demo 和真实玩家路径 |
+| **总计** | **1396 / 1396**；测试集合必须非空，不能把错误筛选当成绿灯 |
+| **运行与视觉** | 35 章 Demo 可运行；关键 Game View / EditorWindow 截图需实际检查，不以“截图成功”代替视觉结论 |
+| **工程外自动化** | `Tools/run-tests.ps1` 通过 ProjectVersion 驱动 Unity CLI / Direct Adapter，并保留 NUnit XML 与 Editor 日志 |
+
+维护纪律同样是可审查的工程契约：
+
+- **文档与代码同源**：README（门面）→ 用户手册（用法）→ ADR（取舍）→ 就近 `AGENTS.md`（协作边界）；只同步真正受影响的层，不制造机械文档噪音。
+- **权限双保险**：编译期 `ICanXxx` 接口与 `[Inject]` 注入期同源校验共用一套权限模型，让越界必须显式可见。
+- **生命周期按失败设计**：取消、池租借、资源句柄、订阅和子 Context 都有明确 owner、幂等释放与失败后清理证据。
+- **验证与风险相称**：局部纯函数不必跑完整 Player Build；公共架构、场景行为或发布链路则不能只凭一个单测结论交付。
 
 ---
 
@@ -173,6 +212,7 @@ public class HudView : MonoViewBase
 | [AI 协作方案设计原理](docs/ai-collaboration-guide.md) | 工具配置者 | 跨 Agent 公共真值、规则演进、Skill 与 Harness 的边界 |
 | [其他 AI 接入与 Handoff](docs/ai-agent-onboarding.md) | 新 Agent / 交接者 | 最薄接入步骤、能力探针、证据包与失败降级 |
 | [AI 游戏开发能力地图](docs/ai-game-development-capability-map.md) | 游戏制作人与 Agent | 从产品目标到工程、美术、音频、体验、发布的能力谱系与补全策略 |
+| [首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md) | 产品 / 游戏开发者 | Steam / Windows 优先的平台选择、概念候选、领跑方案、范围盒与证据 Gate |
 | [Unity CLI 与项目自动化](docs/unity-cli-automation.md) | 自动化维护者 | CLI / Pipeline / MCP / OS UI 分工、命令示例与项目 Adapter |
 
 用户手册章节速览：
@@ -237,4 +277,4 @@ SSFramework/
 
 ## 📌 状态
 
-**2026-09 Framework Baseline 已形成。** 核心抽象、19 个生产程序集、对应测试、交互式 Demo、Editor 工具、文档和 AI 协作入口已经达到可复核的阶段冻结点。它不是“从此不再改”的终点，也不是已经完成 SemVer / UPM 发布承诺；下一阶段以一款新的小型游戏作为真实消费者，只让被产品证据证明的通用缺口回流框架。完整边界与延后项见[持续完善计划](docs/project-improvement-plan.md)。
+**2026-09 Framework Baseline 已形成。** 核心抽象、19 个生产程序集、对应测试、交互式 Demo、Editor 工具、文档和 AI 协作入口已经达到可复核的阶段冻结点。它不是“从此不再改”的终点，也不是已经完成 SemVer / UPM 发布承诺；下一阶段将开发一款以 Steam / Windows 为首发方向的正规 3D 商业游戏，只让被产品证据证明的通用缺口回流框架。当前产品假设、候选概念与决策 Gate 见[首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md)，框架延后项见[持续完善计划](docs/project-improvement-plan.md)。
