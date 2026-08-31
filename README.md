@@ -190,8 +190,6 @@ public class HudView : MonoViewBase
 | [Odin Inspector](https://odininspector.com) | 可选专业 Inspector | 项目级增强；Framework 原生基线不依赖、不随包分发（[移除与集成指南](docs/optional-odin-integration.md)） |
 | [AnkleBreaker Unity MCP](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin) | 编辑器自动化 | 让 AI 经带队列与 Undo 的结构化工具安全操作 Unity Editor |
 
-<img src="https://raw.githubusercontent.com/AnkleBreaker-Studio/unity-mcp-plugin/main/icon.png" alt="AnkleBreaker MCP logo" width="24"> **Powered by AnkleBreaker MCP**。
-
 仓库是开发工作区，不等同于可整体再分发的 Framework 包。根 `LICENSE` 适用于 SSFramework 自有部分；第三方 Package、DLL、字体和资产仍受各自许可证或商业授权约束。当前项目中的 `Assets/Plugins/Sirenix` 是可选开发工具，Framework 原生基线不依赖它，未来可分发包也不应包含其付费 DLL；详见[Odin 可选集成与移除](docs/optional-odin-integration.md)。
 
 ---
@@ -213,6 +211,7 @@ public class HudView : MonoViewBase
 | [其他 AI 接入与 Handoff](docs/ai-agent-onboarding.md) | 新 Agent / 交接者 | 最薄接入步骤、能力探针、证据包与失败降级 |
 | [AI 游戏开发能力地图](docs/ai-game-development-capability-map.md) | 游戏制作人与 Agent | 从产品目标到工程、美术、音频、体验、发布的能力谱系与补全策略 |
 | [首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md) | 产品 / 游戏开发者 | Steam / Windows 优先的平台选择、概念候选、领跑方案、范围盒与证据 Gate |
+| [AI 音乐与音效生产候选](docs/ai-audio-production-research.md) | 音频制作人与 Agent | 生成平台、商用授权、后期软件、运行时边界与首轮 Audio Spike |
 | [Unity CLI 与项目自动化](docs/unity-cli-automation.md) | 自动化维护者 | CLI / Pipeline / MCP / OS UI 分工、命令示例与项目 Adapter |
 
 用户手册章节速览：
