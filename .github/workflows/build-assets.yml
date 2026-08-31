@@ -4,7 +4,8 @@
 # 「打哪些包 + 每包参数（首包 tag / 内置 shader 包开关）+ 压缩 / 文件名风格 / 偏移加密」由入库的构建配置
 # FrameworkAssetBuildProfile 决定（内容随产物发布的都在 profile）；CI 仅用 -version / -output（必要时 -packages）覆盖，
 # 外加两个「本机构建过程」开关 -clearBuildCache / -useAssetDependencyDB（不进产物，见 workflow_dispatch 勾选项）。
-# 产物整理成「每个包一个子目录」的 CDN 待上传结构，
+# 产物整理成「每个包一个子目录」的 CDN 待上传结构；BuildAll 只发布本轮实际构建成功的精确版本，
+# 本轮空包会移除输出目录里的同名历史内容，不会从 AssetBuild/Bundles 回捞旧 latest，
 # 上传到 CDN 那一步是本文件里的「TODO」步骤——填上你的 CDN 厂商命令即可。
 #
 # 默认用「自托管 Windows runner」：机器上已装好 Unity（无需在 CI 里激活授权）、Library 缓存常驻、
