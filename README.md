@@ -19,7 +19,7 @@
 | **可插拔命令分发器** | `ICommandSystem` 是历史命名的基础设施契约（不是五层 `ISystem`）；替换默认实现即可一处拦截全部命令——日志、回放、撤销/重做、优先级队列、自动化测试都能在此承载 |
 | **响应式数据流统一** | 事件、属性、UniTask、协程、UnityEvent、C# event 均可互转为 `Observable<T>`；状态对 View 返回 `ReadOnlyReactiveProperty<T>` 等只读类型 |
 | **自动生命周期管理** | `DisposableBag`（`Bag`）统一登记订阅 / 资源句柄 / 池租借，`OnDestroy` 时一并清理，无需手动维护 |
-| **异步取消传导** | Context Dispose 级联取消所有相关异步操作；View 的 `ExecuteCommandAsync` 自动绑定 destroy token |
+| **异步取消传导** | Context Dispose 级联取消相关异步操作；Mono View 无参调用自动绑定 destroy token，纯 C# View 用 Bag / host token 明确界面生命周期 |
 
 ---
 

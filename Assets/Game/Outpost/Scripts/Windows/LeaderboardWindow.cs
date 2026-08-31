@@ -43,7 +43,7 @@ namespace Game.Outpost.Windows
         private Label _status;
         private Button _refresh;
         private string _statusKey;
-        private bool _closed; // 拉取的取消令牌绑根 Context 不随窗口——关窗后到达的响应不再动本实例 UI
+        private bool _closed; // 拉取跟随窗口 Bag；仍以关闭标记拦住“成功与取消同时到达”时赢得竞速的迟到响应
 
         protected override void OnCreated()
         {
