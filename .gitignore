@@ -71,7 +71,7 @@
 # Trae IDE
 /.trae/
 
-# Claude Code —— 团队共享配置入库，本地运行时数据忽略
+# Claude Code —— 只允许按实际采用需要提交的薄接入层，本地运行时数据忽略
 .claude/*
 !.claude/settings.json
 !.claude/skills/

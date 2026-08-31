@@ -1,6 +1,5 @@
 <!--
-本文件仅一行 @AGENTS.md，让 Claude Code 把 AGENTS.md 内容展开到上下文。
-AGENTS.md 是项目唯一权威来源（universal，Codex/Cursor 等也能读）。
-详细设计说明：见 docs/ai-collaboration-guide.md
+Claude Code 的低成本入口：只导入公共规则，不保存第二份正文。
+需要 Project Skill 或 Unity 工具时，按 docs/ai-agent-onboarding.md 接入并读取 .agents/skills 权威正文。
 -->
 @AGENTS.md
