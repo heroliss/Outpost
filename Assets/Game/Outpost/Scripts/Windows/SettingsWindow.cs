@@ -43,7 +43,6 @@ namespace Game.Outpost.Windows
         private Button _expButton;
         private VisualElement _expBgmRow; // 电台战斗曲开关行：仅扩展包已安装时显示
         private string _expStatusKey = "";
-        private bool _closed; // 异步下载返回后 UI 已随窗销毁：只跳过界面更新，下载与落盘照常收尾
 
         protected override void OnCreated()
         {
@@ -120,7 +119,6 @@ namespace Game.Outpost.Windows
 
         protected override void OnClose()
         {
-            _closed = true;
             // 正常关闭是一个明确提交点：取消尚未开始的合并延迟并立即刷新当前快照。每次变更已经安排过
             // 自动保存，因此窗口被 Context teardown 直接销毁、OnClose 不运行时也不再靠本 hook 保底。
             // 无参调用的取消令牌绑根 Context（窗口非 Mono），
@@ -184,7 +182,7 @@ namespace Game.Outpost.Windows
                 var downloader = assets.CreateAllDownloader(AssetPackages.OutpostExpansionPackage);
                 if (downloader.TotalCount > 0)
                 {
-                    if (!_closed)
+                    if (CanUpdateVisuals)
                     {
                         _expBar.style.display = DisplayStyle.Flex;
                         // 进度订阅挂窗口 Bag：关窗自动退订，下载本身继续（不传窗口令牌，见类注释）。
@@ -196,7 +194,7 @@ namespace Game.Outpost.Windows
 
                 // 下载成功即固化安装标记（不等关窗）：即刻落盘一次设置快照，防止「下完就退进程」丢标记。
                 await this.ExecuteCommandAsync(new SaveSettingsCommand());
-                if (!_closed) ShowExpansionReady(loc);
+                if (CanUpdateVisuals) ShowExpansionReady(loc);
             }
             catch (OperationCanceledException)
             {
@@ -210,7 +208,7 @@ namespace Game.Outpost.Windows
                     "扩展包下载或安装状态保存失败，可重新尝试。",
                     category: nameof(SettingsWindow),
                     exception: e);
-                if (_closed) return;
+                if (!CanUpdateVisuals) return;
                 _expBar.style.display = DisplayStyle.None;
                 _expButton.SetEnabled(true);
                 SetExpansionStatus("settings/expansion-failed", loc);

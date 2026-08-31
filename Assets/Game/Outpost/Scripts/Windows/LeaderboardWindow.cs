@@ -43,7 +43,6 @@ namespace Game.Outpost.Windows
         private Label _status;
         private Button _refresh;
         private string _statusKey;
-        private bool _closed; // 拉取跟随窗口 Bag；仍以关闭标记拦住“成功与取消同时到达”时赢得竞速的迟到响应
 
         protected override void OnCreated()
         {
@@ -61,13 +60,10 @@ namespace Game.Outpost.Windows
 
         protected override void OnOpen(object args)
         {
-            _closed = false;
             // OnOpen 是同步生命周期 hook，不能 await；Refresh 自己收口可预期网络失败，
             // 这里的 observer 只兜底生命周期 hook 启动后的未预期异常。
             Refresh(Bag.DisposeToken).Forget(LogUnexpectedRefreshFailure);
         }
-
-        protected override void OnClose() => _closed = true;
 
         private async UniTask Refresh(CancellationToken cancellationToken)
         {
@@ -78,7 +74,7 @@ namespace Game.Outpost.Windows
             {
                 var resp = await this.ExecuteCommandAsync(
                     new FetchLeaderboardCommand(TopCount), cancellationToken);
-                if (_closed) return; // 等待期间窗口已被关掉——别再动 UI
+                if (!CanUpdateVisuals) return; // 正常 Close 或 Context teardown 后都不能再动旧 UI
 
                 if (resp == null || resp.Entries.Count == 0)
                 {
@@ -92,12 +88,12 @@ namespace Game.Outpost.Windows
             catch (NetworkException e)
             {
                 Log.Warning($"拉取排行榜失败（{e.Kind}）：{e.Message}", nameof(LeaderboardWindow));
-                if (_closed) return;
+                if (!CanUpdateVisuals) return;
                 SetStatus("lb/error");
             }
             finally
             {
-                if (!_closed) _refresh.SetEnabled(true);
+                if (CanUpdateVisuals) _refresh.SetEnabled(true);
             }
         }
 
