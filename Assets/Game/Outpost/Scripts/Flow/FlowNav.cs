@@ -33,8 +33,24 @@ namespace Game.Outpost.Flow
                 }
                 catch (Exception e)
                 {
-                    Log.Error($"进入流程状态 '{next}' 失败。", e, "OutpostFlow");
+                    Log.Error($"进入流程状态 '{Describe(next)}' 失败。", e, "OutpostFlow");
                 }
+            }
+        }
+
+        // ToString 属于项目状态的可覆写诊断钩子，不能让一个坏实现遮蔽真正的 GoTo 根异常。
+        private static string Describe(FlowState state)
+        {
+            if (state == null) return "null";
+            string typeName = state.GetType().Name;
+            try
+            {
+                string displayName = state.ToString();
+                return string.IsNullOrWhiteSpace(displayName) ? typeName : displayName;
+            }
+            catch
+            {
+                return typeName;
             }
         }
     }

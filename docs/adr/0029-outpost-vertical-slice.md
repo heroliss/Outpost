@@ -64,6 +64,8 @@
 
 **2026-08-23 自动化补验收：**新增独立 `Game.Outpost.Smoke.Test`，不录 UI 坐标，直接经稳定业务 Interface 跑真实 OutpostGame/OutpostBattle 场景的“标题 → 战斗就绪 → 撤离 → 结算 → 回标题”。测试以同一父目录内的原子重命名暂存真实存档，结束后原样移回；失败时备份仍完整留存，不走“复制一半后删除原数据”的危险路径。它还验证战斗场景、`BattleContext`、导演与时间倍率无残留；夹具自身设置/恢复 `Application.runInBackground`，可在 Editor 失焦时完成。实测发现并修复：① Additive 隔离误删 `Code-based tests runner` 根节点；② 撤离关闭外部 `IsReady` 时误清内部导演 `_ready`，导致结算倒计时停摆；③ 自然战败与初始化/结算期间，各玩家交互按钮未统一服从 `BattleReadModel.IsReady`；④ Unity Test Framework 的续跑器不能反射 UniTask 自定义 Enumerator，需保留编译器生成的外层协程。2026-08-24 当前项目基线为 PlayMode **422/422**、EditMode **102/102** 全绿。
 
+**2026-08-31 战斗启动事务收口：**`BattleState` 现在拥有“有效场景句柄 → 本次 Scene 内恰好一个启用的导演 → 导演 Ready/Failed”完整事务，只有真正可玩才提交 `Current`；场景缺失、重复导演、接线或配置失败都随状态回滚清理。导演只启动一次共享初始化，场景生命周期拥有物理工作，状态 token 取消只让当前等待者退出。`StartBattleCommand` 在真实启动失败且没有后续导航时恢复标题，同时重新抛出原始故障；若用户已经发出更新意图则不反向覆盖。`FlowNav` 的失败日志也不再执行不可信的状态 `ToString()`。专项命令/导航测试与真实玩家路径冒烟共同覆盖正常、失败、取消和更新意图竞态。
+
 ## Consequences
 
 - **UPM 抽包的前置验收完成**：六处部署路径缺口修完后，「模块在真实游戏 + 真实玩家包下端到端可用」首次成立；抽包时接缝清单 C 组按需处理。

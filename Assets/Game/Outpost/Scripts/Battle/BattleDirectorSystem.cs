@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Framework;
 using Game.Framework.Audio;
@@ -83,6 +84,8 @@ namespace Game.Outpost.Battle
         private Tables _cfg;
         private Dictionary<int, EnemyVisual> _visuals;
         private bool _ready;
+        private bool _setupStarted;
+        private readonly UniTaskCompletionSource _startupTcs = new();
 
         // 终局 / 波间的定时推进
         private float _resultDelay = 1.2f;
@@ -233,28 +236,54 @@ namespace Game.Outpost.Battle
         private const float DebrisZ = -0.3f; // 碎片流 / 炮口闪光层（与 SwarmRenderer 的弹丸层同深度）
         private const float FloaterZ = -0.8f;
 
-        private void Start() => SetupAsync().Forget(LogUnexpectedSetupFailure);
+        private void Start() => EnsureSetupStarted();
 
-        private async UniTask SetupAsync()
+        /// <summary>
+        /// 等待本场战斗完成配置、资源与模拟后端初始化。调用方取消只脱离等待；物理 Setup 由本组件生命周期拥有，
+        /// 组件销毁会取消共享终态，真实初始化失败保留为异常。可多次等待同一终态。
+        /// </summary>
+        public UniTask WaitUntilReady(CancellationToken cancellationToken = default)
         {
+            EnsureSetupStarted();
+            return cancellationToken.CanBeCanceled
+                ? _startupTcs.Task.AttachExternalCancellation(cancellationToken)
+                : _startupTcs.Task;
+        }
+
+        private void EnsureSetupStarted()
+        {
+            if (_setupStarted) return;
+            _setupStarted = true;
+            SetupAndPublishReadiness().Forget();
+        }
+
+        private async UniTask SetupAndPublishReadiness()
+        {
+            CancellationToken lifetimeToken = this.GetCancellationTokenOnDestroy();
             try
             {
-                // 配置通常在根 Context 已就绪；Interface 仍统一处理竞态、调用方取消与原始加载异常，
-                // 避免业务自己轮询 State 后只得到一个没有根因的 Failed。
-                _cfg = await this.EnsureConfig<Tables>(this.GetCancellationTokenOnDestroy());
+                await SetupCore(lifetimeToken);
+                _startupTcs.TrySetResult();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (lifetimeToken.IsCancellationRequested)
             {
-                // 战斗节点销毁是正常离场；配置的共享加载仍由其自身组件 / Context 决定是否继续。
-                return;
+                _startupTcs.TrySetCanceled();
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // ConfigUtility 已把原始异常写入统一日志接缝；这里补充受影响的业务动作，避免重复打印同一堆栈。
-                Log.Error("Battle setup cannot start because configuration tables failed to load.",
-                    category: nameof(BattleDirectorSystem), context: this);
-                return;
+                _ready = false;
+                if (_model != null) _model.IsReady.Value = false;
+                _startupTcs.TrySetException(new System.InvalidOperationException(
+                    "战斗导演初始化失败：配置、资源或模拟后端未能建立可交互状态。",
+                    e));
             }
+        }
+
+        private async UniTask SetupCore(CancellationToken lifetimeToken)
+        {
+            // 配置通常在根 Context 已就绪；Interface 仍统一处理竞态、调用方取消与原始加载异常，
+            // 避免业务自己轮询 State 后只得到一个没有根因的 Failed。
+            _cfg = await this.EnsureConfig<Tables>(lifetimeToken);
 
             var g = _cfg.TbBattleGlobal.Data;
             _resultDelay = g.ResultDelay;
@@ -336,13 +365,6 @@ namespace Game.Outpost.Battle
             WriteModel();
             _ready = true;
             _model.IsReady.Value = true;
-        }
-
-        private void LogUnexpectedSetupFailure(Exception exception)
-        {
-            if (exception is OperationCanceledException) return;
-            Log.Error("Battle setup failed outside the handled configuration-readiness path.",
-                exception, nameof(BattleDirectorSystem), this);
         }
 
         // 接缝的后端工厂：ECS 后端就是多出来的这一个分支（ADR-0030），事件→表现翻译层、Model、HUD 全部零改动。
@@ -1041,6 +1063,7 @@ namespace Game.Outpost.Battle
 
         protected override void OnDestroy()
         {
+            _startupTcs.TrySetCanceled();
             Time.timeScale = 1f; // 离开战斗还原全局速度（游戏速度是战斗内的临时旋钮，不外溢到标题 / 结算）
             _sim?.Dispose();
             _sim = null;

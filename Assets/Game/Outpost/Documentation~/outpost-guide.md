@@ -15,7 +15,7 @@
 
 | 你在游戏里看到 | 背后的框架能力 | 落在哪 | 深读 |
 |---|---|---|---|
-| 标题→战斗→结算的界面切换 | **游戏流程 System** `IGameFlow`（View 经 Command 发意图；一次性状态、传参走构造） | [`Scripts/Flow/`](../Scripts/Flow/) | guide §20 / [ADR-0023](../../../../docs/adr/0023-game-flow.md) |
+| 标题→战斗→结算的界面切换 | **游戏流程 System** `IGameFlow`（View 经 Command 发意图；状态只有在必需场景与导演就绪后才提交） | [`Scripts/Flow/`](../Scripts/Flow/) | guide §20 / [ADR-0023](../../../../docs/adr/0023-game-flow.md) |
 | 标题 / 结算 / 看点弹窗三个窗口 | **UXML 窗口**：`[UIWindow(Asset)]` 经资源系统加载 uxml、共享 `Outpost.uss` 主题；弹窗另演示窗口栈 + 模态遮罩 | [`Res/UI/`](../Res/UI/) + [`Scripts/Windows/`](../Scripts/Windows/) | guide §17 / [ADR-0016](../../../../docs/adr/0016-ui-framework.md) |
 | HUD 实时刷血量/波次/击杀/得分/性能行 | **读写分离 + 只读订阅**（View 经查询 Command 拿 `ReadOnlyReactiveProperty`） | [`Battle/BattleHudView.cs`](../Scripts/Battle/BattleHudView.cs) | guide §5 / [ADR-0001](../../../../docs/adr/0001-five-layers-and-permission-interfaces.md) |
 | 波间弹出三选一升级卡片 | **响应式集合增量绑定** `ObservableList` + `Bag.BindList` | [`Battle/UpgradeChoiceView.cs`](../Scripts/Battle/UpgradeChoiceView.cs) | guide §24 / [ADR-0027](../../../../docs/adr/0027-reactive-collections-list-binding.md) |
@@ -68,7 +68,7 @@
 
 ## 推荐阅读路径（顺着代码读一遍）
 
-1. [`Scripts/Flow/`](../Scripts/Flow/) —— 先看宏观阶段：`BootState → TitleState → BattleState → ResultState`，理解 `IGameFlow` 怎么切界面 + 传参。
+1. [`Scripts/Flow/`](../Scripts/Flow/) —— 先看宏观阶段：`BootState → TitleState → BattleState → ResultState`，理解 `IGameFlow` 怎么切界面 + 传参。尤其留意 `BattleState` 会沿本次场景句柄确认恰好一个启用的导演，并等待其首次就绪：`Current is BattleState` 因而代表“已经可玩”，不是“加载请求刚结束”。启动失败时 Command 只会在没有更新导航意图时恢复标题，并保留原始失败供诊断。
 2. [`Sim/IBattleSim.cs`](../Sim/IBattleSim.cs) + [`ReferenceBattleSim.cs`](../Sim/ReferenceBattleSim.cs) —— 规则内核，纯 C#，最好懂。
 3. [`Battle/BattleContext.cs`](../Scripts/Battle/BattleContext.cs) + [`BattleDirectorSystem.cs`](../Scripts/Battle/BattleDirectorSystem.cs) —— 子上下文注册了什么、导演怎么把事件翻成表现和 Model、后端工厂在哪。
 4. [`Battle/SwarmRenderer.cs`](../Scripts/Battle/SwarmRenderer.cs) + [`EnemyVisuals.cs`](../Scripts/Battle/EnemyVisuals.cs) —— 海量单位怎么画、表现参数怎么从表里来。
@@ -100,7 +100,7 @@
 
 - **波间抉择未用"嵌套子 Flow"**：抉择本质是导演的一个暂停相位，现有相位机自然容纳，再套一层子 `GameFlow` 属过度设计。§28 的嵌套子 Flow 验收留给更贴合的场景单独做。
 - **失守终态基本不可达**：全封顶 + 波间维修的稳态下，任何 build 最终都会收敛到全到顶——失守只在中段成长严重偏科时可能发生。这是"托管永续"目标的直接推论，撤离才是常规收束。
-- **本地化绑定要求文本源先就绪**：`BindLocalizedText` 的刷新信号只有 `Locale`，文本源（配置表）异步后到不会触发重绑——绑定先于就绪 = 裸 key 定格。业务解法 = `BootState` 进标题前 `await` 配置就绪（详见[技术笔记的 M3 档案节](outpost-tech-notes.md#2026-07--m3-收尾音频--本地化--设置窗272930-消费落点)）。
+- **本地化文本源允许异步后到**：早期版本只有 `Locale` 能触发重绑，曾要求 `BootState` 硬等配置；现由文本源 `Invalidated` 汇入 `TextRevision`，同一语言下 `Unavailable → Ready` 也会自动重取。Boot 只需载入存档与设置，真正依赖战斗表的导演在自己的就绪事务中等待，避免启动链为所有可选数据串行阻塞。
 - **框架看点弹窗刻意不本地化**：它是指向中文文档的教学文案墙，翻译只添维护噪音——本地化范围 = 游戏 UI。
 - **网络排行仅 dev 环境可见**：对端是进程内 dev server（Editor / Development Build 条件编译），正式包暂无服务器、排行入口整体隐藏——**M5 已拍板维持此策略**（Windows 玩家包实测入口按门控自动消失），等「服务端生产化」里程碑（dev server 逻辑移植 ASP.NET Core 上云）接真后端时再开。M4 驱动的两个框架修订（WS 二进制 envelope 接缝 + 内置轻量 Protobuf 序列化器）见 ADR-0028 的 2026-07 修订与[技术笔记的 M4 档案节](outpost-tech-notes.md#2026-07--m4-网络排行protobuf-全程对讲--ws-二进制推送--排行榜)。
 

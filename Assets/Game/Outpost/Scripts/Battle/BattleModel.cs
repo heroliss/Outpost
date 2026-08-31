@@ -12,7 +12,8 @@ namespace Game.Outpost.Battle
     {
         /// <summary>
         /// 战斗导演已完成配置、资源和模拟后端初始化，玩家命令可以被可靠接收。
-        /// 状态进入不等于可交互：<c>BattleState</c> 只等待场景加载，本标志覆盖场景内异步 Setup 的剩余窗口。
+        /// <c>BattleState.OnEnter</c> 会等待本标志首次成立后才提交 Current；运行中它还会在终局收尾时回到 false，
+        /// 因而仍是场景内按钮 / Command 的就地交互门禁，而不只是流程状态的重复镜像。
         /// </summary>
         public readonly RP<bool> IsReady = new(false);
 
