@@ -19,9 +19,29 @@ import bpy
 from mathutils import Vector
 
 
-HARNESS_VERSION = "0.1.0"
+HARNESS_VERSION = "0.2.0"
 DEFAULT_ASSET_ID = "NW_StorageCrate_01"
 ASSET_ID_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]+$")
+ASSET_MATERIALS = (
+    {
+        "name": "M_WornTeal",
+        "baseColorLinear": [0.075, 0.245, 0.265, 1.0],
+        "metallic": 0.35,
+        "roughness": 0.48,
+    },
+    {
+        "name": "M_DarkMetal",
+        "baseColorLinear": [0.045, 0.055, 0.060, 1.0],
+        "metallic": 0.72,
+        "roughness": 0.32,
+    },
+    {
+        "name": "M_SafetyOrange",
+        "baseColorLinear": [0.78, 0.19, 0.035, 1.0],
+        "metallic": 0.22,
+        "roughness": 0.42,
+    },
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -102,9 +122,15 @@ def add_cube(
 
 
 def build_asset(asset_id: str):
-    teal = make_material("M_WornTeal", (0.075, 0.245, 0.265, 1.0), 0.35, 0.48)
-    dark = make_material("M_DarkMetal", (0.045, 0.055, 0.060, 1.0), 0.72, 0.32)
-    orange = make_material("M_SafetyOrange", (0.78, 0.19, 0.035, 1.0), 0.22, 0.42)
+    materials = {
+        spec["name"]: make_material(
+            spec["name"], tuple(spec["baseColorLinear"]), spec["metallic"], spec["roughness"]
+        )
+        for spec in ASSET_MATERIALS
+    }
+    teal = materials["M_WornTeal"]
+    dark = materials["M_DarkMetal"]
+    orange = materials["M_SafetyOrange"]
 
     root = bpy.data.objects.new(asset_id, None)
     root.empty_display_type = "CUBE"
@@ -217,6 +243,8 @@ def export_fbx(root, parts, fbx_path: Path) -> None:
         apply_scale_options="FBX_SCALE_UNITS",
         axis_forward="-Z",
         axis_up="Y",
+        use_space_transform=True,
+        bake_space_transform=True,
         add_leaf_bones=False,
         bake_anim=False,
         use_mesh_modifiers=True,
@@ -298,8 +326,10 @@ def main() -> None:
             "blenderUpAxis": "+Z",
             "fbxForwardAxis": "-Z",
             "fbxUpAxis": "+Y",
+            "fbxSpaceTransformBaked": True,
             "rootTransform": "identity",
         },
+        "materials": list(ASSET_MATERIALS),
         "geometry": geometry_report(parts),
         "acceptance": {
             "previewRendered": preview_path.exists() and preview_path.stat().st_size > 0,
@@ -316,7 +346,11 @@ def main() -> None:
             for path in generated_files
         ],
     }
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     print(f"SSFRAMEWORK_BLENDER_SMOKE_MANIFEST={manifest_path}")
 
 
