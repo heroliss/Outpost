@@ -22,15 +22,27 @@ from pathlib import Path
 
 import bpy
 import bmesh
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 
-HARNESS_VERSION = "0.3.0"
+HARNESS_VERSION = "0.4.0"
 DEFAULT_ASSET_ID = "NW_WaterRecycler_01"
 ASSET_ID_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]+$")
 MIN_TEXTURE_SIZE = 256
 MAX_TEXTURE_SIZE = 2048
 EXPECTED_MESH_COUNT = 3
+CONTACT_SHEET_WIDTH = 1536
+CONTACT_SHEET_HEIGHT = 1024
+CONTACT_SHEET_COLUMNS = 3
+CONTACT_SHEET_ROWS = 2
+CONTACT_SHEET_PANELS = (
+    "hero",
+    "front",
+    "side",
+    "top",
+    "wireframe",
+    "uv-checker",
+)
 
 MATERIAL_SPECS = (
     {
@@ -723,6 +735,236 @@ def configure_preview(asset_meshes, preview_path: Path) -> None:
     bpy.ops.render.render(write_still=True)
 
 
+def make_contact_sheet_materials() -> dict:
+    backdrop = bpy.data.materials.new(name="__EVIDENCE_Backdrop")
+    backdrop_shader = backdrop.node_tree.nodes.get("Principled BSDF")
+    backdrop_shader.inputs["Base Color"].default_value = (0.022, 0.031, 0.043, 1.0)
+    backdrop_shader.inputs["Roughness"].default_value = 0.94
+
+    label = bpy.data.materials.new(name="__EVIDENCE_Label")
+    label_nodes = label.node_tree.nodes
+    label_links = label.node_tree.links
+    label_nodes.clear()
+    label_output = label_nodes.new("ShaderNodeOutputMaterial")
+    label_emission = label_nodes.new("ShaderNodeEmission")
+    label_emission.inputs["Color"].default_value = (0.82, 0.91, 1.0, 1.0)
+    label_emission.inputs["Strength"].default_value = 1.35
+    label_links.new(label_emission.outputs["Emission"], label_output.inputs["Surface"])
+
+    wireframe = bpy.data.materials.new(name="__EVIDENCE_Wireframe")
+    wire_nodes = wireframe.node_tree.nodes
+    wire_links = wireframe.node_tree.links
+    wire_nodes.clear()
+    wire_output = wire_nodes.new("ShaderNodeOutputMaterial")
+    wire_shader = wire_nodes.new("ShaderNodeBsdfPrincipled")
+    wire_mix = wire_nodes.new("ShaderNodeMixRGB")
+    wire = wire_nodes.new("ShaderNodeWireframe")
+    wire.inputs["Size"].default_value = 0.009
+    wire_mix.inputs[1].default_value = (0.018, 0.028, 0.038, 1.0)
+    wire_mix.inputs[2].default_value = (0.02, 0.82, 0.92, 1.0)
+    wire_shader.inputs["Roughness"].default_value = 0.68
+    wire_shader.inputs["Metallic"].default_value = 0.05
+    wire_links.new(wire.outputs["Fac"], wire_mix.inputs[0])
+    wire_links.new(wire_mix.outputs["Color"], wire_shader.inputs["Base Color"])
+    wire_links.new(wire_shader.outputs["BSDF"], wire_output.inputs["Surface"])
+
+    uv_checker = bpy.data.materials.new(name="__EVIDENCE_UvChecker")
+    uv_nodes = uv_checker.node_tree.nodes
+    uv_links = uv_checker.node_tree.links
+    uv_nodes.clear()
+    uv_output = uv_nodes.new("ShaderNodeOutputMaterial")
+    uv_shader = uv_nodes.new("ShaderNodeBsdfPrincipled")
+    uv_coordinates = uv_nodes.new("ShaderNodeTexCoord")
+    checker = uv_nodes.new("ShaderNodeTexChecker")
+    checker.inputs["Color1"].default_value = (0.025, 0.17, 0.27, 1.0)
+    checker.inputs["Color2"].default_value = (0.95, 0.54, 0.055, 1.0)
+    checker.inputs["Scale"].default_value = 14.0
+    uv_shader.inputs["Roughness"].default_value = 0.72
+    uv_links.new(uv_coordinates.outputs["UV"], checker.inputs["Vector"])
+    uv_links.new(checker.outputs["Color"], uv_shader.inputs["Base Color"])
+    uv_links.new(uv_shader.outputs["BSDF"], uv_output.inputs["Surface"])
+    return {
+        "backdrop": backdrop,
+        "label": label,
+        "wireframe": wireframe,
+        "uv-checker": uv_checker,
+    }
+
+
+def remove_object_and_orphan_data(obj) -> None:
+    data = obj.data
+    bpy.data.objects.remove(obj, do_unlink=True)
+    if data is None or data.users != 0:
+        return
+    if isinstance(data, bpy.types.Mesh):
+        bpy.data.meshes.remove(data)
+    elif isinstance(data, bpy.types.Curve):
+        bpy.data.curves.remove(data)
+    elif isinstance(data, bpy.types.Camera):
+        bpy.data.cameras.remove(data)
+    elif isinstance(data, bpy.types.Light):
+        bpy.data.lights.remove(data)
+
+
+def contact_sheet_rotation(panel: str) -> Matrix:
+    if panel in {"hero", "wireframe", "uv-checker"}:
+        return (
+            Matrix.Rotation(math.radians(18.0), 4, "X")
+            @ Matrix.Rotation(math.radians(-28.0), 4, "Z")
+        )
+    if panel == "side":
+        return Matrix.Rotation(math.radians(90.0), 4, "Z")
+    if panel == "top":
+        return Matrix.Rotation(math.radians(90.0), 4, "X")
+    return Matrix.Identity(4)
+
+
+def configure_contact_sheet(asset_meshes, contact_sheet_path: Path) -> None:
+    """Render six labeled source views without leaving evidence helpers in the .blend."""
+    scene = bpy.context.scene
+    original_camera = scene.camera
+    original_resolution = (
+        scene.render.resolution_x,
+        scene.render.resolution_y,
+        scene.render.resolution_percentage,
+    )
+    original_filepath = scene.render.filepath
+    original_visibility = {obj: obj.hide_render for obj in tuple(scene.objects)}
+    for obj in original_visibility:
+        obj.hide_render = True
+
+    materials = make_contact_sheet_materials()
+    created_objects = []
+    world_points = [
+        obj.matrix_world @ Vector(corner)
+        for obj in asset_meshes
+        for corner in obj.bound_box
+    ]
+    minimum = Vector(
+        (
+            min(point.x for point in world_points),
+            min(point.y for point in world_points),
+            min(point.z for point in world_points),
+        )
+    )
+    maximum = Vector(
+        (
+            max(point.x for point in world_points),
+            max(point.y for point in world_points),
+            max(point.z for point in world_points),
+        )
+    )
+    source_center = (minimum + maximum) * 0.5
+    panel_centers = (
+        (-2.35, 1.24),
+        (0.0, 1.24),
+        (2.35, 1.24),
+        (-2.35, -1.24),
+        (0.0, -1.24),
+        (2.35, -1.24),
+    )
+
+    try:
+        for index, (panel, (center_x, center_z)) in enumerate(
+            zip(CONTACT_SHEET_PANELS, panel_centers, strict=True)
+        ):
+            bpy.ops.mesh.primitive_cube_add(
+                size=1.0,
+                location=(center_x, 1.08, center_z),
+            )
+            backdrop = bpy.context.object
+            backdrop.name = f"__EVIDENCE_Backdrop_{index:02d}"
+            backdrop.dimensions = (2.20, 0.055, 2.26)
+            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+            backdrop.data.materials.append(materials["backdrop"])
+            created_objects.append(backdrop)
+
+            transform = (
+                Matrix.Translation(Vector((center_x, 0.0, center_z + 0.08)))
+                @ contact_sheet_rotation(panel)
+                @ Matrix.Scale(0.79, 4)
+                @ Matrix.Translation(-source_center)
+            )
+            override_material = materials.get(panel)
+            for source in asset_meshes:
+                duplicate = source.copy()
+                duplicate.data = source.data
+                duplicate.name = f"__EVIDENCE_{panel}_{source.name}"
+                bpy.context.collection.objects.link(duplicate)
+                duplicate.parent = None
+                duplicate.matrix_world = transform @ source.matrix_world
+                duplicate.hide_render = False
+                if override_material is not None:
+                    for slot in duplicate.material_slots:
+                        slot.link = "OBJECT"
+                        slot.material = override_material
+                created_objects.append(duplicate)
+
+            text_data = bpy.data.curves.new(
+                name=f"__EVIDENCE_Label_{index:02d}",
+                type="FONT",
+            )
+            text_data.body = panel.upper().replace("-", " ")
+            text_data.align_x = "CENTER"
+            text_data.align_y = "CENTER"
+            text_data.size = 0.145
+            text_data.extrude = 0.002
+            label = bpy.data.objects.new(text_data.name, text_data)
+            bpy.context.collection.objects.link(label)
+            label.location = (center_x, -0.72, center_z - 0.96)
+            label.rotation_euler = (math.radians(90.0), 0.0, 0.0)
+            label.data.materials.append(materials["label"])
+            created_objects.append(label)
+
+        bpy.ops.object.camera_add(location=(0.0, -12.0, 0.0))
+        camera = bpy.context.object
+        camera.name = "__EVIDENCE_Camera"
+        camera.data.type = "ORTHO"
+        camera.data.ortho_scale = 7.35
+        camera.rotation_euler = (
+            Vector((0.0, 0.0, 0.0)) - camera.location
+        ).to_track_quat("-Z", "Y").to_euler()
+        scene.camera = camera
+        created_objects.append(camera)
+
+        contact_lights = (
+            ("__EVIDENCE_Key", (0.0, -5.5, 5.8), 1900.0, 7.0, (1.0, 0.86, 0.72)),
+            ("__EVIDENCE_Fill", (-5.5, -3.5, 0.4), 1250.0, 6.0, (0.48, 0.66, 1.0)),
+            ("__EVIDENCE_Rim", (5.2, 2.8, 4.4), 1550.0, 5.5, (1.0, 0.40, 0.18)),
+        )
+        for name, location, energy, size, color in contact_lights:
+            bpy.ops.object.light_add(type="AREA", location=location)
+            light = bpy.context.object
+            light.name = name
+            light.data.energy = energy
+            light.data.shape = "DISK"
+            light.data.size = size
+            light.data.color = color
+            light.rotation_euler = (
+                Vector((0.0, 0.0, 0.0)) - light.location
+            ).to_track_quat("-Z", "Y").to_euler()
+            created_objects.append(light)
+
+        scene.render.resolution_x = CONTACT_SHEET_WIDTH
+        scene.render.resolution_y = CONTACT_SHEET_HEIGHT
+        scene.render.resolution_percentage = 100
+        scene.render.filepath = str(contact_sheet_path)
+        bpy.ops.render.render(write_still=True)
+    finally:
+        scene.camera = original_camera
+        scene.render.resolution_x = original_resolution[0]
+        scene.render.resolution_y = original_resolution[1]
+        scene.render.resolution_percentage = original_resolution[2]
+        scene.render.filepath = original_filepath
+        for obj in reversed(created_objects):
+            remove_object_and_orphan_data(obj)
+        for material in materials.values():
+            if material.users == 0:
+                bpy.data.materials.remove(material)
+        for obj, hidden in original_visibility.items():
+            obj.hide_render = hidden
+
+
 def export_fbx(root, meshes, fbx_path: Path) -> None:
     bpy.ops.object.select_all(action="DESELECT")
     root.select_set(True)
@@ -747,7 +989,7 @@ def export_fbx(root, meshes, fbx_path: Path) -> None:
     )
 
 
-def inspect_exported_fbx(fbx_path: Path) -> dict:
+def inspect_exported_fbx(fbx_path: Path, texture_size: int) -> dict:
     """Read the exchange file back through Blender's FBX importer.
 
     Source topology is useful authoring evidence, but Unity consumes the FBX
@@ -784,6 +1026,7 @@ def inspect_exported_fbx(fbx_path: Path) -> dict:
             "triangleCount": triangle_count,
             "degenerateTriangleCount": degenerate_triangle_count,
             "nonDegenerateTriangleCount": triangle_count - degenerate_triangle_count,
+            "quality": asset_quality_report(imported_meshes, texture_size),
         }
     finally:
         for obj in imported_objects:
@@ -803,7 +1046,160 @@ def triangle_statistics(mesh) -> tuple[int, int]:
     return len(mesh.loop_triangles), degenerate
 
 
-def geometry_report(meshes, source_part_count: int) -> dict:
+def material_tiling(material_name: str) -> tuple[float, float]:
+    for spec in MATERIAL_SPECS:
+        if material_name == spec["name"] or material_name.startswith(spec["name"] + "."):
+            return spec["tiling"]
+    return (1.0, 1.0)
+
+
+def object_quality_report(obj, texture_size: int) -> dict:
+    mesh = obj.data
+    mesh.calc_loop_triangles()
+    editable = bmesh.new()
+    try:
+        editable.from_mesh(mesh)
+        loose_vertex_count = sum(1 for vertex in editable.verts if not vertex.link_edges)
+        loose_edge_count = sum(1 for edge in editable.edges if not edge.link_faces)
+        boundary_edge_count = sum(1 for edge in editable.edges if len(edge.link_faces) == 1)
+        non_manifold_edge_count = sum(1 for edge in editable.edges if len(edge.link_faces) != 2)
+    finally:
+        editable.free()
+
+    material_name = mesh.materials[0].name if mesh.materials else ""
+    tiling = material_tiling(material_name)
+    uv_layer = mesh.uv_layers.active
+    surface_area = 0.0
+    uv_area_sum = 0.0
+    effective_uv_area_sum = 0.0
+    degenerate_uv_triangle_count = 0
+    uv_minimum = Vector((math.inf, math.inf))
+    uv_maximum = Vector((-math.inf, -math.inf))
+
+    if uv_layer is not None:
+        for loop in uv_layer.data:
+            uv_minimum.x = min(uv_minimum.x, loop.uv.x)
+            uv_minimum.y = min(uv_minimum.y, loop.uv.y)
+            uv_maximum.x = max(uv_maximum.x, loop.uv.x)
+            uv_maximum.y = max(uv_maximum.y, loop.uv.y)
+
+    for triangle in mesh.loop_triangles:
+        positions = [
+            obj.matrix_world @ mesh.vertices[index].co
+            for index in triangle.vertices
+        ]
+        triangle_surface_area = (
+            (positions[1] - positions[0]).cross(positions[2] - positions[0]).length
+            * 0.5
+        )
+        surface_area += triangle_surface_area
+        if uv_layer is None:
+            continue
+        uvs = [uv_layer.data[loop_index].uv for loop_index in triangle.loops]
+        first = uvs[1] - uvs[0]
+        second = uvs[2] - uvs[0]
+        triangle_uv_area = abs(first.x * second.y - first.y * second.x) * 0.5
+        uv_area_sum += triangle_uv_area
+        effective_uv_area_sum += triangle_uv_area * abs(tiling[0] * tiling[1])
+        if triangle_surface_area > 1e-10 and triangle_uv_area <= 1e-12:
+            degenerate_uv_triangle_count += 1
+
+    out_of_unit_range_loop_count = 0
+    if uv_layer is not None:
+        out_of_unit_range_loop_count = sum(
+            1
+            for loop in uv_layer.data
+            if loop.uv.x < -1e-6
+            or loop.uv.x > 1.0 + 1e-6
+            or loop.uv.y < -1e-6
+            or loop.uv.y > 1.0 + 1e-6
+        )
+    texel_density = 0.0
+    if surface_area > 1e-10 and effective_uv_area_sum > 1e-12:
+        texel_density = math.sqrt(
+            effective_uv_area_sum * texture_size * texture_size / surface_area
+        )
+
+    return {
+        "object": obj.name,
+        "material": material_name,
+        "tiling": [round(value, 6) for value in tiling],
+        "looseVertexCount": loose_vertex_count,
+        "looseEdgeCount": loose_edge_count,
+        "boundaryEdgeCount": boundary_edge_count,
+        "nonManifoldEdgeCount": non_manifold_edge_count,
+        "activeUvLayer": uv_layer.name if uv_layer is not None else "",
+        "surfaceAreaSquareMeters": round(surface_area, 6),
+        "uvAreaSum": round(uv_area_sum, 6),
+        "effectiveUvAreaSum": round(effective_uv_area_sum, 6),
+        "degenerateUvTriangleCount": degenerate_uv_triangle_count,
+        "outOfUnitRangeLoopCount": out_of_unit_range_loop_count,
+        "uvBounds": {
+            "min": [round(value, 6) for value in uv_minimum]
+            if uv_layer is not None
+            else [],
+            "max": [round(value, 6) for value in uv_maximum]
+            if uv_layer is not None
+            else [],
+        },
+        "areaWeightedTexelDensityPxPerMeter": round(texel_density, 3),
+    }
+
+
+def asset_quality_report(meshes, texture_size: int) -> dict:
+    reports = [object_quality_report(obj, texture_size) for obj in meshes]
+    total_surface_area = sum(report["surfaceAreaSquareMeters"] for report in reports)
+    total_uv_area = sum(report["uvAreaSum"] for report in reports)
+    total_effective_uv_area = sum(report["effectiveUvAreaSum"] for report in reports)
+    texel_density = 0.0
+    if total_surface_area > 1e-10 and total_effective_uv_area > 1e-12:
+        texel_density = math.sqrt(
+            total_effective_uv_area * texture_size * texture_size / total_surface_area
+        )
+    return {
+        "topology": {
+            "looseVertexCount": sum(report["looseVertexCount"] for report in reports),
+            "looseEdgeCount": sum(report["looseEdgeCount"] for report in reports),
+            "boundaryEdgeCount": sum(report["boundaryEdgeCount"] for report in reports),
+            "nonManifoldEdgeCount": sum(report["nonManifoldEdgeCount"] for report in reports),
+        },
+        "uv": {
+            "policy": "overlap-and-repeat-allowed",
+            "textureResolution": texture_size,
+            "allMeshesHaveActiveUv": all(bool(report["activeUvLayer"]) for report in reports),
+            "degenerateUvTriangleCount": sum(
+                report["degenerateUvTriangleCount"] for report in reports
+            ),
+            "outOfUnitRangeLoopCount": sum(
+                report["outOfUnitRangeLoopCount"] for report in reports
+            ),
+            "surfaceAreaSquareMeters": round(total_surface_area, 6),
+            "uvAreaSum": round(total_uv_area, 6),
+            "effectiveUvAreaSum": round(total_effective_uv_area, 6),
+            "areaWeightedTexelDensityPxPerMeter": round(texel_density, 3),
+            "method": "sqrt(sum(uvArea*tilingArea)*resolution^2/sum(surfaceArea))",
+        },
+        "meshes": reports,
+    }
+
+
+def quality_contract_passes(quality: dict) -> bool:
+    topology = quality["topology"]
+    uv = quality["uv"]
+    return (
+        topology["looseVertexCount"] == 0
+        and topology["looseEdgeCount"] == 0
+        and topology["boundaryEdgeCount"] == 0
+        and topology["nonManifoldEdgeCount"] == 0
+        and uv["allMeshesHaveActiveUv"]
+        and uv["degenerateUvTriangleCount"] == 0
+        and uv["outOfUnitRangeLoopCount"] == 0
+        and uv["surfaceAreaSquareMeters"] > 0.0
+        and uv["areaWeightedTexelDensityPxPerMeter"] > 0.0
+    )
+
+
+def geometry_report(meshes, source_part_count: int, texture_size: int) -> dict:
     vertex_count = 0
     polygon_count = 0
     triangle_count = 0
@@ -842,6 +1238,7 @@ def geometry_report(meshes, source_part_count: int) -> dict:
             "size": [round(value, 6) for value in size],
         },
         "objects": [obj.name for obj in meshes],
+        "quality": asset_quality_report(meshes, texture_size),
     }
 
 
@@ -864,6 +1261,7 @@ def main() -> None:
     blend_path = output_dir / f"{asset_id}.blend"
     fbx_path = output_dir / f"{asset_id}.fbx"
     preview_path = output_dir / f"{asset_id}_preview.png"
+    contact_sheet_path = output_dir / f"{asset_id}_contact_sheet.png"
     manifest_path = output_dir / "manifest.json"
 
     texture_paths = {
@@ -880,19 +1278,28 @@ def main() -> None:
     if len(meshes) != EXPECTED_MESH_COUNT:
         raise RuntimeError(f"Expected {EXPECTED_MESH_COUNT} merged meshes, got {len(meshes)}")
     configure_preview(meshes, preview_path)
-    geometry = geometry_report(meshes, source_part_count)
+    configure_contact_sheet(meshes, contact_sheet_path)
+    geometry = geometry_report(meshes, source_part_count, args.texture_size)
     if geometry["degenerateTriangleCount"] != 0:
         raise RuntimeError(
             f"Source mesh contains degenerate triangles after cleanup: {geometry}"
         )
+    if not quality_contract_passes(geometry["quality"]):
+        raise RuntimeError(f"Source mesh quality contract failed: {geometry['quality']}")
     export_fbx(root, meshes, fbx_path)
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), compress=True)
-    fbx_round_trip = inspect_exported_fbx(fbx_path)
+    fbx_round_trip = inspect_exported_fbx(fbx_path, args.texture_size)
     if (
         fbx_round_trip["meshObjectCount"] != EXPECTED_MESH_COUNT
         or fbx_round_trip["materialSlotCount"] != len(MATERIAL_SPECS)
         or fbx_round_trip["triangleCount"] <= 0
         or fbx_round_trip["degenerateTriangleCount"] != 0
+        or not quality_contract_passes(fbx_round_trip["quality"])
+        or abs(
+            geometry["quality"]["uv"]["areaWeightedTexelDensityPxPerMeter"]
+            - fbx_round_trip["quality"]["uv"]["areaWeightedTexelDensityPxPerMeter"]
+        )
+        > 0.01
     ):
         raise RuntimeError(f"FBX round-trip contract failed: {fbx_round_trip}")
     geometry["sourceTriangleCount"] = geometry["triangleCount"]
@@ -929,9 +1336,15 @@ def main() -> None:
             }
         )
 
-    generated_files = [blend_path, fbx_path, preview_path, *texture_files]
+    generated_files = [
+        blend_path,
+        fbx_path,
+        preview_path,
+        contact_sheet_path,
+        *texture_files,
+    ]
     manifest = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "harnessVersion": HARNESS_VERSION,
         "status": "passed",
         "asset": {
@@ -968,13 +1381,30 @@ def main() -> None:
         },
         "materials": material_entries,
         "geometry": geometry,
+        "visualEvidence": {
+            "contactSheet": {
+                "file": contact_sheet_path.name,
+                "width": CONTACT_SHEET_WIDTH,
+                "height": CONTACT_SHEET_HEIGHT,
+                "columns": CONTACT_SHEET_COLUMNS,
+                "rows": CONTACT_SHEET_ROWS,
+                "panels": list(CONTACT_SHEET_PANELS),
+                "manualReviewRequired": True,
+            }
+        },
         "acceptance": {
             "previewRendered": preview_path.exists() and preview_path.stat().st_size > 0,
+            "contactSheetRendered": contact_sheet_path.exists()
+            and contact_sheet_path.stat().st_size > 0,
             "fbxExported": fbx_path.exists() and fbx_path.stat().st_size > 0,
             "fbxRoundTripVerified": True,
             "blendSaved": blend_path.exists() and blend_path.stat().st_size > 0,
             "meshMergedByMaterial": len(meshes) == EXPECTED_MESH_COUNT,
             "textureSetComplete": len(texture_files) == len(MATERIAL_SPECS) * 4,
+            "sourceTopologyAndUvVerified": quality_contract_passes(geometry["quality"]),
+            "fbxTopologyAndUvVerified": quality_contract_passes(
+                fbx_round_trip["quality"]
+            ),
             "manualReviewStillRequired": True,
         },
         "files": [

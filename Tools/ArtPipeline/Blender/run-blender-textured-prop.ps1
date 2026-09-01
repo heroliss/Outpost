@@ -103,7 +103,7 @@ try {
     if ($manifest.status -ne "passed" -or $manifest.asset.id -ne $AssetId) {
         throw "manifest 状态或资产 ID 不符合预期。"
     }
-    if ($manifest.schemaVersion -ne 2 -or $manifest.harnessVersion -ne "0.3.0") {
+    if ($manifest.schemaVersion -ne 3 -or $manifest.harnessVersion -ne "0.4.0") {
         throw "manifest schema 或 Harness 版本不符合当前入口。"
     }
     if ($manifest.geometry.meshObjectCount -ne 3 -or $manifest.geometry.materialSlotCount -ne 3) {
@@ -111,6 +111,50 @@ try {
     }
     if (-not $manifest.acceptance.textureSetComplete) {
         throw "PBR 贴图集不完整。"
+    }
+    if (-not $manifest.acceptance.contactSheetRendered -or
+        -not $manifest.acceptance.sourceTopologyAndUvVerified -or
+        -not $manifest.acceptance.fbxTopologyAndUvVerified) {
+        throw "Contact Sheet、拓扑或 UV 证据未通过。"
+    }
+    if ($manifest.visualEvidence.contactSheet.width -ne 1536 -or
+        $manifest.visualEvidence.contactSheet.height -ne 1024 -or
+        $manifest.visualEvidence.contactSheet.columns -ne 3 -or
+        $manifest.visualEvidence.contactSheet.rows -ne 2 -or
+        $manifest.visualEvidence.contactSheet.panels.Count -ne 6 -or
+        ($manifest.visualEvidence.contactSheet.panels -join ",") -ne "hero,front,side,top,wireframe,uv-checker" -or
+        -not $manifest.visualEvidence.contactSheet.manualReviewRequired) {
+        throw "Contact Sheet 布局或人工复核边界不符合预期。"
+    }
+    $sourceTopology = $manifest.geometry.quality.topology
+    $sourceUv = $manifest.geometry.quality.uv
+    $roundTripTopology = $manifest.geometry.fbxRoundTrip.quality.topology
+    $roundTripUv = $manifest.geometry.fbxRoundTrip.quality.uv
+    if ($sourceTopology.looseVertexCount -ne 0 -or
+        $sourceTopology.looseEdgeCount -ne 0 -or
+        $sourceTopology.boundaryEdgeCount -ne 0 -or
+        $sourceTopology.nonManifoldEdgeCount -ne 0 -or
+        $roundTripTopology.looseVertexCount -ne 0 -or
+        $roundTripTopology.looseEdgeCount -ne 0 -or
+        $roundTripTopology.boundaryEdgeCount -ne 0 -or
+        $roundTripTopology.nonManifoldEdgeCount -ne 0 -or
+        -not $sourceUv.allMeshesHaveActiveUv -or
+        -not $roundTripUv.allMeshesHaveActiveUv -or
+        $sourceUv.degenerateUvTriangleCount -ne 0 -or
+        $roundTripUv.degenerateUvTriangleCount -ne 0 -or
+        $sourceUv.outOfUnitRangeLoopCount -ne 0 -or
+        $roundTripUv.outOfUnitRangeLoopCount -ne 0 -or
+        $sourceUv.policy -ne "overlap-and-repeat-allowed" -or
+        $roundTripUv.policy -ne "overlap-and-repeat-allowed" -or
+        $sourceUv.textureResolution -ne $TextureSize -or
+        $roundTripUv.textureResolution -ne $TextureSize -or
+        $sourceUv.areaWeightedTexelDensityPxPerMeter -le 0 -or
+        $roundTripUv.areaWeightedTexelDensityPxPerMeter -le 0 -or
+        [Math]::Abs(
+            $sourceUv.areaWeightedTexelDensityPxPerMeter -
+            $roundTripUv.areaWeightedTexelDensityPxPerMeter
+        ) -gt 0.01) {
+        throw "来源或 FBX 回读的拓扑 / UV / Texel Density 契约不成立。"
     }
     if (-not $manifest.acceptance.fbxRoundTripVerified -or
         $manifest.geometry.fbxRoundTrip.meshObjectCount -ne 3 -or
@@ -137,14 +181,16 @@ try {
     }
 
     Write-Host (
-        "[blender-textured-prop] PASS: {0} source parts -> {1} meshes / {2} vertices / {3} triangles / {4} texture files" -f `
+        "[blender-textured-prop] PASS: {0} source parts -> {1} meshes / {2} vertices / {3} triangles / {4} texture files / {5} px/m" -f `
             $manifest.geometry.sourcePartCount, `
             $manifest.geometry.meshObjectCount, `
             $manifest.geometry.vertexCount, `
             $manifest.geometry.triangleCount, `
-            ($manifest.materials.Count * 4)
+            ($manifest.materials.Count * 4), `
+            $manifest.geometry.quality.uv.areaWeightedTexelDensityPxPerMeter
     ) -ForegroundColor Green
     Write-Host "[blender-textured-prop] 预览: $(Join-Path $assetOutput ($AssetId + '_preview.png'))"
+    Write-Host "[blender-textured-prop] Contact Sheet: $(Join-Path $assetOutput ($AssetId + '_contact_sheet.png'))"
     exit 0
 }
 catch {

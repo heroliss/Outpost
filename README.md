@@ -213,8 +213,8 @@ public class HudView : MonoViewBase
 | [AI 游戏开发 Harness 调研](docs/ai-game-development-harness-research.md) | 游戏开发者 / 自动化维护者 | 开源 Agent / Playtest / Benchmark 方案比较、项目采用边界与最小证据契约 |
 | [首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md) | 产品 / 游戏开发者 | Steam / Windows 优先的平台选择、当前产品定位、证据 Gate 与生产边界 |
 | [《游牧工坊》产品愿景与第一版地基](docs/nomad-workshop-game-vision.md) | 游戏设计 / 开发者 | 自动居民、目标点旅行、单层建造、世界持久化与 Foundation Prototype 范围 |
-| [《游牧工坊》首个技术 Spike](Assets/Game/NomadWorkshop/README.md) | 游戏开发者 / Agent | 有界随机 Utility AI、原子预留、实时 3D、Humanoid / 五动作资产管线、设施锚点与验证边界 |
-| [Blender 3D 资产管线](docs/blender-art-pipeline.md) | 技术美术 / Agent | Blender 5.2 无头 Harness、PBR 贴图 / URP 契约、AI 生成候选调研、资产 Contract 和 Unity 闭环路线 |
+| [《游牧工坊》首个技术 Spike](Assets/Game/NomadWorkshop/README.md) | 游戏开发者 / Agent | 有界随机 Utility AI、实时 3D、Humanoid / 五动作，以及带 Contact Sheet 与拓扑 / UV 门禁的资产证据链 |
+| [Blender 3D 资产管线](docs/blender-art-pipeline.md) | 技术美术 / Agent | Blender 5.2 无头 Harness、PBR / URP 契约、六视图证据、AI 候选调研、资产 Contract 和 Unity 闭环路线 |
 | [AI 音乐与音效生产候选](docs/ai-audio-production-research.md) | 音频制作人与 Agent | 生成平台、商用授权、后期软件、运行时边界与首轮 Audio Spike |
 | [Unity CLI 与项目自动化](docs/unity-cli-automation.md) | 自动化维护者 | CLI / Pipeline / MCP / OS UI 分工、命令示例与项目 Adapter |
 
