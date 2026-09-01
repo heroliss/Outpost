@@ -210,7 +210,8 @@ public class HudView : MonoViewBase
 | [AI 协作方案设计原理](docs/ai-collaboration-guide.md) | 工具配置者 | 跨 Agent 公共真值、规则演进、Skill 与 Harness 的边界 |
 | [其他 AI 接入与 Handoff](docs/ai-agent-onboarding.md) | 新 Agent / 交接者 | 最薄接入步骤、能力探针、证据包与失败降级 |
 | [AI 游戏开发能力地图](docs/ai-game-development-capability-map.md) | 游戏制作人与 Agent | 从产品目标到工程、美术、音频、体验、发布的能力谱系与补全策略 |
-| [首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md) | 产品 / 游戏开发者 | Steam / Windows 优先的平台选择、概念候选、领跑方案、范围盒与证据 Gate |
+| [首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md) | 产品 / 游戏开发者 | Steam / Windows 优先的平台选择、当前产品定位、证据 Gate 与生产边界 |
+| [《游牧工坊》产品愿景与第一版地基](docs/nomad-workshop-game-vision.md) | 游戏设计 / 开发者 | 自动居民、目标点旅行、单层建造、世界持久化与 Foundation Prototype 范围 |
 | [AI 音乐与音效生产候选](docs/ai-audio-production-research.md) | 音频制作人与 Agent | 生成平台、商用授权、后期软件、运行时边界与首轮 Audio Spike |
 | [Unity CLI 与项目自动化](docs/unity-cli-automation.md) | 自动化维护者 | CLI / Pipeline / MCP / OS UI 分工、命令示例与项目 Adapter |
 
@@ -276,4 +277,4 @@ SSFramework/
 
 ## 📌 状态
 
-**2026-09 Framework Baseline 已形成。** 核心抽象、19 个生产程序集、对应测试、交互式 Demo、Editor 工具、文档和 AI 协作入口已经达到可复核的阶段冻结点。它不是“从此不再改”的终点，也不是已经完成 SemVer / UPM 发布承诺；下一阶段将开发一款以 Steam / Windows 为首发方向的正规 3D 商业游戏，只让被产品证据证明的通用缺口回流框架。当前产品假设、候选概念与决策 Gate 见[首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md)，框架延后项见[持续完善计划](docs/project-improvement-plan.md)。
+**2026-09 Framework Baseline 已形成。** 核心抽象、19 个生产程序集、对应测试、交互式 Demo、Editor 工具、文档和 AI 协作入口已经达到可复核的阶段冻结点。它不是“从此不再改”的终点，也不是已经完成 SemVer / UPM 发布承诺；下一阶段将以《游牧工坊》这一 Steam / Windows 优先的正规 3D 商业游戏验证真实生产，只让被产品证据证明的通用缺口回流框架。平台与证据 Gate 见[首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md)，当前玩法假设与首版范围见[《游牧工坊》产品愿景与第一版地基](docs/nomad-workshop-game-vision.md)，框架延后项见[持续完善计划](docs/project-improvement-plan.md)。
