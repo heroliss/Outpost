@@ -19,6 +19,9 @@
 # 自动生成的代码资源（GeneratedAssets 由项目工具链产出，可重建）
 /GeneratedAssets/
 
+# DCC / AI 资产管线的本地实验产物；正式源文件与通过验收的 Runtime 资产另行入库。
+/ArtPipelineOutput/
+
 # 资源构建产物（全收在 AssetBuild/：Bundles 原始产物 / Deploy 平铺发布 / Downloaded 下载缓存），可重建
 /AssetBuild/
 
