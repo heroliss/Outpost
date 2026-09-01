@@ -1,8 +1,10 @@
-"""Render a provider-neutral image-to-3D input from a generated Blender probe.
+"""Render a neutral reference image from existing Blender geometry.
 
 The source .blend remains unchanged. This script hides preview-only geometry,
 uses neutral lighting and a transparent film, then records the exact PNG and
-source hashes in a small experiment manifest.
+source hashes in a small experiment manifest. The result is useful for rough
+blockout refinement or reconstruction regression, but regenerating an already
+production-usable source mesh is not the default asset-production workflow.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ import bpy
 from mathutils import Vector
 
 
-HARNESS_VERSION = "0.1.0"
+HARNESS_VERSION = "0.2.0"
 SCHEMA_VERSION = 1
 DEFAULT_ASSET_ID = "NW_WaterRecycler_01"
 ASSET_ID_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]+$")
@@ -181,7 +183,13 @@ def main() -> None:
             "camera": "source-preview-perspective",
             "alpha": alpha,
         },
-        "intendedUse": "Fixed single-image input for external AI Mesh evaluation; not a runtime asset",
+        "sourceKind": "rendered-existing-geometry",
+        "productionDefault": False,
+        "intendedUse": (
+            "Optional rough-blockout refinement or reconstruction-regression reference; "
+            "not a runtime asset and not evidence that regenerating a production-usable "
+            "source mesh reduces asset-production cost"
+        ),
     }
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",

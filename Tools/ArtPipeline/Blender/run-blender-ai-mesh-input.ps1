@@ -1,8 +1,9 @@
 <#
 .SYNOPSIS
-  从既有 Blender 资产探针生成透明背景、中性光照的 Image-to-3D 固定输入。
+  从既有 Blender 几何生成透明背景、中性光照的可选参考图。
 
 .DESCRIPTION
+  适合粗 Blockout 细化或重建回归，不把“完整资产渲染后再生成同一 3D”当默认生产流程。
   不修改源 .blend、Blender 用户偏好或 Unity Assets。输出写入已忽略的
   ArtPipelineOutput/AIMeshInput/<AssetId>/，并以 manifest 记录输入与来源 Hash。
 #>
@@ -117,7 +118,7 @@ try {
     $manifest = [System.IO.File]::ReadAllText($manifestPath) | ConvertFrom-Json
     if ($manifest.status -ne "passed" -or
         $manifest.schemaVersion -ne 1 -or
-        $manifest.harnessVersion -ne "0.1.0" -or
+        $manifest.harnessVersion -ne "0.2.0" -or
         $manifest.assetId -ne $AssetId) {
         throw "AI Mesh 输入 manifest 的状态、版本或资产 ID 不符合预期。"
     }
@@ -148,6 +149,7 @@ try {
             $manifest.input.bytes, `
             $manifest.input.alpha.visiblePixelRatio
     ) -ForegroundColor Green
+    Write-Host "[ai-mesh-input] NOTE: 这是既有几何的可选参考夹具；若源 Mesh 已可生产，不应为复刻同一资产而上传。" -ForegroundColor Yellow
     Write-Host "[ai-mesh-input] Input: $inputPath"
     Write-Host "[ai-mesh-input] Manifest: $manifestPath"
     exit 0
