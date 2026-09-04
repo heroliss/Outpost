@@ -22,7 +22,7 @@
 
 - `Assets/**/*.unity`、`*.prefab` **不得手改 YAML**；读取、搜索可用文件工具，写入必须用 Unity MCP 的 `unity_*` 工具。
 - 动手前确认 Editor 不在 Play / 即将进入 Play；在 Play 就先停止。修改后调用 `unity_scene_save` 落盘。
-- 经 MCP 启动 PlayMode 测试前，必须先执行菜单 `SSFramework/诊断/AI 自动化/PlayMode 测试预检（保存脏场景）`；它保存已有路径的脏场景并拒绝未命名场景，避免原生保存弹窗阻塞 MCP 队列。完整流程见 `docs/unity-mcp-tips.md`。
+- 经 MCP 启动任何 Unity Test Runner（EditMode / PlayMode）前，必须执行历史菜单 `SSFramework/诊断/AI 自动化/PlayMode 测试预检（保存脏场景）`；它保存有路径脏场景、拒绝未命名脏场景，避免两种模式共有的保存弹窗阻塞队列。完整流程见 `docs/unity-mcp-tips.md`。
 - 原因：直接写 YAML 容易破坏 GUID/fileID，绕过刷新/Undo，并制造难合并冲突。
 
 ### 3. 扩权、冲突与不可逆操作先沟通

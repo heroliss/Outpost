@@ -213,7 +213,9 @@ public class HudView : MonoViewBase
 | [AI 游戏开发 Harness 调研](docs/ai-game-development-harness-research.md) | 游戏开发者 / 自动化维护者 | 开源 Agent / Playtest / Benchmark 方案比较、项目采用边界与最小证据契约 |
 | [首款商业 3D 游戏策略](docs/commercial-3d-game-strategy.md) | 产品 / 游戏开发者 | Steam / Windows 优先的平台选择、当前产品定位、证据 Gate 与生产边界 |
 | [《游牧工坊》产品愿景与第一版地基](docs/nomad-workshop-game-vision.md) | 游戏设计 / 开发者 | 自动居民、目标点旅行、单层建造、世界持久化与 Foundation Prototype 范围 |
-| [《游牧工坊》首个技术 Spike](Assets/Game/NomadWorkshop/README.md) | 游戏开发者 / Agent | 有界随机 Utility AI、实时 3D、Humanoid / 五动作，以及带 Contact Sheet 与拓扑 / UV 门禁的资产证据链 |
+| [《游牧工坊》Foundation 与技术 Harness](Assets/Game/NomadWorkshop/README.md) | 游戏开发者 / Agent | SSFramework Mono 分层的连续建造规则 / 导航 / 实体物流 / 版本化存档地基，以及 Utility AI、Humanoid、参数化 / Blender / AI 资产证据链 |
+| [《游牧工坊》最小垂直切片地基](docs/nomad-workshop-foundation-vertical-slice.md) | 游戏开发者 / Agent | Context → Mono Model/System/View → Command → 纯摆放 / 寻路 / 物质 / 存档真值的所有权、运行方式、Harness 保留条件与自动证据 |
+| [《游牧工坊》连续建造、导航与设施交互设计](docs/nomad-workshop-navigation-interaction-design.md) | 游戏开发者 / Agent | 已验证的量化连续占地纯内核、NavMesh / 双人避让 / 三候选停靠位 Harness，以及存档检查点、动画所有权和迁移删除边界 |
 | [《游牧工坊》3D 资产族生产策略](docs/nomad-workshop-asset-family-pipeline.md) | 美术 / 技术美术 / Agent | 从 Art Bible、AI Mesh、PBR 到状态 Shader、动画、音效、Unity 验收和 Provider 成本的可替换生产边界 |
 | [Blender 3D 资产管线](docs/blender-art-pipeline.md) | 技术美术 / Agent | Blender 5.2 无头 Harness、PBR / URP 契约、六视图证据、AI 候选调研、资产 Contract 和 Unity 闭环路线 |
 | [AI 音乐与音效生产候选](docs/ai-audio-production-research.md) | 音频制作人与 Agent | 生成平台、商用授权、后期软件、运行时边界与首轮 Audio Spike |

@@ -5,6 +5,7 @@
 .DESCRIPTION
   保留源 .blend，不做自动减面、重拓扑或拆件。输出便携贴图、打包 .blend、
   FBX、GLB、URP Metallic-Smoothness 派生图与可校验的 intake-report.json。
+  对带 Empty Pivot 的可动道具可显式使用 -PreserveHierarchy；静态候选默认不变。
 #>
 param(
     [string]$BlenderPath = "",
@@ -12,7 +13,8 @@ param(
     [string]$SourceBlend,
     [string]$OutputRoot = "",
     [string]$AssetId = "NW_FieldKitchen_01",
-    [string]$SourceObject = "model"
+    [string]$SourceObject = "model",
+    [switch]$PreserveHierarchy
 )
 
 Set-StrictMode -Version Latest
@@ -93,15 +95,20 @@ try {
     Write-Host "[ai-mesh-intake] Blender: $blender"
     Write-Host "[ai-mesh-intake] Source: $resolvedSourceBlend"
     Write-Host "[ai-mesh-intake] Output: $assetOutput"
-    $processOutput = & $blender `
-        --background $resolvedSourceBlend `
-        --factory-startup `
-        --disable-autoexec `
-        --python $intakePath `
-        -- `
-        --output-dir $assetOutput `
-        --asset-id $AssetId `
-        --source-object $SourceObject 2>&1
+    $blenderArguments = @(
+        "--background", $resolvedSourceBlend,
+        "--factory-startup",
+        "--disable-autoexec",
+        "--python", $intakePath,
+        "--",
+        "--output-dir", $assetOutput,
+        "--asset-id", $AssetId,
+        "--source-object", $SourceObject
+    )
+    if ($PreserveHierarchy) {
+        $blenderArguments += "--preserve-hierarchy"
+    }
+    $processOutput = & $blender @blenderArguments 2>&1
     $exitCode = $LASTEXITCODE
     $processOutput | ForEach-Object { Write-Host $_ }
     if ($exitCode -ne 0) {
@@ -124,7 +131,9 @@ try {
         -not $report.acceptance.fbxExported -or
         -not $report.acceptance.glbExported -or
         -not $report.acceptance.fbxRoundTripRead -or
-        -not $report.acceptance.glbRoundTripRead) {
+        -not $report.acceptance.glbRoundTripRead -or
+        ($PreserveHierarchy -and -not $report.acceptance.fbxHierarchyMatchesSource) -or
+        ($PreserveHierarchy -and -not $report.acceptance.glbHierarchyMatchesSource)) {
         throw "贴图归档、便携源文件或交换格式验证未通过。"
     }
     if ($report.acceptance.productionApproved -or

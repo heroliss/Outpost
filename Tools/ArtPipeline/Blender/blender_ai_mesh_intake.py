@@ -35,6 +35,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--asset-id", required=True)
     parser.add_argument("--source-object", default="model")
+    parser.add_argument(
+        "--preserve-hierarchy",
+        action="store_true",
+        help="Preserve Empty/Mesh descendants and their parent links for articulated props.",
+    )
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     args = parser.parse_args(argv)
     if ASSET_ID_PATTERN.fullmatch(args.asset_id) is None:
@@ -438,14 +443,23 @@ def build_metallic_smoothness(
     }
 
 
-def keep_only_target(root, meshes: list) -> list:
-    keep = {obj.as_pointer() for obj in meshes}
-    if root.type != "MESH":
-        keep.add(root.as_pointer())
+def exportable_target_objects(root, meshes: list, preserve_hierarchy: bool) -> list:
+    if not preserve_hierarchy:
+        return [root, *meshes] if root.type != "MESH" else meshes
+    return [
+        obj
+        for obj in [root, *descendants(root)]
+        if obj.type in {"EMPTY", "MESH"}
+    ]
+
+
+def keep_only_target(root, meshes: list, preserve_hierarchy: bool) -> list:
+    targets = exportable_target_objects(root, meshes, preserve_hierarchy)
+    keep = {obj.as_pointer() for obj in targets}
     for obj in list(bpy.data.objects):
         if obj.as_pointer() not in keep:
             bpy.data.objects.remove(obj, do_unlink=True)
-    return [root, *meshes] if root.type != "MESH" else meshes
+    return targets
 
 
 def sanitize_working_meshes(meshes: list) -> list[dict]:
@@ -479,17 +493,40 @@ def sanitize_working_meshes(meshes: list) -> list[dict]:
     return results
 
 
-def select_export_objects(root, meshes: list) -> None:
+def evaluated_mesh_statistics(obj) -> dict:
+    """Measure the geometry exporters see after validation and modifiers.
+
+    Source mesh statistics remain useful for topology review, while FBX and
+    glTF export with modifiers enabled.  Comparing round trips with the raw
+    data block otherwise reports valid non-destructive Bevel/Decimate stacks
+    as geometry corruption.
+    """
+    dependency_graph = bpy.context.evaluated_depsgraph_get()
+    evaluated_object = obj.evaluated_get(dependency_graph)
+    evaluated_mesh = evaluated_object.to_mesh(
+        preserve_all_data_layers=False,
+        depsgraph=dependency_graph,
+    )
+    try:
+        evaluated_mesh.calc_loop_triangles()
+        return {
+            "vertexCount": len(evaluated_mesh.vertices),
+            "polygonCount": len(evaluated_mesh.polygons),
+            "triangleCount": len(evaluated_mesh.loop_triangles),
+        }
+    finally:
+        evaluated_object.to_mesh_clear()
+
+
+def select_export_objects(targets: list, meshes: list) -> None:
     bpy.ops.object.select_all(action="DESELECT")
-    if root.type != "MESH":
-        root.select_set(True)
-    for obj in meshes:
+    for obj in targets:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = meshes[0]
 
 
-def export_fbx(root, meshes: list, path: Path) -> None:
-    select_export_objects(root, meshes)
+def export_fbx(targets: list, meshes: list, path: Path, preserve_hierarchy: bool) -> None:
+    select_export_objects(targets, meshes)
     bpy.ops.export_scene.fbx(
         filepath=str(path),
         use_selection=True,
@@ -499,17 +536,21 @@ def export_fbx(root, meshes: list, path: Path) -> None:
         axis_forward="-Z",
         axis_up="Y",
         use_space_transform=True,
-        bake_space_transform=True,
+        # Baking object axes is convenient for a static mesh but can invalidate
+        # an Empty used as a runtime hinge. Keep authored local transforms for
+        # articulated props and let the importer perform the normal axis map.
+        bake_space_transform=not preserve_hierarchy,
         add_leaf_bones=False,
         bake_anim=False,
+        use_custom_props=preserve_hierarchy,
         use_mesh_modifiers=True,
         mesh_smooth_type="FACE",
         path_mode="AUTO",
     )
 
 
-def export_glb(root, meshes: list, path: Path) -> None:
-    select_export_objects(root, meshes)
+def export_glb(targets: list, meshes: list, path: Path, preserve_hierarchy: bool) -> None:
+    select_export_objects(targets, meshes)
     options = {
         "filepath": str(path),
         "export_format": "GLB",
@@ -517,6 +558,7 @@ def export_glb(root, meshes: list, path: Path) -> None:
         "export_apply": True,
         "export_yup": True,
         "export_materials": "EXPORT",
+        "export_extras": preserve_hierarchy,
     }
     try:
         bpy.ops.export_scene.gltf(**options)
@@ -537,6 +579,7 @@ def round_trip(path: Path, kind: str) -> dict:
             bpy.ops.import_scene.gltf(filepath=str(path))
         imported = [obj for obj in bpy.data.objects if obj.as_pointer() not in before]
         meshes = [obj for obj in imported if obj.type == "MESH"]
+        empties = [obj for obj in imported if obj.type == "EMPTY"]
         triangles = 0
         vertices = 0
         for obj in meshes:
@@ -546,6 +589,8 @@ def round_trip(path: Path, kind: str) -> dict:
         return {
             "succeeded": True,
             "meshObjectCount": len(meshes),
+            "emptyObjectCount": len(empties),
+            "parentLinkCount": sum(1 for obj in imported if obj.parent in imported),
             "vertexCount": vertices,
             "triangleCount": triangles,
         }
@@ -579,9 +624,15 @@ def main() -> None:
         texture_dir,
     )
     sanitization = sanitize_working_meshes(meshes)
+    bpy.context.view_layer.update()
+    evaluated_reports = [evaluated_mesh_statistics(obj) for obj in meshes]
+    for report, evaluated in zip(mesh_reports, evaluated_reports):
+        report["evaluatedAfterSanitization"] = evaluated
 
     total_triangles = sum(report["triangleCount"] for report in mesh_reports)
     total_vertices = sum(report["vertexCount"] for report in mesh_reports)
+    total_evaluated_triangles = sum(report["triangleCount"] for report in evaluated_reports)
+    total_evaluated_vertices = sum(report["vertexCount"] for report in evaluated_reports)
     all_have_uv = all(bool(report["uv"]["activeLayer"]) for report in mesh_reports)
     all_textures_archived = bool(image_records) and all(record["archived"] for record in image_records)
     pbr_usages = {usage for values in usages.values() for usage in values}
@@ -592,15 +643,17 @@ def main() -> None:
         if destination is not None and destination.is_file():
             image.filepath = str(destination)
 
-    keep_only_target(root, meshes)
+    targets = keep_only_target(root, meshes, args.preserve_hierarchy)
+    expected_empty_count = sum(1 for obj in targets if obj.type == "EMPTY")
+    expected_parent_link_count = sum(1 for obj in targets if obj.parent in targets)
     bpy.ops.file.pack_all()
     packed_blend = output_dir / f"{args.asset_id}_packed.blend"
     bpy.ops.wm.save_as_mainfile(filepath=str(packed_blend), copy=True)
 
     fbx_path = output_dir / f"{args.asset_id}.fbx"
     glb_path = output_dir / f"{args.asset_id}.glb"
-    export_fbx(root, meshes, fbx_path)
-    export_glb(root, meshes, glb_path)
+    export_fbx(targets, meshes, fbx_path, args.preserve_hierarchy)
+    export_glb(targets, meshes, glb_path, args.preserve_hierarchy)
     round_trips = {
         "fbx": round_trip(fbx_path, "fbx"),
         "glb": round_trip(glb_path, "glb"),
@@ -624,12 +677,24 @@ def main() -> None:
         warnings.append("The material does not expose the full Base Color/Metallic/Roughness/Normal core set.")
     if any(record["width"] > 0 and record["width"] < 4096 for record in image_records):
         warnings.append("Archived textures are below 4K; provider generation settings may differ from DCC delivery resolution.")
-    expected_validated_triangles = sum(report["validatedTriangleCount"] for report in mesh_reports)
+    expected_validated_triangles = sum(
+        report["validatedTriangleCount"] for report in mesh_reports
+    )
+    expected_export_triangles = total_evaluated_triangles
     for exchange_kind, result in round_trips.items():
-        if result["succeeded"] and result["triangleCount"] != expected_validated_triangles:
+        if result["succeeded"] and result["triangleCount"] != expected_export_triangles:
             warnings.append(
-                f"{exchange_kind.upper()} round trip contains {result['triangleCount']} triangles versus {expected_validated_triangles} after Blender validation."
+                f"{exchange_kind.upper()} round trip contains {result['triangleCount']} triangles versus {expected_export_triangles} after Blender validation and modifier evaluation."
             )
+        if args.preserve_hierarchy and result["succeeded"]:
+            if result["emptyObjectCount"] != expected_empty_count:
+                warnings.append(
+                    f"{exchange_kind.upper()} round trip contains {result['emptyObjectCount']} Empty nodes versus {expected_empty_count} in the authored hierarchy."
+                )
+            if result["parentLinkCount"] != expected_parent_link_count:
+                warnings.append(
+                    f"{exchange_kind.upper()} round trip contains {result['parentLinkCount']} parent links versus {expected_parent_link_count} in the authored hierarchy."
+                )
 
     generated_files = [packed_blend, fbx_path, glb_path]
     generated_files.extend(
@@ -651,6 +716,7 @@ def main() -> None:
             "approval": "candidate-only",
             "gameReady": False,
             "manualArtReviewRequired": True,
+            "preserveHierarchy": args.preserve_hierarchy,
         },
         "source": {
             "blendPath": str(source_blend),
@@ -669,11 +735,32 @@ def main() -> None:
             "fbxForwardAxis": "-Z",
             "fbxUpAxis": "+Y",
             "glbUpAxis": "+Y",
+            "objectAxisBake": "disabled to preserve articulated local transforms"
+            if args.preserve_hierarchy
+            else "enabled for static mesh portability",
+        },
+        "hierarchy": {
+            "preserved": args.preserve_hierarchy,
+            "nodeCount": len(targets),
+            "emptyObjectCount": expected_empty_count,
+            "meshObjectCount": len(meshes),
+            "parentLinkCount": expected_parent_link_count,
+            "nodes": [
+                {
+                    "name": obj.name,
+                    "type": obj.type,
+                    "parent": obj.parent.name if obj.parent in targets else "",
+                }
+                for obj in targets
+            ],
+            "animationExported": False,
         },
         "geometry": {
             "meshObjectCount": len(meshes),
             "vertexCount": total_vertices,
             "triangleCount": total_triangles,
+            "evaluatedVertexCount": total_evaluated_vertices,
+            "evaluatedTriangleCount": total_evaluated_triangles,
             "worldBounds": bounds,
             "objects": mesh_reports,
         },
@@ -701,6 +788,22 @@ def main() -> None:
             "glbExported": glb_path.is_file() and glb_path.stat().st_size > 0,
             "fbxRoundTripRead": round_trips["fbx"]["succeeded"],
             "glbRoundTripRead": round_trips["glb"]["succeeded"],
+            "fbxHierarchyMatchesSource": (
+                not args.preserve_hierarchy
+                or (
+                    round_trips["fbx"]["succeeded"]
+                    and round_trips["fbx"]["emptyObjectCount"] == expected_empty_count
+                    and round_trips["fbx"]["parentLinkCount"] == expected_parent_link_count
+                )
+            ),
+            "glbHierarchyMatchesSource": (
+                not args.preserve_hierarchy
+                or (
+                    round_trips["glb"]["succeeded"]
+                    and round_trips["glb"]["emptyObjectCount"] == expected_empty_count
+                    and round_trips["glb"]["parentLinkCount"] == expected_parent_link_count
+                )
+            ),
             "sourceMeshValidationClean": not any(
                 report["meshValidationWouldChange"] for report in mesh_reports
             ),
@@ -711,6 +814,14 @@ def main() -> None:
             "glbTriangleCountMatchesValidatedSource": (
                 round_trips["glb"]["succeeded"]
                 and round_trips["glb"]["triangleCount"] == expected_validated_triangles
+            ),
+            "fbxTriangleCountMatchesEvaluatedSource": (
+                round_trips["fbx"]["succeeded"]
+                and round_trips["fbx"]["triangleCount"] == expected_export_triangles
+            ),
+            "glbTriangleCountMatchesEvaluatedSource": (
+                round_trips["glb"]["succeeded"]
+                and round_trips["glb"]["triangleCount"] == expected_export_triangles
             ),
             "allMeshesHaveActiveUv": all_have_uv,
             "pbrCoreMapped": has_pbr_core,

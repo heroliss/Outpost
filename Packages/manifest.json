@@ -15,6 +15,7 @@
     "com.unity.2d.tilemap.extras": "6.0.2",
     "com.unity.2d.tooling": "1.0.3",
     "com.unity.ai.inference": "2.6.1",
+    "com.unity.ai.navigation": "2.0.14",
     "com.unity.cinemachine": "3.1.7",
     "com.unity.collab-proxy": "2.12.4",
     "com.unity.entities": "1.4.8",
