@@ -216,6 +216,7 @@ public class HudView : MonoViewBase
 | [《游牧工坊》Foundation 与技术 Harness](Assets/Game/NomadWorkshop/README.md) | 游戏开发者 / Agent | SSFramework Mono 分层的连续建造规则 / 导航 / 实体物流 / 版本化存档地基，以及 Utility AI、Humanoid、参数化 / Blender / AI 资产证据链 |
 | [《游牧工坊》最小垂直切片地基](docs/nomad-workshop-foundation-vertical-slice.md) | 游戏开发者 / Agent | Context → Mono Model/System/View → Command → 纯摆放 / 寻路 / 物质 / 存档真值的所有权、运行方式、Harness 保留条件与自动证据 |
 | [《游牧工坊》连续建造、导航与设施交互设计](docs/nomad-workshop-navigation-interaction-design.md) | 游戏开发者 / Agent | 已验证的量化连续占地纯内核、NavMesh / 双人避让 / 三候选停靠位 Harness，以及存档检查点、动画所有权和迁移删除边界 |
+| [《游牧工坊》世界物品放置与蓝图施工](docs/nomad-workshop-world-placement-and-construction.md) | 游戏设计 / 开发者 / Agent | 台面/地面可计算放置区、物品占地、IK 提交、到料堆、多人工作位、让行、工具与分期 Harness |
 | [《游牧工坊》3D 资产族生产策略](docs/nomad-workshop-asset-family-pipeline.md) | 美术 / 技术美术 / Agent | 从 Art Bible、AI Mesh、PBR 到状态 Shader、动画、音效、Unity 验收和 Provider 成本的可替换生产边界 |
 | [Blender 3D 资产管线](docs/blender-art-pipeline.md) | 技术美术 / Agent | Blender 5.2 无头 Harness、PBR / URP 契约、六视图证据、AI 候选调研、资产 Contract 和 Unity 闭环路线 |
 | [AI 音乐与音效生产候选](docs/ai-audio-production-research.md) | 音频制作人与 Agent | 生成平台、商用授权、后期软件、运行时边界与首轮 Audio Spike |
