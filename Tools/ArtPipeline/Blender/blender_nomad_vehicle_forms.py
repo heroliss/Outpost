@@ -21,6 +21,10 @@ DETAIL_PATH = Path(__file__).with_name('blender_nomad_deck_cockpit.py')
 DETAIL_SPEC = importlib.util.spec_from_file_location('nomad_deck_cockpit',DETAIL_PATH)
 DETAIL = importlib.util.module_from_spec(DETAIL_SPEC)
 DETAIL_SPEC.loader.exec_module(DETAIL)
+CANOPY_PATH = Path(__file__).with_name('blender_nomad_canopy.py')
+CANOPY_SPEC = importlib.util.spec_from_file_location('nomad_canopy', CANOPY_PATH)
+CANOPY = importlib.util.module_from_spec(CANOPY_SPEC)
+CANOPY_SPEC.loader.exec_module(CANOPY)
 
 
 def select(objects):
@@ -204,6 +208,10 @@ def main():
     cockpit = DETAIL.build_cockpit(STUDY,vehicle)
     bake_group(deck,out,'NW5_Deck')
     bake_group(cockpit,out,'NW5_Cockpit')
+    canopy = CANOPY.build(STUDY,vehicle)
+    prepare_meshes([o for o in canopy.children_recursive if o.type == 'MESH'])
+    BASE.prepare_uv_and_merge(canopy)
+    CANOPY.check_clearance(canopy)
     bpy.context.view_layer.update()
     for obj in deck.children_recursive:
         if obj.type == 'MESH':
@@ -244,9 +252,9 @@ def main():
         assert all(abs(a-b)<.002 for a,b in zip(position,readback['pivots'][key])),key
     for obj in imported: bpy.data.objects.remove(obj,do_unlink=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(out/'NW5_Vehicle.blend'))
-    paths = [Path(__file__),STUDY_PATH,STUDY.BASE_PATH,DETAIL_PATH]
+    paths = [Path(__file__),STUDY_PATH,STUDY.BASE_PATH,DETAIL_PATH,CANOPY_PATH]
     files = [fbx]+[out/(stem+'_'+channel+'.png') for stem in ('NW5_Shell','NW5_Deck','NW5_Cockpit') for channel in ('Color','Normal','Surface')]
-    report = {'version':'0.2.0','status':'passed-export','sources':[{'file':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths],
+    report = {'version':'0.3.0','status':'passed-export','sources':[{'file':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths],
               'files':[{'file':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in files],
               'source':source,'roundTrip':readback,'shellMounts':mounts,'atlasSize':2048,
               'normalConvention':'OpenGL +Y tangent','surfaceChannels':'R metallic, A smoothness; linear',
