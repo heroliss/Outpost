@@ -17,6 +17,10 @@ SPEC = importlib.util.spec_from_file_location('nomad_study', STUDY_PATH)
 STUDY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(STUDY)
 BASE = STUDY.BASE
+DETAIL_PATH = Path(__file__).with_name('blender_nomad_deck_cockpit.py')
+DETAIL_SPEC = importlib.util.spec_from_file_location('nomad_deck_cockpit',DETAIL_PATH)
+DETAIL = importlib.util.module_from_spec(DETAIL_SPEC)
+DETAIL_SPEC.loader.exec_module(DETAIL)
 
 
 def select(objects):
@@ -25,7 +29,21 @@ def select(objects):
     bpy.context.view_layer.objects.active = objects[0]
 
 
-def bake(shell, out):
+def prepare_meshes(objects):
+    for obj in objects:
+        select([obj])
+        for mod in list(obj.modifiers):
+            if mod.type != 'WEIGHTED_NORMAL': bpy.ops.object.modifier_apply(modifier=mod.name)
+        # Meeting bevels on thin plates can leave coincident vertices and zero-area seams.
+        bm = bmesh.new(); bm.from_mesh(obj.data)
+        bmesh.ops.remove_doubles(bm,verts=list(bm.verts),dist=.000001)
+        bmesh.ops.dissolve_degenerate(bm,edges=list(bm.edges),dist=.000001)
+        bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces))
+        bm.to_mesh(obj.data); bm.free()
+        for mod in list(obj.modifiers): bpy.ops.object.modifier_apply(modifier=mod.name)
+
+
+def bake(shell, out, stem='NW5_Shell'):
     select([shell])
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_all(action='SELECT')
@@ -41,7 +59,7 @@ def bake(shell, out):
     materials = list(shell.data.materials)
     images = {}
     for channel in ('Color','Normal','Metallic','Smoothness'):
-        image = bpy.data.images.new('NW5_Shell_'+channel,2048,2048,alpha=True)
+        image = bpy.data.images.new(stem+'_'+channel,2048,2048,alpha=True)
         image.colorspace_settings.name = 'sRGB' if channel == 'Color' else 'Non-Color'
         images[channel] = image
         changes = []
@@ -55,20 +73,30 @@ def bake(shell, out):
                 bsdf = nodes.get('Principled BSDF')
                 output = next(n for n in nodes if n.type == 'OUTPUT_MATERIAL')
                 original = output.inputs['Surface'].links[0].from_socket
-                value = bsdf.inputs['Metallic'].default_value if channel == 'Metallic' else 1-bsdf.inputs['Roughness'].default_value
+                socket = bsdf.inputs['Metallic' if channel == 'Metallic' else 'Roughness']
+                value = socket.default_value if channel == 'Metallic' else 1-socket.default_value
                 emission = nodes.new('ShaderNodeEmission')
                 emission.inputs['Color'].default_value = (value,value,value,1)
+                invert = None
+                if socket.links:
+                    source = socket.links[0].from_socket
+                    if channel == 'Smoothness':
+                        invert = nodes.new('ShaderNodeMath'); invert.operation = 'SUBTRACT'
+                        invert.inputs[0].default_value = 1
+                        links.new(source,invert.inputs[1]); source = invert.outputs[0]
+                    links.new(source,emission.inputs['Color'])
                 links.new(emission.outputs[0],output.inputs['Surface'])
-                changes.append((mat,output,original,emission))
+                changes.append((mat,output,original,emission,invert))
         bpy.ops.object.bake(type='DIFFUSE' if channel == 'Color' else 'NORMAL' if channel == 'Normal' else 'EMIT',normal_space='TANGENT')
-        for mat,output,original,emission in changes:
+        for mat,output,original,emission,invert in changes:
             mat.node_tree.links.new(original,output.inputs['Surface'])
             mat.node_tree.nodes.remove(emission)
+            if invert: mat.node_tree.nodes.remove(invert)
         if channel in ('Color','Normal'):
-            image.filepath_raw = str(out/('NW5_Shell_'+channel+'.png'))
+            image.filepath_raw = str(out/(stem+'_'+channel+'.png'))
             image.file_format = 'PNG'
             image.save()
-        print('BAKED '+channel,flush=True)
+        print('BAKED '+stem+' '+channel,flush=True)
     # URP Lit expects metallic in R and smoothness in A, both linear.
     import numpy as np
     metal = np.asarray(images['Metallic'].pixels[:],dtype=np.float32).reshape(-1,4)
@@ -76,13 +104,13 @@ def bake(shell, out):
     pixels = np.zeros_like(metal)
     pixels[:,0] = metal[:,0]
     pixels[:,3] = smooth[:,0]
-    packed = bpy.data.images.new('NW5_Shell_Surface',2048,2048,alpha=True)
+    packed = bpy.data.images.new(stem+'_Surface',2048,2048,alpha=True)
     packed.colorspace_settings.name = 'Non-Color'
     packed.pixels.foreach_set(pixels.ravel())
-    packed.filepath_raw = str(out/'NW5_Shell_Surface.png')
+    packed.filepath_raw = str(out/(stem+'_Surface.png'))
     packed.file_format = 'PNG'
     packed.save()
-    atlas = bpy.data.materials.new('NW5_ShellAtlas')
+    atlas = bpy.data.materials.new(stem+'Atlas')
     atlas.use_nodes = True
     nodes,links = atlas.node_tree.nodes,atlas.node_tree.links
     bsdf = nodes.get('Principled BSDF')
@@ -103,6 +131,21 @@ def bake(shell, out):
     for face in shell.data.polygons: face.material_index = 0
 
 
+def bake_group(root, out, stem):
+    objects = [o for o in root.children_recursive if o.type == 'MESH']
+    prepare_meshes(objects)
+    opaque = [o for o in objects if o.data.materials[0].name not in ('NW1_Glass','NW1_Lamp')]
+    select(opaque); bpy.ops.object.join(); joined = bpy.context.object
+    joined.name = root.name+'_Mesh'
+    bake(joined,out,stem)
+    # Glass and lamps retain their existing URP materials and independent UVs.
+    for obj in objects:
+        if obj in opaque: continue
+        select([obj]); bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT'); bpy.ops.uv.smart_project(island_margin=.01)
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument('--output',required=True)
     out = Path(parser.parse_args(sys.argv[sys.argv.index('--')+1:]).output).resolve()
@@ -120,17 +163,7 @@ def main():
         if obj.name.startswith(('Interlocking deck plate','Tie down socket','Recessed tie down ring')):
             bpy.data.objects.remove(obj,do_unlink=True)
     objects = [o for o in template.children_recursive if o.type == 'MESH']
-    for obj in objects:
-        select([obj])
-        for mod in list(obj.modifiers):
-            if mod.type != 'WEIGHTED_NORMAL': bpy.ops.object.modifier_apply(modifier=mod.name)
-        # The 12 mm inset plates have meeting bevels. Weld coincident vertices before
-        # UV/bake so their zero-area seam faces cannot enter the exported mesh.
-        bm = bmesh.new(); bm.from_mesh(obj.data)
-        bmesh.ops.remove_doubles(bm,verts=list(bm.verts),dist=.000001)
-        bmesh.ops.dissolve_degenerate(bm,edges=list(bm.edges),dist=.000001)
-        bm.to_mesh(obj.data); bm.free()
-        for mod in list(obj.modifiers): bpy.ops.object.modifier_apply(modifier=mod.name)
+    prepare_meshes(objects)
     select(objects); bpy.ops.object.join()
     shell = bpy.context.object; shell.name = 'Baked shell module'
     bake(shell,out)
@@ -147,7 +180,8 @@ def main():
     vehicle = BASE.empty('NW5_Vehicle')
     BASE.vehicle(vehicle)
     for obj in list(vehicle.children_recursive):
-        if obj.name.startswith(('Rear locker','Locker pull')): bpy.data.objects.remove(obj,do_unlink=True)
+        if obj.name.startswith(('Rear locker','Locker pull','Deck cassette','Bow','Front bumper','Front intake',
+            'Intake fin','Headlight','Windscreen','Sun visor','Tow eye')): bpy.data.objects.remove(obj,do_unlink=True)
     BASE.prepare_uv_and_merge(vehicle)
     # Atlas UVs are retained after the legacy metre/material UV preparation.
     # The right-side apron is the real offboard route. Keep that opening; front
@@ -166,6 +200,19 @@ def main():
             p = obj.matrix_world @ vertex.co
             assert p.z <= .05 or abs(p.x) >= 5.4 or abs(p.y) >= 4.2,('shell-in-playable-deck',list(p))
     bpy.data.objects.remove(shell,do_unlink=True)
+    deck = DETAIL.build_deck(STUDY,vehicle)
+    cockpit = DETAIL.build_cockpit(STUDY,vehicle)
+    bake_group(deck,out,'NW5_Deck')
+    bake_group(cockpit,out,'NW5_Cockpit')
+    bpy.context.view_layer.update()
+    for obj in deck.children_recursive:
+        if obj.type == 'MESH':
+            assert all((obj.matrix_world@v.co).z <= .01 for v in obj.data.vertices),'deck-above-walk-plane'
+    for obj in cockpit.children_recursive:
+        if obj.type != 'MESH': continue
+        for vertex in obj.data.vertices:
+            p = obj.matrix_world@vertex.co
+            assert p.z <= .05 or abs(p.x) >= 5.4 or abs(p.y) >= 4.2,('cockpit-in-playable-deck',obj.name,list(p))
     for axis,p in [('Right',(1,0,0)),('Up',(0,1,0)),('Forward',(0,0,1))]: BASE.empty('NW5_Axis'+axis,vehicle,p)
     objects = [vehicle]+list(vehicle.children_recursive)
     source = BASE.stats(objects)
@@ -188,13 +235,18 @@ def main():
     # the imported material. A fresh import must use the exact un-suffixed name.
     assert all(len(o.data.materials) == 1 and o.data.materials[0].name in ('NW5_ShellAtlas','NW5_ShellAtlas.001')
                and all(p.material_index == 0 for p in o.data.polygons) for o in imported_shells)
+    for name in ('NW5_DeckSurface_Mesh','NW5_CockpitShell_Mesh'):
+        mesh = next(o for o in imported if o.name.startswith(name))
+        expected = 'NW5_DeckAtlas' if 'DeckSurface' in name else 'NW5_CockpitAtlas'
+        assert len(mesh.data.materials) == 1 and mesh.data.materials[0].name in (expected,expected+'.001')
+        assert all(p.material_index == 0 for p in mesh.data.polygons)
     for key,position in source['pivots'].items():
         assert all(abs(a-b)<.002 for a,b in zip(position,readback['pivots'][key])),key
     for obj in imported: bpy.data.objects.remove(obj,do_unlink=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(out/'NW5_Vehicle.blend'))
-    paths = [Path(__file__),STUDY_PATH,STUDY.BASE_PATH]
-    files = [fbx]+[out/('NW5_Shell_'+channel+'.png') for channel in ('Color','Normal','Surface')]
-    report = {'version':'0.1.0','status':'passed-export','sources':[{'file':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths],
+    paths = [Path(__file__),STUDY_PATH,STUDY.BASE_PATH,DETAIL_PATH]
+    files = [fbx]+[out/(stem+'_'+channel+'.png') for stem in ('NW5_Shell','NW5_Deck','NW5_Cockpit') for channel in ('Color','Normal','Surface')]
+    report = {'version':'0.2.0','status':'passed-export','sources':[{'file':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths],
               'files':[{'file':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in files],
               'source':source,'roundTrip':readback,'shellMounts':mounts,'atlasSize':2048,
               'normalConvention':'OpenGL +Y tangent','surfaceChannels':'R metallic, A smoothness; linear',
