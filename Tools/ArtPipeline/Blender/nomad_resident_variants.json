@@ -1,0 +1,8 @@
+{
+  "recipeVersion": 1,
+  "variants": [
+    { "id": "Mechanic", "body": "Male", "hair": ["Hair_Buzzed"], "shirtColor": [0.35, 0.62, 0.57], "hairColor": [0.06, 0.045, 0.035], "scale": 1.0 },
+    { "id": "Caretaker", "body": "Female", "hair": ["Hair_Buns"], "shirtColor": [0.78, 0.54, 0.29], "hairColor": [0.11, 0.048, 0.025], "scale": 1.0 },
+    { "id": "Driver", "body": "Male", "hair": ["Hair_SimpleParted", "Hair_Beard"], "shirtColor": [0.48, 0.56, 0.67], "hairColor": [0.27, 0.25, 0.22], "scale": 1.04 }
+  ]
+}
