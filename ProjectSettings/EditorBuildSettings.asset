@@ -6,8 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Game/Scenes/BootScene.unity
-    guid: bbf1fa3f2385d914089174424425b39b
+    path: Assets/Game/Outpost/Scenes/OutpostGame.unity
+    guid: 739b609d66e3780408fefe75db25e0cd
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: 76f34561ec24e1a409fa53dbb6f4d4c0, type: 2}
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
