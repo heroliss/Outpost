@@ -1,3 +1,4 @@
-[submodule "Packages/com.heroliss.ssframework"]
-	path = Packages/com.heroliss.ssframework
+[submodule "Packages/com.liss.ssframework"]
+	path = Packages/com.liss.ssframework
 	url = ../framework.git
+
