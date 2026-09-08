@@ -2,7 +2,7 @@ using System.Text;
 
 namespace Outpost.Server.Protocol;
 
-// ── 与框架 Assets/Game/Framework/Core/Network/ProtoWire.cs 逐字节等价的移植 ──
+// ── 与框架 Packages/com.liss.ssframework/src/Core/Network/ProtoWire.cs 逐字节等价的移植 ──
 // 服务端与客户端<b>共享同一份 wire 格式</b>是对讲的前提，所以这里刻意复制而非引用：
 // 客户端在 Unity 程序集里、服务端在独立 .NET 工程里，无法共享程序集，但两边都是纯 C#、
 // 都产出标准 protobuf wire 字节（字段号一致即互通），复制成本低于强行抽共享库。

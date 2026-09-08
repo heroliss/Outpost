@@ -42,7 +42,7 @@ namespace Game.Main.Tests
 
             string bootSource = File.ReadAllText(Path.Combine(
                 Directory.GetParent(Application.dataPath)!.FullName,
-                "Assets/Game/Framework/Boot/HotUpdateLauncher.cs"));
+                "Packages/com.liss.ssframework/src/Boot/HotUpdateLauncher.cs"));
             Assert.That(bootSource, Does.Contain("return BootPlayMode.Web;"),
                 "WebGL 的 AOT Boot 也必须先切到 Web 文件系统，不能只修热更入口后的业务资源栈。");
             Assert.That(bootSource, Does.Contain("new WebPlayModeOptions"));
