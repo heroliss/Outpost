@@ -1,5 +1,3 @@
 [submodule "Packages/com.liss.ssframework"]
 	path = Packages/com.liss.ssframework
 	url = https://github.com/heroliss/SSFramework.git
-
-
