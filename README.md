@@ -7,7 +7,6 @@ Outpost 是 SSFramework 的独立教程游戏和真实消费示例。它用一�
 - Unity 工程与场景、Prefab、配置和美术资产：本仓库。
 - 纯逻辑模拟：`Assets/Game/Outpost/Sim`，不依赖 Unity 或 Framework。
 - Framework：`Packages/com.liss.ssframework` Git submodule，固定到已验证的 commit。
-- Outpost 不依赖 FrameworkTutorial 或 NomadWorkshop；跨项目只通过文档链接说明关系。
 
 ## 开始使用
 
@@ -32,8 +31,6 @@ Framework 的版本升级必须提交新的子模块指针，并在 `docs/framew
 
 验证范围根据改动风险选择：纯模拟优先运行纯 C# 测试；场景、Prefab 或 Framework 接入改动需要 Unity 编译、相关测试和实际运行路径。测试通过只证明契约成立，教程体验仍需在运行时检查。
 
-## 相关仓库
+## 直接依赖
 
-- [SSFramework](https://github.com/heroliss/SSFramework)：被本项目消费的框架包。
-- [FrameworkTutorial](https://github.com/heroliss/FrameworkTutorial)：框架章节教程，计划更名为 `SSFrameworkTutorial`。
-- [NomadWorkshop](https://github.com/heroliss/NomadWorkshop)：独立开发中的正式游戏。
+- [SSFramework](https://github.com/heroliss/SSFramework)：本项目消费的框架包。
