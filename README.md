@@ -1,26 +1,39 @@
 # Outpost
 
-Outpost 是 SSFramework 的独立教程游戏，用来验证真实游戏如何消费框架能力。它拥有自己的场景、模拟、资源、配置、网络样例和测试，不向 Framework 回写游戏逻辑。
+Outpost 是 SSFramework 的独立教程游戏和真实消费示例。它用一个可运行的小型游戏验证 Framework 在场景、模拟、资源、配置与测试中的接入方式；Outpost 的玩法和业务代码只属于本仓库，不回写 Framework。
 
-## 依赖边界
+## 仓库边界
 
-- Unity：6000.3.22f1
-- Framework：`com.liss.ssframework`
-- Framework 以 Git submodule 固定在 `Packages/com.liss.ssframework/`
-- Outpost 的纯逻辑模拟位于 `Assets/Game/Outpost/Sim`，不依赖 Unity 或 Framework
+- Unity 工程与场景、Prefab、配置和美术资产：本仓库。
+- 纯逻辑模拟：`Assets/Game/Outpost/Sim`，不依赖 Unity 或 Framework。
+- Framework：`Packages/com.liss.ssframework` Git submodule，固定到已验证的 commit。
+- Outpost 不依赖 FrameworkTutorial 或 NomadWorkshop；跨项目只通过文档链接说明关系。
 
-Outpost 不依赖 FrameworkTutorial 或 NomadWorkshop。升级 Framework 时必须提交新的 submodule 指针，并同步 `docs/framework-compatibility.md`。
+## 开始使用
 
-## 分支
+需要 Unity `6000.3.22f1`。克隆后在仓库根目录执行：
 
-`main` 保持可运行稳定版本，`develop` 用于集成，功能使用短期 `feature/*` 分支。发布使用仓库内的 `vX.Y.Z` Tag。
-
-## 打开与验证
-
-使用 Unity 6000.3.22f1 打开本仓库根目录，并先执行：
-
-```text
+```powershell
 git submodule update --init --recursive
 ```
 
-测试范围、教程章节和项目约束见 `Assets/Game/Outpost/Documentation~` 与 `docs/`。
+然后用 Unity Hub 打开根目录。教程章节、项目规则和验证入口位于 `Assets/Game/Outpost/Documentation~` 与 `docs/`。
+
+## 分支与发布
+
+- `main`：可运行的稳定线。
+- `develop`：章节和功能集成线。
+- `feature/*`：短期开发分支。
+- `vX.Y.Z`：教程游戏的阶段发布标签。
+
+Framework 的版本升级必须提交新的子模块指针，并在 `docs/framework-compatibility.md` 记录兼容性和验证结果。跨仓库的完整同步流程见 [SSFramework 仓库集成说明](https://github.com/heroliss/SSFramework/blob/main/docs/repository-integration.md)。
+
+## 验证原则
+
+验证范围根据改动风险选择：纯模拟优先运行纯 C# 测试；场景、Prefab 或 Framework 接入改动需要 Unity 编译、相关测试和实际运行路径。测试通过只证明契约成立，教程体验仍需在运行时检查。
+
+## 相关仓库
+
+- [SSFramework](https://github.com/heroliss/SSFramework)：被本项目消费的框架包。
+- [FrameworkTutorial](https://github.com/heroliss/FrameworkTutorial)：框架章节教程，计划更名为 `SSFrameworkTutorial`。
+- [NomadWorkshop](https://github.com/heroliss/NomadWorkshop)：独立开发中的正式游戏。
