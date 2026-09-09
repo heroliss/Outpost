@@ -26,7 +26,7 @@ git submodule update --init --recursive
 - `feature/*`：短期开发分支。
 - `vX.Y.Z`：教程游戏的阶段发布标签。
 
-Framework 的版本升级必须提交新的子模块指针，并在 `docs/framework-compatibility.md` 记录兼容性和验证结果。跨仓库的完整同步流程见 [SSFramework 仓库集成说明](https://github.com/heroliss/SSFramework/blob/main/docs/repository-integration.md)。
+Framework 的版本升级必须提交新的子模块指针，并在 `docs/framework-compatibility.md` 记录兼容性和验证结果。通用安装与升级规则见 [Framework 接入与升级说明](https://github.com/heroliss/SSFramework/blob/main/docs/consuming-framework.md)。
 
 ## 验证原则
 
