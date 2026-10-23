@@ -29,8 +29,8 @@ namespace Game.Outpost.Battle
         // 循环档位：慢放到 0.25×（逐帧看弹丸扫掠命中）、快进到 4×（快速看规模爬坡）。
         private static readonly float[] Steps = { 0.25f, 0.5f, 1f, 2f, 4f };
 
-        private static readonly Color NormalColor = new(0.22f, 0.24f, 0.30f, 0.85f);  // 1×：暗灰（同托管关）
-        private static readonly Color AlteredColor = new(0.85f, 0.55f, 0.20f, 0.90f); // 非 1×：暖橙提示
+        private static readonly Color NormalColor = new(0.07f, 0.12f, 0.18f, 0.98f);  // 1×：暗蓝（同托管关）
+        private static readonly Color AlteredColor = new(0.40f, 0.23f, 0.10f, 0.98f); // 非 1×：暖橙提示
 
         private float _current = 1f;
 

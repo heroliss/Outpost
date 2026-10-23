@@ -27,7 +27,7 @@ namespace Game.Outpost.Battle
         private Color _coreColor = new(0.4f, 3.0f, 2.8f, 1f);
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        private const float CoreBaseScale = 0.5f;
+        private const float CoreBaseScale = 0.34f;
 
         private float _recoil;
         private float _barrelBaseX;
@@ -36,6 +36,10 @@ namespace Game.Outpost.Battle
         private Transform _core;
         private Material _coreMat; // 运行时创建，OnDestroy 释放
         private Material _baseMat; // 六边形工事底座的专属 Unlit 材质（运行时创建，OnDestroy 释放）
+        private Transform _muzzleFlash;
+        private Renderer _muzzleFlashRenderer;
+        private float _muzzleFlashTime;
+        private MaterialPropertyBlock _visualColors;
         private AudioSource[] _fireGears; // 火墙档位组（运行时挂的引擎组件，见 InitFireGears）
         private float[] _fireGearRates;   // 各档原生射速（发/秒），与烘焙资产一一对应
         private AudioSource _servoLoop; // 回转伺服电机循环（运行时挂的引擎组件，见 InitServoLoop）
@@ -60,27 +64,66 @@ namespace Game.Outpost.Battle
             var shader = Shader.Find("Universal Render Pipeline/Unlit");
             if (shader == null) return;
 
+            _baseMat = new Material(shader);
+            _baseMat.SetColor(BaseColorId, new Color(0.24f, 0.29f, 0.36f, 1f));
+            // 克制核心亮度，保留机械轮廓；雷达、炮台的青蓝与敌人配置色继续分工。
+            _coreMat = new Material(shader);
+            _coreMat.SetColor(BaseColorId, _coreColor * 0.60f);
+
+            CreatePart("Foundation", transform, OutpostMeshes.Hexagon,
+                new Vector3(0f, 0f, 0.12f), new Vector3(2.65f, 2.65f, 1f),
+                new Color(0.10f, 0.14f, 0.19f, 1f));
+            CreatePart("FoundationRim", transform, OutpostMeshes.HexFrame,
+                new Vector3(0f, 0f, 0.10f), new Vector3(2.65f, 2.65f, 1f),
+                new Color(0.23f, 0.32f, 0.40f, 1f));
+
+            // 六根固定支撑：只在 Awake 建立，无碰撞体，不参与射程/寻敌/伤害。
+            for (int i = 0; i < 6; i++)
+            {
+                float a = (i * 60f + 30f) * Mathf.Deg2Rad;
+                var part = CreatePart("ArmorBrace", transform, OutpostMeshes.UnitQuad,
+                    new Vector3(Mathf.Cos(a) * 1.13f, Mathf.Sin(a) * 1.13f, -0.025f),
+                    new Vector3(0.48f, 0.21f, 1f), new Color(0.36f, 0.44f, 0.52f, 1f));
+                part.localRotation = Quaternion.Euler(0f, 0f, i * 60f + 30f);
+            }
+
             var baseTf = transform.Find("Base");
             if (baseTf != null)
             {
                 var mf = baseTf.GetComponent<MeshFilter>();
                 if (mf != null) mf.sharedMesh = OutpostMeshes.Hexagon;
                 baseTf.localRotation = Quaternion.identity;
+                baseTf.localPosition = new Vector3(0f, 0f, 0.02f);
                 baseTf.localScale = new Vector3(2.1f, 2.1f, 1f); // 平顶六边形工事平台
                 var mrBase = baseTf.GetComponent<MeshRenderer>();
                 if (mrBase != null)
                 {
                     // 专属枪钢灰蓝 Unlit 材质：不靠场景材质的属性名，保证平台对比青色填充盘可见（非 HDR、不发光，读成实心工事）。
-                    _baseMat = new Material(shader);
-                    _baseMat.SetColor(BaseColorId, new Color(0.30f, 0.34f, 0.42f, 1f));
                     mrBase.sharedMaterial = _baseMat;
                 }
             }
 
-            // 核心：贴底座中心、朝相机一侧的发光圆盘。HDR 色经 Bloom 出辉光。
-            _coreMat = new Material(shader);
-            _coreMat.SetColor(BaseColorId, _coreColor);
+            CreatePart("UpperDeck", transform, OutpostMeshes.Hexagon,
+                new Vector3(0f, 0f, -0.045f), new Vector3(1.65f, 1.65f, 1f),
+                new Color(0.12f, 0.17f, 0.22f, 1f));
+            CreatePart("DeckTrim", transform, OutpostMeshes.HexFrame,
+                new Vector3(0f, 0f, -0.055f), new Vector3(1.64f, 1.64f, 1f),
+                new Color(0.35f, 0.46f, 0.54f, 1f));
+            CreatePart("ReactorRing", transform, OutpostMeshes.UnitRing,
+                new Vector3(0f, 0f, -0.075f), new Vector3(1.32f, 1.32f, 1f),
+                new Color(0.20f, 1.10f, 1.16f, 1f));
 
+            var barrelRenderer = _barrelMesh.GetComponent<Renderer>();
+            if (barrelRenderer != null)
+            {
+                barrelRenderer.sharedMaterial = _baseMat;
+                SetPartColor(barrelRenderer, new Color(0.48f, 0.56f, 0.64f, 1f));
+            }
+            CreatePart("BarrelEnergyRail", _barrelMesh, OutpostMeshes.UnitQuad,
+                new Vector3(0f, 0f, -0.58f), new Vector3(0.72f, 0.20f, 1f),
+                new Color(0.48f, 1.55f, 1.65f, 1f));
+
+            // 核心：贴底座中心、朝相机一侧的发光圆盘。HDR 色经 Bloom 出辉光。
             var go = new GameObject("Core");
             go.transform.SetParent(transform, false);
             go.transform.localPosition = new Vector3(0f, 0f, -0.35f); // 炮管之前一层，核心不被炮管遮住
@@ -91,13 +134,45 @@ namespace Game.Outpost.Battle
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             mr.receiveShadows = false;
             _core = go.transform;
+
+            _muzzleFlash = CreatePart("MuzzleFlash", _muzzle, OutpostMeshes.Arrowhead,
+                new Vector3(0.12f, 0f, -0.24f), new Vector3(0.65f, 0.26f, 1f),
+                new Color(1.8f, 2.0f, 2.2f, 1f));
+            _muzzleFlashRenderer = _muzzleFlash.GetComponent<Renderer>();
+            _muzzleFlashRenderer.enabled = false;
+        }
+
+        private Transform CreatePart(string partName, Transform parent, Mesh mesh, Vector3 position, Vector3 scale, Color color)
+        {
+            var go = new GameObject(partName);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = position;
+            go.transform.localScale = scale;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = _baseMat;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            SetPartColor(renderer, color);
+            return go.transform;
+        }
+
+        private void SetPartColor(Renderer renderer, Color color)
+        {
+            _visualColors ??= new MaterialPropertyBlock();
+            _visualColors.SetColor(BaseColorId, color);
+            renderer.SetPropertyBlock(_visualColors);
         }
 
         /// <summary>把炮口摆到模拟内核给定的朝向角（度，标准数学角：0 = +X、逆时针为正；即绕本地 Z）。</summary>
         public void Face(float angleDeg) => _pivot.localRotation = Quaternion.Euler(0f, 0f, angleDeg);
 
         /// <summary>播放一次开火后坐。</summary>
-        public void Fire() => _recoil = _recoilKick;
+        public void Fire()
+        {
+            _recoil = _recoilKick;
+            _muzzleFlashTime = 0.055f;
+        }
 
         /// <summary>设置炮塔核心亮度（0..1「火力热度」）：越高核心越涨亮、读作"火力拉满"，低时收拢暗淡。由导演按击发节奏自算传入。</summary>
         public void SetSpin(float spin) => _spin = Mathf.Clamp01(spin);
@@ -201,12 +276,24 @@ namespace Game.Outpost.Battle
 
             UpdateServoLoop(Time.deltaTime);
 
+            if (_muzzleFlashRenderer != null)
+            {
+                _muzzleFlashTime = Mathf.Max(0f, _muzzleFlashTime - Time.deltaTime);
+                _muzzleFlashRenderer.enabled = _muzzleFlashTime > 0f;
+                if (_muzzleFlashTime > 0f)
+                {
+                    float t = _muzzleFlashTime / 0.055f;
+                    _muzzleFlash.localScale = new Vector3(0.35f + t * 0.30f, 0.08f + t * 0.18f, 1f);
+                    SetPartColor(_muzzleFlashRenderer, new Color(1.8f, 2.0f, 2.2f, 1f) * (0.35f + t * 0.65f));
+                }
+            }
+
             // 核心呼吸脉动；开火后坐未回落时随之涨大一点，呼应"刚开了一炮"。
             if (_core != null)
             {
-                float breath = 1f + 0.12f * Mathf.Sin(Time.time * 4f);
+                float breath = 1f + 0.065f * Mathf.Sin(Time.time * 4f);
                 float kick = 1f + _recoil * 1.5f;
-                float spin = 1f + 0.5f * _spin; // 预热拉满时核心涨大半圈
+                float spin = 1f + 0.30f * _spin;
                 _core.localScale = Vector3.one * (CoreBaseScale * breath * kick * spin);
             }
         }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Outpost.Battle
@@ -25,11 +26,13 @@ namespace Game.Outpost.Battle
         private const float RingZ = 0.30f;
 
         // 射程区配色（HDR 值 > 1 触发 Bloom 发光）。
-        private static readonly Color RangeRingColor = new(0.25f, 1.5f, 1.4f, 0.55f);
-        private static readonly Color FillColor = new(0.10f, 0.42f, 0.40f, 0.12f);
-        private static readonly Color WedgeColor = new(0.20f, 0.95f, 0.90f, 0.10f);
-        private static readonly Color SpokeColor = new(0.55f, 2.4f, 2.2f, 0.85f);
-        private static readonly Color BoundaryColor = new(1.35f, 0.42f, 0.30f, 1f); // alpha 由呼吸调制
+        private static readonly Color RangeRingColor = new(0.22f, 1.10f, 1.05f, 0.42f);
+        private static readonly Color FillColor = new(0.10f, 0.32f, 0.34f, 0.045f);
+        private static readonly Color WedgeColor = new(0.18f, 0.70f, 0.72f, 0.06f);
+        private static readonly Color SpokeColor = new(0.38f, 1.50f, 1.55f, 0.55f);
+        private static readonly Color BoundaryColor = new(1.05f, 0.28f, 0.24f, 1f); // alpha 由呼吸调制
+        private static readonly Color GridColor = new(0.16f, 0.28f, 0.36f, 0.32f);
+        private static readonly Color GuideColor = new(0.22f, 0.48f, 0.54f, 0.36f);
 
         // 扫描臂几何：从本地 -SweepSpan 到 0（角度递增 = CCW 正面），臂在 0 度处（旋转前沿），扇尾拖在后。
         private const float SweepSpan = 26f;
@@ -42,8 +45,15 @@ namespace Game.Outpost.Battle
         private Transform _fill;        // 填充盘（UnitDisc 缩放到射程）
         private MeshFilter _wedgeFilter; // 扫描扇（随射程重建）
         private LineRenderer _spoke;     // 扫描臂前沿亮线（随射程重建）
+        private MeshFilter _grid;
+        private MeshFilter _guides;
+        private MeshFilter _rangeTicks;
+        private Mesh _wedgeMesh;
+        private MaterialPropertyBlock _colors;
+        private readonly List<Mesh> _ownedMeshes = new();
 
         private float _currentRange = -1f;
+        private float _arenaRadius = -1f;
         private float _boundaryBaseAlpha = 0.4f;
 
         /// <summary>模拟就绪后调用：按竞技场半径生成外缘危险警戒环。重复调用只更新半径。</summary>
@@ -51,10 +61,15 @@ namespace Game.Outpost.Battle
         {
             if (_boundaryRing == null)
             {
-                _boundaryRing = CreateRing("BoundaryRing", 0.07f, RingZ, BoundaryColor);
-                _boundaryBaseAlpha = BoundaryColor.a * 0.4f; // 存底色 alpha，呼吸在其上下浮动
+                _boundaryRing = CreateRing("BoundaryRing", 0.035f, RingZ, BoundaryColor);
+                _boundaryBaseAlpha = BoundaryColor.a * 0.26f;
             }
             SetRingRadius(_boundaryRing, arenaRadius);
+            if (!Mathf.Approximately(_arenaRadius, arenaRadius))
+            {
+                _arenaRadius = arenaRadius;
+                RebuildGroundGuides(arenaRadius);
+            }
         }
 
         /// <summary>更新玩家射程区（首次调用时创建环 + 填充盘 + 扫描臂）。升级加射程后整体外扩。</summary>
@@ -68,6 +83,7 @@ namespace Game.Outpost.Battle
             SetRingRadius(_rangeRing, range);
             _fill.localScale = new Vector3(range, range, 1f);
             RebuildSweep(range);
+            RebuildRangeTicks(range);
         }
 
         private void Update()
@@ -75,7 +91,7 @@ namespace Game.Outpost.Battle
             // 边界警戒环呼吸：alpha 在底色附近缓慢起伏，读成"危险线"而非静态装饰。
             if (_boundaryRing != null)
             {
-                float a = _boundaryBaseAlpha + 0.18f * (0.5f + 0.5f * Mathf.Sin(Time.time * 1.6f));
+                float a = _boundaryBaseAlpha + 0.08f * (0.5f + 0.5f * Mathf.Sin(Time.time * 1.6f));
                 var c = BoundaryColor; c.a = a;
                 SetColor(_boundaryRing, c);
             }
@@ -88,7 +104,8 @@ namespace Game.Outpost.Battle
         // 一次性搭好射程区的三件：射程环 + 填充盘 + 扫描臂（含亮线 + 扇形拖尾）。
         private void BuildRangeZone()
         {
-            _rangeRing = CreateRing("RangeRing", 0.05f, RingZ, RangeRingColor);
+            _rangeRing = CreateRing("RangeRing", 0.028f, RingZ, RangeRingColor);
+            _rangeTicks = CreateMeshChild("RangeTicks", RingZ - 0.01f, null, RangeRingColor);
 
             // 填充盘：单位圆网格，透过 localScale 缩放到射程；极淡青、读成"我的火力覆盖区"。
             _fill = CreateMeshChild("RangeFill", FillZ, OutpostMeshes.UnitDisc, FillColor).transform;
@@ -107,7 +124,7 @@ namespace Game.Outpost.Battle
             spokeGo.transform.localPosition = new Vector3(0f, 0f, SpokeZ);
             _spoke = spokeGo.AddComponent<LineRenderer>();
             _spoke.useWorldSpace = false;
-            _spoke.widthMultiplier = 0.06f;
+            _spoke.widthMultiplier = 0.025f;
             _spoke.positionCount = 2;
             _spoke.sharedMaterial = _ringMaterial;
             _spoke.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -133,15 +150,111 @@ namespace Game.Outpost.Battle
                 tris[i * 3 + 1] = 1 + i;
                 tris[i * 3 + 2] = 2 + i;
             }
-            var mesh = _wedgeFilter.sharedMesh;
-            if (mesh == null) { mesh = new Mesh { name = "OutpostSweepWedge" }; _wedgeFilter.sharedMesh = mesh; }
+            var mesh = _wedgeMesh;
+            if (mesh == null)
+            {
+                mesh = _wedgeMesh = NewOwnedMesh("OutpostSweepWedge");
+                _wedgeFilter.sharedMesh = mesh;
+            }
             mesh.Clear();
             mesh.SetVertices(verts);
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
 
-            _spoke.SetPosition(0, Vector3.zero);
+            _spoke.SetPosition(0, new Vector3(Mathf.Min(1.5f, range), 0f, 0f));
             _spoke.SetPosition(1, new Vector3(range, 0f, 0f));
+        }
+
+        // 静态几何合批：地面有工程测距层次，但亮度始终垫在敌人、弹流和交互之下。
+        // 仅半径变化时建网格；每帧只旋转扫描臂和复用属性块，不创建线段对象。
+        private void RebuildGroundGuides(float radius)
+        {
+            if (_grid == null) _grid = CreateMeshChild("SurveyGrid", 0.485f, NewOwnedMesh("OutpostSurveyGrid"), GridColor);
+            if (_guides == null) _guides = CreateMeshChild("SurveyGuides", 0.475f, NewOwnedMesh("OutpostSurveyGuides"), GuideColor);
+
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            const float spacing = 2f;
+            int extent = Mathf.CeilToInt(radius / spacing);
+            for (int i = -extent; i <= extent; i++)
+            {
+                float offset = i * spacing;
+                if (Mathf.Abs(offset) >= radius) continue;
+                float half = Mathf.Sqrt(radius * radius - offset * offset);
+                AddStrip(vertices, triangles, new Vector2(-half, offset), new Vector2(half, offset), 0.012f);
+                AddStrip(vertices, triangles, new Vector2(offset, -half), new Vector2(offset, half), 0.012f);
+            }
+            SetMesh(_grid.sharedMesh, vertices, triangles);
+            vertices.Clear();
+            triangles.Clear();
+            for (int r = 1; r <= 3; r++) AddArc(vertices, triangles, radius * r / 4f, 0.016f);
+            for (int i = 0; i < 72; i++)
+            {
+                float a = i * Mathf.PI * 2f / 72f;
+                var direction = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                bool major = i % 6 == 0;
+                AddStrip(vertices, triangles, direction * (radius - (major ? 0.42f : 0.18f)),
+                    direction * (radius - 0.04f), major ? 0.045f : 0.022f);
+            }
+            SetMesh(_guides.sharedMesh, vertices, triangles);
+        }
+
+        private void RebuildRangeTicks(float range)
+        {
+            if (_rangeTicks.sharedMesh == null) _rangeTicks.sharedMesh = NewOwnedMesh("OutpostRangeTicks");
+            var vertices = new List<Vector3>(96);
+            var triangles = new List<int>(144);
+            for (int i = 0; i < 24; i++)
+            {
+                float a = i * Mathf.PI * 2f / 24f;
+                var direction = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                AddStrip(vertices, triangles, direction * (range - (i % 3 == 0 ? 0.23f : 0.11f)),
+                    direction * range, 0.027f);
+            }
+            SetMesh(_rangeTicks.sharedMesh, vertices, triangles);
+        }
+
+        private Mesh NewOwnedMesh(string meshName)
+        {
+            var mesh = new Mesh { name = meshName };
+            _ownedMeshes.Add(mesh);
+            return mesh;
+        }
+
+        private static void AddArc(List<Vector3> vertices, List<int> triangles, float radius, float width)
+        {
+            const int segments = 128;
+            for (int i = 0; i < segments; i++)
+            {
+                float a = i * Mathf.PI * 2f / segments;
+                float b = (i + 1) * Mathf.PI * 2f / segments;
+                AddStrip(vertices, triangles, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius,
+                    new Vector2(Mathf.Cos(b), Mathf.Sin(b)) * radius, width);
+            }
+        }
+
+        private static void AddStrip(List<Vector3> vertices, List<int> triangles, Vector2 from, Vector2 to, float width)
+        {
+            Vector2 d = (to - from).normalized;
+            Vector2 normal = new(-d.y * width * 0.5f, d.x * width * 0.5f);
+            int n = vertices.Count;
+            vertices.Add(from - normal);
+            vertices.Add(from + normal);
+            vertices.Add(to + normal);
+            vertices.Add(to - normal);
+            triangles.Add(n); triangles.Add(n + 1); triangles.Add(n + 2);
+            triangles.Add(n); triangles.Add(n + 2); triangles.Add(n + 3);
+            // 材质可能背面剔除；和共享几何库一样显式双面。
+            triangles.Add(n); triangles.Add(n + 2); triangles.Add(n + 1);
+            triangles.Add(n); triangles.Add(n + 3); triangles.Add(n + 2);
+        }
+
+        private static void SetMesh(Mesh mesh, List<Vector3> vertices, List<int> triangles)
+        {
+            mesh.Clear();
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateBounds();
         }
 
         private LineRenderer CreateRing(string ringName, float width, float z, Color color)
@@ -173,17 +286,21 @@ namespace Game.Outpost.Battle
             mr.sharedMaterial = _ringMaterial;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             mr.receiveShadows = false;
-            var mpb = new MaterialPropertyBlock();
-            mpb.SetColor(BaseColorId, color);
-            mr.SetPropertyBlock(mpb);
+            SetColor(mr, color);
             return mf;
         }
 
-        private static void SetColor(Renderer r, Color color)
+        private void SetColor(Renderer r, Color color)
         {
-            var mpb = new MaterialPropertyBlock();
-            mpb.SetColor(BaseColorId, color);
-            r.SetPropertyBlock(mpb);
+            _colors ??= new MaterialPropertyBlock();
+            _colors.SetColor(BaseColorId, color);
+            r.SetPropertyBlock(_colors);
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var mesh in _ownedMeshes)
+                if (mesh != null) Destroy(mesh);
         }
 
         private static void SetRingRadius(LineRenderer lr, float radius)

@@ -33,7 +33,7 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("性能行（后端 | 敌人数 | 残骸数 | 模拟耗时 | fps）——两个 Sim 后端同题对比的实时度量。")]
         private TMP_Text _perfText;
 
-        private static readonly Color HpGreen = new(0.35f, 0.92f, 0.45f);
+        private static readonly Color HpGreen = new(0.28f, 0.86f, 0.78f);
         private static readonly Color HpAmber = new(0.95f, 0.75f, 0.30f);
         private static readonly Color HpRed = new(0.95f, 0.30f, 0.25f);
 
@@ -67,7 +67,12 @@ namespace Game.Outpost.Battle
             Bag.Subscribe(rm.Hp.CombineLatest(rm.MaxHp, (hp, max) => (hp, max)), t =>
             {
                 float ratio = t.max > 0f ? Mathf.Clamp01(t.hp / t.max) : 0f;
-                _hpFill.fillAmount = ratio;
+                // 平直仪表条使用锚点裁切，避免内置圆角 Sprite 在 Filled 模式下被横向拉成长光斑。
+                // 保留旧场景的 Filled 表现兼容性；两者均由同一只读血量比例驱动。
+                if (_hpFill.type == UnityEngine.UI.Image.Type.Filled)
+                    _hpFill.fillAmount = ratio;
+                else
+                    _hpFill.rectTransform.anchorMax = new Vector2(ratio, 1f);
                 _hpFill.color = ratio > 0.5f
                     ? Color.Lerp(HpAmber, HpGreen, (ratio - 0.5f) * 2f)
                     : Color.Lerp(HpRed, HpAmber, ratio * 2f);

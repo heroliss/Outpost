@@ -18,6 +18,8 @@ namespace Game.Outpost.Battle
         private static Mesh _octagon;
         private static Mesh _projectile;
         private static Mesh _unitQuad;
+        private static Mesh _unitRing;
+        private static Mesh _hexFrame;
 
         /// <summary>快速种：指向行进方向的箭头（本地 +X 为箭尖，<see cref="EnemyView"/> 逐帧转向来袭方向 = 冲向哨站）。</summary>
         public static Mesh Arrowhead
@@ -25,10 +27,21 @@ namespace Game.Outpost.Battle
             get { if (_arrowhead == null) _arrowhead = BuildArrowhead(); return _arrowhead; }
         }
 
-        /// <summary>无人机（炮灰）：指向行进方向的小三角（一个顶点朝本地 +X，逐帧转向来袭方向）。比箭头更小更尖、读作成群小飞行器。</summary>
+        /// <summary>无人机（炮灰）：凹尾双翼，本地 +X 指向行进方向；保留小单位轮廓，负空间使其区别于弹丸。</summary>
         public static Mesh Dart
         {
-            get { if (_dart == null) _dart = BuildPolygon("OutpostDart", 3, 0f, 0.5f); return _dart; }
+            get
+            {
+                if (_dart == null)
+                    _dart = Build("OutpostDart", new[]
+                    {
+                        new Vector3(0.50f, 0f, 0f),
+                        new Vector3(-0.25f, 0.43f, 0f),
+                        new Vector3(-0.06f, 0f, 0f),
+                        new Vector3(-0.25f, -0.43f, 0f),
+                    }, new[] { 0, 1, 2, 0, 2, 3 });
+                return _dart;
+            }
         }
 
         /// <summary>掠袭机（极速种）：细长尖针，指向行进方向（本地 +X 为针尖，逐帧转向来袭方向）。比箭头更瘦更尖，读作高速掠袭。</summary>
@@ -67,6 +80,36 @@ namespace Game.Outpost.Battle
         public static Mesh UnitDisc
         {
             get { if (_unitDisc == null) _unitDisc = BuildPolygon("OutpostUnitDisc", 48, 0f, 1f); return _unitDisc; }
+        }
+
+        /// <summary>外径 1 的细能量环；跨装饰实例共享，不生成材质或 GameObject。</summary>
+        public static Mesh UnitRing
+        {
+            get { if (_unitRing == null) _unitRing = BuildRing("OutpostUnitRing", 72, 0f, 0.465f, 0.5f); return _unitRing; }
+        }
+
+        /// <summary>外径 1 的六边形装甲边框，和实心 Hexagon 分开以免改变单位基础轮廓。</summary>
+        public static Mesh HexFrame
+        {
+            get { if (_hexFrame == null) _hexFrame = BuildRing("OutpostHexFrame", 6, 30f, 0.425f, 0.5f); return _hexFrame; }
+        }
+
+        private static Mesh BuildRing(string name, int segments, float startDeg, float inner, float outer)
+        {
+            var vertices = new Vector3[segments * 2];
+            var triangles = new int[segments * 6];
+            for (int i = 0; i < segments; i++)
+            {
+                float a = (startDeg + i * 360f / segments) * Mathf.Deg2Rad;
+                var direction = new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f);
+                vertices[i * 2] = direction * inner;
+                vertices[i * 2 + 1] = direction * outer;
+                int n = (i + 1) % segments;
+                int t = i * 6;
+                triangles[t] = i * 2; triangles[t + 1] = i * 2 + 1; triangles[t + 2] = n * 2 + 1;
+                triangles[t + 3] = i * 2; triangles[t + 4] = n * 2 + 1; triangles[t + 5] = n * 2;
+            }
+            return Build(name, vertices, triangles);
         }
 
         /// <summary>在飞弹丸：细长拖尾菱形（尖头朝本地 +X、总长 1），按飞行方向旋转、整体缩放到弹长——高速直飞读成一道光痕。</summary>

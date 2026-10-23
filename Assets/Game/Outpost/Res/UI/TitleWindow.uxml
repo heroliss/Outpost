@@ -5,12 +5,24 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="Outpost.uss" />
     <ui:VisualElement class="op-page op-page--title">
-        <ui:Label text="OUTPOST" class="op-title" enable-rich-text="false" />
-        <ui:Label name="subtitle" text="哨站生存 —— 框架垂直切片" class="op-label" enable-rich-text="false" />
-        <ui:Label name="record" text="" class="op-label op-label--dim" enable-rich-text="false" />
-        <ui:Button name="start" text="开始游戏" class="op-btn" />
-        <ui:Button name="leaderboard" text="全服排行" class="op-btn" />
-        <ui:Button name="about" text="框架看点" class="op-btn" />
-        <ui:Button name="settings" text="设置" class="op-btn" />
+        <ui:VisualElement class="op-title-radar" picking-mode="Ignore">
+            <ui:VisualElement class="op-title-radar__ring" picking-mode="Ignore" />
+            <ui:VisualElement class="op-title-radar__core" picking-mode="Ignore" />
+            <ui:VisualElement class="op-title-radar__horizontal" picking-mode="Ignore" />
+            <ui:VisualElement class="op-title-radar__vertical" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement class="op-title-layout">
+            <ui:VisualElement class="op-title-brand">
+                <ui:Label text="OUTPOST" class="op-title" enable-rich-text="false" />
+                <ui:Label name="subtitle" text="哨站生存 —— 框架垂直切片" class="op-label op-title-subtitle" enable-rich-text="false" />
+                <ui:Label name="record" text="" class="op-label op-label--dim op-title-record" enable-rich-text="false" />
+            </ui:VisualElement>
+            <ui:VisualElement class="op-title-menu">
+                <ui:Button name="start" text="开始游戏" class="op-btn op-btn--primary" />
+                <ui:Button name="leaderboard" text="全服排行" class="op-btn" />
+                <ui:Button name="about" text="框架看点" class="op-btn" />
+                <ui:Button name="settings" text="设置" class="op-btn" />
+            </ui:VisualElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

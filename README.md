@@ -10,13 +10,15 @@ Outpost 是 SSFramework 的独立教程游戏和真实消费示例。它用一�
 
 ## 开始使用
 
-需要 Unity `6000.3.22f1`。克隆后在仓库根目录执行：
+需要 Unity `6000.6.0f1`，当前依赖使用 YooAsset `3.0.6`。克隆后在仓库根目录执行：
 
 ```powershell
 git submodule update --init --recursive
 ```
 
-然后用 Unity Hub 打开根目录。教程章节、项目规则和验证入口位于 `Assets/Game/Outpost/Documentation~` 与 `docs/`。
+然后用 Unity Hub 的对应版本打开根目录，等待依赖解析与编译完成。在编辑器中打开 `Assets/Game/Outpost/Scenes/OutpostGame.unity` 并进入 Play，从标题页开始游戏。
+
+教程章节、项目规则和验证入口位于 `Assets/Game/Outpost/Documentation~` 与 `docs/`；当前升级与验证范围见 [`docs/framework-compatibility.md`](docs/framework-compatibility.md)。
 
 ## 分支与发布
 

@@ -4,12 +4,16 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="Outpost.uss" />
     <ui:VisualElement class="op-page op-page--result">
-        <ui:Label name="title" text="结算" class="op-title" enable-rich-text="false" />
-        <ui:Label name="verdict" text="" class="op-label op-verdict" enable-rich-text="false" />
-        <ui:Label name="detail" text="" class="op-label" enable-rich-text="false" />
-        <ui:Label name="record" text="" class="op-label" enable-rich-text="false" />
-        <ui:Label name="rank" text="" class="op-label op-rank" enable-rich-text="false" />
-        <ui:Button name="leaderboard" text="全服排行" class="op-btn" />
-        <ui:Button name="back" text="回标题" class="op-btn" />
+        <ui:VisualElement class="op-result-content">
+            <ui:Label name="title" text="结算" class="op-title" enable-rich-text="false" />
+            <ui:Label name="verdict" text="" class="op-label op-verdict" enable-rich-text="false" />
+            <ui:Label name="detail" text="" class="op-label op-result-detail" enable-rich-text="false" />
+            <ui:Label name="record" text="" class="op-label op-result-record" enable-rich-text="false" />
+            <ui:Label name="rank" text="" class="op-label op-rank" enable-rich-text="false" />
+            <ui:VisualElement class="op-result-actions">
+                <ui:Button name="leaderboard" text="全服排行" class="op-btn" />
+                <ui:Button name="back" text="回标题" class="op-btn op-btn--primary" />
+            </ui:VisualElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

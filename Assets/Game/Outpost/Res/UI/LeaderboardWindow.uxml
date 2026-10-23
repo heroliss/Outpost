@@ -6,10 +6,14 @@
     <Style src="Outpost.uss" />
     <ui:VisualElement class="op-overlay" picking-mode="Ignore">
         <ui:VisualElement class="op-card op-card--leaderboard">
-            <ui:Label name="title" text="全服排行" class="op-card__title" enable-rich-text="false" />
-            <ui:Label name="status" text="" class="op-label op-label--dim" enable-rich-text="false" />
-            <ui:VisualElement name="list" class="op-lb-list" />
-            <ui:VisualElement class="op-lb-actions">
+            <ui:VisualElement class="op-card__header">
+                <ui:Label name="title" text="全服排行" class="op-card__title" enable-rich-text="false" />
+            </ui:VisualElement>
+            <ui:ScrollView class="op-card__body" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
+                <ui:Label name="status" text="" class="op-label op-label--dim" enable-rich-text="false" />
+                <ui:VisualElement name="list" class="op-lb-list" />
+            </ui:ScrollView>
+            <ui:VisualElement class="op-card__footer op-lb-actions">
                 <ui:Button name="refresh" text="刷新" class="op-btn op-btn--half" />
                 <ui:Button name="close" text="关闭" class="op-btn op-btn--half" />
             </ui:VisualElement>

@@ -25,8 +25,8 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("按钮底图（回显开 / 关配色）。")]
         private Image _background;
 
-        private static readonly Color OnColor = new(0.85f, 0.45f, 0.16f, 0.92f);   // 开：暖橙（呼应热力图色）
-        private static readonly Color OffColor = new(0.22f, 0.24f, 0.30f, 0.85f);  // 关：暗灰
+        private static readonly Color OnColor = new(0.40f, 0.23f, 0.10f, 0.98f);   // 开：暖橙（呼应热力图色）
+        private static readonly Color OffColor = new(0.07f, 0.12f, 0.18f, 0.98f);  // 关：暗蓝
 
         private bool _current;
 

@@ -9,36 +9,188 @@
     left: 0; top: 0; right: 0; bottom: 0;
     justify-content: center;
     align-items: center;
+    color: rgb(217, 224, 242);
 }
 
-.op-page--title { background-color: rgb(18, 26, 36); }
-.op-page--result { background-color: rgb(18, 28, 20); }
+.op-page--title,
+.op-page--result { background-color: rgb(12, 20, 30); }
+
+.op-page--title { overflow: hidden; }
+
+.op-title-radar {
+    position: absolute;
+    right: -180px;
+    top: -160px;
+    width: 780px;
+    height: 780px;
+    border-width: 1px;
+    border-color: rgba(105, 145, 179, 0.15);
+    border-radius: 390px;
+}
+
+.op-title-radar__ring,
+.op-title-radar__core {
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    right: 100px;
+    bottom: 100px;
+    border-width: 1px;
+    border-color: rgba(105, 145, 179, 0.12);
+    border-radius: 290px;
+}
+
+.op-title-radar__core {
+    left: 220px;
+    top: 220px;
+    right: 220px;
+    bottom: 220px;
+    border-radius: 170px;
+}
+
+.op-title-radar__horizontal {
+    position: absolute;
+    top: 50%;
+    left: -180px;
+    right: 0;
+    height: 1px;
+    background-color: rgba(105, 145, 179, 0.10);
+}
+
+.op-title-radar__vertical {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: -180px;
+    width: 1px;
+    background-color: rgba(105, 145, 179, 0.10);
+}
+
+.op-title-layout {
+    flex-direction: row;
+    align-items: center;
+    width: 90%;
+    max-width: 1200px;
+    min-height: 360px;
+    padding: 40px 44px;
+    border-left-width: 3px;
+    border-left-color: rgb(255, 158, 64);
+    border-top-width: 1px;
+    border-top-color: rgb(43, 62, 81);
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(43, 62, 81);
+    background-color: rgba(18, 29, 42, 0.96);
+}
+
+.op-title-brand { flex-grow: 1; flex-shrink: 1; }
+.op-title-brand .op-title { font-size: 68px; letter-spacing: 4px; margin-bottom: 18px; }
+
+.op-title-menu {
+    width: 32%;
+    min-width: 310px;
+    max-width: 330px;
+    margin-left: 48px;
+    padding-left: 30px;
+    border-left-width: 1px;
+    border-left-color: rgb(48, 66, 84);
+}
+
+.op-title-menu .op-btn { min-width: 0; width: 100%; height: 44px; font-size: 16px; margin-top: 10px; }
+.op-title-menu .op-btn--primary { height: 50px; margin-top: 0; margin-bottom: 8px; }
 
 .op-title {
     -unity-font-style: bold;
-    font-size: 34px;
+    font-size: 36px;
     color: rgb(255, 158, 64);
-    letter-spacing: 4px;
-    margin-bottom: 18px;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
 }
 
 .op-label {
     color: rgb(217, 224, 242);
     font-size: 14px;
     margin-bottom: 10px;
+    white-space: normal;
+}
+
+.op-title-subtitle { font-size: 18px; }
+
+.op-title-record {
+    font-size: 14px;
+    margin-top: 28px;
+    margin-bottom: 0;
+    padding-top: 18px;
+    border-top-width: 1px;
+    border-top-color: rgb(48, 66, 84);
 }
 
 /* 次要信息（历史战绩等）——比正文更收敛的灰蓝 */
 .op-label--dim { color: rgb(166, 184, 204); }
 
 /* 结算判定行（主动撤离 / 哨站失守），颜色由代码按结局设置 */
-.op-verdict { font-size: 22px; }
+.op-verdict { font-size: 22px; -unity-font-style: bold; margin-bottom: 18px; }
+
+.op-result-content {
+    width: 460px;
+    max-width: 90%;
+    padding: 24px 28px;
+    background-color: rgb(18, 29, 42);
+    border-top-width: 3px;
+    border-top-color: rgb(255, 158, 64);
+}
+
+.op-result-content .op-title { font-size: 28px; letter-spacing: 1px; }
+.op-result-detail { font-size: 17px; }
+.op-result-record { margin-top: 8px; font-size: 12px; }
+.op-result-actions { margin-top: 10px; }
+.op-result-actions .op-btn { min-width: 0; }
 
 .op-btn {
     margin-top: 8px;
     min-width: 220px;
     height: 36px;
     font-size: 14px;
+    color: rgb(217, 224, 242);
+    background-color: rgb(28, 43, 59);
+    background-image: none;
+    border-width: 2px;
+    border-color: rgb(76, 99, 120);
+    border-radius: 5px;
+}
+
+.op-btn:hover:enabled {
+    color: rgb(255, 224, 187);
+    background-color: rgb(41, 60, 79);
+    border-color: rgb(255, 158, 64);
+}
+
+.op-btn:focus { border-color: rgb(255, 206, 150); }
+
+.op-btn:active {
+    color: rgb(18, 26, 36);
+    background-color: rgb(255, 158, 64);
+    border-color: rgb(255, 206, 150);
+}
+
+.op-btn--primary {
+    -unity-font-style: bold;
+    color: rgb(18, 26, 36);
+    background-color: rgb(255, 158, 64);
+    border-color: rgb(255, 158, 64);
+}
+
+.op-btn--primary:hover:enabled,
+.op-btn--primary:focus {
+    background-color: rgb(255, 184, 106);
+    border-color: rgb(255, 222, 180);
+}
+
+.op-btn--primary:active { background-color: rgb(224, 129, 43); }
+
+.op-btn:disabled {
+    color: rgb(145, 160, 182);
+    background-color: rgb(24, 35, 49);
+    border-color: rgb(52, 67, 83);
 }
 
 /* ── 模态卡片（框架看点弹窗） ──────────────────────────── */
@@ -49,57 +201,180 @@
     left: 0; top: 0; right: 0; bottom: 0;
     justify-content: center;
     align-items: center;
+    background-color: rgba(4, 10, 18, 0.35);
 }
 
 .op-card {
     /* 用确定宽度而非 max-width：收缩容器里的换行 Label 会先按无界宽度测高（单行）、
        再被 max-width 钳住换行——父容器高度不随之重算，条目互相压叠。定宽让首轮测量即约束。 */
     width: 520px;
-    padding: 14px 20px;
-    background-color: rgba(26, 33, 43, 0.98);
-    border-radius: 12px;
-    border-width: 2px;
-    border-color: rgb(255, 158, 64);
+    max-width: 92%;
+    max-height: 88%;
+    flex-shrink: 1;
+    background-color: rgb(19, 30, 43);
+    color: rgb(217, 224, 242);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgb(58, 78, 99);
+    border-top-width: 3px;
+    border-top-color: rgb(255, 158, 64);
+}
+
+.op-card__header {
+    flex-shrink: 0;
+    padding: 14px 20px 12px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(43, 62, 81);
+}
+
+.op-card__body {
+    flex-shrink: 1;
+    min-height: 0;
+    padding: 12px 20px;
+}
+
+.op-card__body .unity-scroll-view__content-container { padding-right: 4px; }
+
+.op-card__footer {
+    flex-shrink: 0;
+    padding: 10px 20px 14px;
+    border-top-width: 1px;
+    border-top-color: rgb(43, 62, 81);
+}
+
+.op-card__subtitle { font-size: 12px; margin-top: 5px; margin-bottom: 0; }
+
+.op-card .op-card__footer .op-btn { margin-top: 0; min-width: 0; }
+
+.op-card__body .unity-scroller--vertical { width: 10px; }
+
+.op-card__body .unity-scroller .unity-base-slider__tracker {
+    background-color: rgb(14, 23, 34);
+    border-width: 0;
+}
+
+.op-card__body .unity-scroller .unity-base-slider__dragger {
+    background-color: rgb(76, 99, 120);
+    border-width: 0;
+    border-radius: 3px;
+}
+
+.op-card__body .unity-scroller .unity-base-slider__dragger:hover {
+    background-color: rgb(255, 158, 64);
+}
+
+.op-card__body .unity-scroller .unity-button {
+    background-color: rgb(26, 40, 55);
+    border-width: 0;
 }
 
 .op-card__title {
     -unity-font-style: bold;
-    font-size: 18px;
+    font-size: 19px;
     color: rgb(255, 158, 64);
-    margin-bottom: 10px;
+    margin-bottom: 0;
+    white-space: normal;
 }
 
 /* 一条「看点」= 单个富文本 Label（橙色小标题行 + 灰色说明行，颜色/字号走 rich text 标签）。
    刻意不做「标题 Label + 说明 Label 套容器」的嵌套：容器高度按子元素首轮（未换行）测量结果结算、
    说明换行后不回填父高，条目会互相压叠——单 Label 自测自高没有这层不同步。 */
 .op-bullet {
-    font-size: 11px;
-    color: rgb(184, 196, 217);
+    font-size: 12px;
+    color: rgb(191, 205, 223);
     white-space: normal;
-    margin-bottom: 7px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(39, 57, 75);
 }
 
 /* 脚注小灰字（指向文档路径等） */
 .op-hint {
-    color: rgb(140, 153, 173);
-    font-size: 10px;
+    color: rgb(156, 173, 194);
+    font-size: 11px;
     margin-top: 4px;
     white-space: normal;
 }
 
 /* 卡片内按钮比全屏页按钮矮一档 */
 .op-card .op-btn {
-    height: 30px;
+    height: 34px;
     margin-top: 6px;
 }
 
 /* ── 设置弹窗 ─────────────────────────────────────────── */
 
-.op-card--settings { width: 380px; }
+.op-card--settings { width: 460px; }
+
+.op-settings-audio {
+    padding-bottom: 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(43, 62, 81);
+}
 
 .op-slider {
-    margin: 6px 0;
+    margin: 7px 0;
     color: rgb(217, 224, 242);
+}
+
+.op-slider .unity-base-field__label { min-width: 72px; color: rgb(217, 224, 242); }
+
+.op-slider .unity-base-slider__tracker {
+    background-color: rgb(52, 74, 96);
+    border-color: rgb(76, 99, 120);
+    border-radius: 3px;
+}
+
+.op-slider .unity-base-slider__dragger {
+    background-color: rgb(255, 158, 64);
+    background-image: none;
+    border-width: 2px;
+    border-color: rgb(18, 26, 36);
+    border-radius: 4px;
+}
+
+.op-slider:hover .unity-base-slider__dragger { background-color: rgb(255, 184, 106); }
+
+.op-slider:focus .unity-base-slider__dragger,
+.op-slider .unity-base-slider__input:focus .unity-base-slider__dragger {
+    border-color: rgb(255, 222, 180);
+}
+
+.op-slider:disabled .unity-base-slider__dragger {
+    background-color: rgb(115, 131, 149);
+    border-color: rgb(24, 35, 49);
+}
+
+.op-card .unity-base-popup-field__input,
+.op-page .unity-base-popup-field__input {
+    color: rgb(217, 224, 242);
+    background-color: rgb(28, 43, 59);
+    background-image: none;
+    border-width: 2px;
+    border-color: rgb(76, 99, 120);
+    border-radius: 5px;
+}
+
+.op-card .unity-base-popup-field__input:hover,
+.op-page .unity-base-popup-field__input:hover {
+    background-color: rgb(41, 60, 79);
+    border-color: rgb(255, 158, 64);
+}
+
+.op-card .unity-base-popup-field:focus > .unity-base-popup-field__input,
+.op-page .unity-base-popup-field:focus > .unity-base-popup-field__input,
+.op-card .unity-base-popup-field__input:focus,
+.op-page .unity-base-popup-field__input:focus {
+    border-color: rgb(255, 206, 150);
+}
+
+.op-card .unity-base-popup-field__text,
+.op-page .unity-base-popup-field__text { color: rgb(217, 224, 242); }
+
+.op-card .unity-base-popup-field__arrow,
+.op-page .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: rgb(255, 158, 64);
 }
 
 /* 语言选择行：标签 + 两个语言按钮并排 */
@@ -109,31 +384,41 @@
     margin-top: 10px;
 }
 
-.op-lang-row__label { margin-bottom: 0; margin-right: 12px; }
+.op-lang-row__label { width: 80px; flex-shrink: 0; font-size: 12px; margin-bottom: 0; margin-right: 8px; }
 
-.op-btn--lang {
-    min-width: 96px;
+.op-btn--lang,
+.op-card .op-btn--lang {
+    min-width: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
     margin-top: 0;
     margin-right: 8px;
     border-width: 2px;
-    border-color: rgba(0, 0, 0, 0);
+    border-color: rgb(76, 99, 120);
 }
 
 /* 当前语言的按钮描边高亮（代码按 Locale 切换该类；后端选择行复用同一套类） */
-.op-btn--lang-active { border-color: rgb(255, 158, 64); }
+.op-btn--lang-active {
+    color: rgb(255, 184, 106);
+    background-color: rgb(63, 48, 33);
+    border-color: rgb(255, 158, 64);
+}
+
+.op-btn--lang-active:hover:enabled { background-color: rgb(81, 59, 35); }
+.op-btn--lang-active:focus { border-color: rgb(255, 222, 180); }
 
 /* 设置项下的小字提示（如后端切换「下一局生效」） */
 .op-settings__hint {
     font-size: 11px;
-    color: rgb(140, 150, 178);
-    margin-top: 2px;
+    color: rgb(156, 173, 194);
+    margin-top: 5px;
     white-space: normal;
 }
 
 /* 扩展内容区（增援电台）：浅色顶边与滑条区分隔 */
 .op-expansion {
-    margin-top: 12px;
-    padding-top: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
     border-top-width: 1px;
     border-top-color: rgba(120, 132, 165, 0.35);
 }
@@ -151,8 +436,8 @@
 
 .op-expansion__desc {
     font-size: 11px;
-    color: rgb(140, 150, 178);
-    margin-top: 2px;
+    color: rgb(156, 173, 194);
+    margin-top: 5px;
     white-space: normal;
 }
 
@@ -173,7 +458,7 @@
 
 /* ── 排行榜弹窗 ───────────────────────────────────────── */
 
-.op-card--leaderboard { width: 430px; }
+.op-card--leaderboard { width: 520px; }
 
 .op-lb-list { margin-top: 2px; margin-bottom: 8px; }
 
@@ -181,8 +466,10 @@
 .op-lb-row {
     flex-direction: row;
     align-items: center;
-    padding: 3px 6px;
+    padding: 8px;
     border-radius: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(39, 57, 75);
 }
 
 .op-lb-row__rank {

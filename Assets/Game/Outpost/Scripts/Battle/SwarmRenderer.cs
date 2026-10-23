@@ -42,14 +42,14 @@ namespace Game.Outpost.Battle
         private const float ProjectileZ = -0.3f;       // 单位(0)之前、脉冲(-0.2)之后——弹流叠在敌人海上但不压特效
         private const float ProjectileLength = 0.55f;  // 普通弹拖尾总长（世界单位）：约为单帧位移的 1.4 倍，读成运动光痕。曳光弹在此基础上按档位拉长
 
-        // 曳光弹配色（索引 = ProjectileSnapshot.Tracer 档位）：普通弹青白，第 10/100/1000 发换色，直观展示已射子弹量。
+        // 曳光弹配色（索引 = ProjectileSnapshot.Tracer 档位）：普通弹冷白，与青蓝雷达分离；里程碑保留换色。
         // 亮度逐级拉高（HDR 值越大 Bloom 溢得越狠）——曳光弹要在满屏弹流里一眼可辨，故明显亮过普通弹与敌人本体色。
         private static readonly Color[] TracerColors =
         {
-            new(0.9f, 3.2f, 3.0f, 1f),  // 0 普通：青白（保持原样）
-            new(6.0f, 3.2f, 0.7f, 1f),  // 1 每十：炽暖琥珀
-            new(1.8f, 7.0f, 1.0f, 1f),  // 2 每百：亮绿金里程碑
-            new(8.0f, 1.5f, 7.5f, 1f),  // 3 每千：灼亮品红（全场最醒目）
+            new(1.55f, 1.85f, 2.15f, 1f), // 0 普通：冷白
+            new(3.5f, 2.9f, 1.2f, 1f),    // 1 每十：亮金（区别于橙色交互）
+            new(2.0f, 3.8f, 2.0f, 1f),    // 2 每百：亮绿金里程碑
+            new(4.0f, 1.5f, 3.7f, 1f),    // 3 每千：品红
         };
 
         // 拖尾长度 / 宽度分开缩放（网格本体：长 1、宽 0.14，尖头朝本地 +X = 飞行方向）。
@@ -63,8 +63,8 @@ namespace Game.Outpost.Battle
         public bool WreckHeatmapVisible { get; set; }
 
         private const float HeatmapZ = 0.42f;                                   // 地板(0.5)与地面环(0.3)之间：垫底不遮内容
-        private static readonly Color HeatCold = new(0.10f, 0.045f, 0.02f, 1f); // 低密度：暗琥珀（略亮于地板）
-        private static readonly Color HeatHot = new(1.8f, 0.55f, 0.12f, 1f);    // 高密度：HDR 橙红（Bloom 发热感）
+        private static readonly Color HeatCold = new(0.075f, 0.060f, 0.045f, 1f);
+        private static readonly Color HeatHot = new(0.42f, 0.23f, 0.12f, 1f); // 不出 Bloom，让活体和弹流保持前景对比
         private float _heatmapFullCount = 50f; // 亮度饱和密度（director 按配置传入 = 减速到下限所需残骸数）
 
         // 每敌人的动画状态（出生 / 白闪时刻 + 呼吸相位）——director 按模拟事件增删，键为敌人实例 id。
@@ -121,6 +121,8 @@ namespace Game.Outpost.Battle
         // 分批绘制缓冲（跨帧复用，零逐帧分配）。
         private readonly Matrix4x4[] _matrices = new Matrix4x4[BatchSize];
         private readonly Vector4[] _colors = new Vector4[BatchSize];
+        private readonly Matrix4x4[] _plateMatrices = new Matrix4x4[BatchSize];
+        private readonly Vector4[] _plateColors = new Vector4[BatchSize];
 
         /// <summary>
         /// 战斗开始时由 director 调用：注入表现参数表并准备实例化材质。
@@ -187,6 +189,7 @@ namespace Game.Outpost.Battle
                 int archId = pair.Key;
                 var v = pair.Value;
                 if (v.Mesh == null) continue;
+                bool plated = !v.FaceTravel && v.Diameter >= 1f;
 
                 int batch = 0;
                 for (int i = 0; i < total; i++)
@@ -203,16 +206,34 @@ namespace Game.Outpost.Battle
 
                     _matrices[batch] = BuildMatrix(snap, v, anim, now);
                     _colors[batch] = BuildColor(snap, v, anim, now);
+                    if (plated)
+                    {
+                        // 大型装甲用第二个实例化内板保留亮色外壳。无逐单位对象，无第二遍快照扫描。
+                        _plateMatrices[batch] = _matrices[batch] * Matrix4x4.Scale(new Vector3(0.62f, 0.62f, 1f));
+                        _plateMatrices[batch].m23 = -0.025f;
+                        var shell = (Color)_colors[batch];
+                        _plateColors[batch] = new Color(0.055f + shell.r * 0.12f,
+                            0.065f + shell.g * 0.12f, 0.085f + shell.b * 0.12f, 1f);
+                    }
                     batch++;
 
                     if (batch == BatchSize)
                     {
-                        Flush(v.Mesh, batch);
+                        FlushUnits(v.Mesh, batch, plated);
                         batch = 0;
                     }
                 }
-                if (batch > 0) Flush(v.Mesh, batch);
+                if (batch > 0) FlushUnits(v.Mesh, batch, plated);
             }
+        }
+
+        private void FlushUnits(Mesh mesh, int count, bool plated)
+        {
+            Flush(mesh, count);
+            if (!plated) return;
+            _mpb.SetVectorArray(BaseColorId, _plateColors);
+            Graphics.DrawMeshInstanced(mesh, 0, _material, _plateMatrices, count, _mpb,
+                ShadowCastingMode.Off, receiveShadows: false);
         }
 
         private void Flush(Mesh mesh, int count)
@@ -492,11 +513,11 @@ namespace Game.Outpost.Battle
             return Matrix4x4.TRS(pos, rot, Vector3.one * (v.Diameter * snap.SizeScale * pop * breath));
         }
 
-        // 血量越低越暗（保底约 1/4 亮度），受击白闪向亮白抬升（HDR 配合 Bloom 出闪光感）。
+        // 低血量仍保留六成颜色，密集战斗中不会与残骸/地面混在一起；受击白闪向冷白抬升。
         private Vector4 BuildColor(in EnemySnapshot snap, in EnemyVisual v, in UnitAnim anim, float now)
         {
             float hpRatio = snap.MaxHp > 0f ? Mathf.Clamp01(snap.Hp / snap.MaxHp) : 0f;
-            var c = Color.Lerp(v.Color * 0.35f, v.Color, 0.25f + 0.75f * hpRatio);
+            var c = v.Color * Mathf.Lerp(0.60f, 1f, hpRatio);
             float flash = anim.FlashUntil > now ? (anim.FlashUntil - now) / _flashDuration : 0f;
             if (flash > 0f) c = Color.Lerp(c, new Color(2f, 2f, 2f, 1f), flash * 0.85f);
             c.a = 1f;

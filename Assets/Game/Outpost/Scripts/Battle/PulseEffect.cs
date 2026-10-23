@@ -17,19 +17,22 @@ namespace Game.Outpost.Battle
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static MaterialPropertyBlock _mpb;
         private static Mesh _ringMesh;
+        private static Mesh _shockRingMesh;
 
         private Color _color;
         private float _fromScale;
         private float _toScale;
         private float _lifetime = 0.3f;
         private float _elapsed;
+        private bool _bright;
 
         public bool IsDone => _elapsed >= _lifetime;
 
         /// <summary>重置并播放一次脉冲（从池借出后调用）。直径从 fromDiameter 扩散到 toDiameter、alpha 线性归零。</summary>
         public void Play(Vector3 worldPos, Color color, float fromDiameter, float toDiameter, float lifetime)
         {
-            if (_meshFilter.sharedMesh == null) _meshFilter.sharedMesh = GetRingMesh();
+            _bright = color.maxColorComponent > 1f;
+            _meshFilter.sharedMesh = GetRingMesh(_bright);
             _color = color;
             _fromScale = fromDiameter;
             _toScale = toDiameter;
@@ -54,20 +57,23 @@ namespace Game.Outpost.Battle
             transform.localScale = new Vector3(s, s, 1f);
 
             var c = _color;
-            c.a *= 1f - t;
+            float fade = 1f - t;
+            c.a *= _bright ? fade * fade : fade;
             _mpb ??= new MaterialPropertyBlock();
             _mpb.SetColor(BaseColorId, c);
             _renderer.SetPropertyBlock(_mpb);
         }
 
         /// <summary>共享环形网格（外径 0.5 = 直径 1，localScale 即最终直径）。</summary>
-        private static Mesh GetRingMesh()
+        private static Mesh GetRingMesh(bool shock)
         {
-            if (_ringMesh != null) return _ringMesh;
+            var cached = shock ? _shockRingMesh : _ringMesh;
+            if (cached != null) return cached;
 
             const int segments = 48;
             const float outer = 0.5f;
-            const float inner = 0.36f;
+            // 高亮冲击环收细、快速回落；非 HDR 烟环仍保留原来的宽度与慢淡出。
+            float inner = shock ? 0.445f : 0.36f;
             var vertices = new Vector3[segments * 2];
             var triangles = new int[segments * 6];
             for (int i = 0; i < segments; i++)
@@ -87,9 +93,11 @@ namespace Game.Outpost.Battle
                 triangles[t + 5] = next * 2;
             }
 
-            _ringMesh = new Mesh { name = "OutpostPulseRing", vertices = vertices, triangles = triangles };
-            _ringMesh.RecalculateBounds();
-            return _ringMesh;
+            cached = new Mesh { name = shock ? "OutpostShockRing" : "OutpostSmokeRing", vertices = vertices, triangles = triangles };
+            cached.RecalculateBounds();
+            if (shock) _shockRingMesh = cached;
+            else _ringMesh = cached;
+            return cached;
         }
     }
 }

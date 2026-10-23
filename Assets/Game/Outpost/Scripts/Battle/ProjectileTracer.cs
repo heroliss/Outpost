@@ -3,8 +3,8 @@ using UnityEngine;
 namespace Game.Outpost.Battle
 {
     /// <summary>
-    /// 弹道曳光：一段发光短棒从炮口飞向命中点后消失。模拟内核是 hitscan（伤害在事件瞬间已结算），
-    /// 曳光纯属演出——飞行速度快到不掩盖"命中点特效已同帧播放"的事实，只负责把"谁在开火、打向哪"画出来。
+    /// 池化的短程光痕 / 击毁碎片。真实在飞弹丸由 SwarmRenderer 读取模拟快照绘制；
+    /// 本组件只做事件之后的表现，不参与命中判定。指定时长的碎片带减速、收缩与余烬淡出。
     /// </summary>
     public sealed class ProjectileTracer : MonoBehaviour, ITimedEffect
     {
@@ -21,8 +21,13 @@ namespace Game.Outpost.Battle
         private Vector3 _to;
         private float _duration;
         private float _elapsed;
+        private bool _debris;
+        private Color _color;
+        private Vector3 _baseScale;
 
         public bool IsDone => _elapsed >= _duration;
+
+        private void Awake() => _baseScale = transform.localScale;
 
         /// <summary>重置并发射一次（从池借出后调用）。两点之间按固定速度直飞。</summary>
         public void Play(Vector3 from, Vector3 to, Color color) => Play(from, to, color, -1f);
@@ -36,10 +41,14 @@ namespace Game.Outpost.Battle
             _from = from;
             _to = to;
             _elapsed = 0f;
-            _duration = durationOverride > 0f ? durationOverride : Mathf.Max(0.02f, Vector3.Distance(from, to) / _speed);
+            _debris = durationOverride > 0f;
+            _color = color;
+            _duration = _debris ? durationOverride : Mathf.Max(0.02f, Vector3.Distance(from, to) / Mathf.Max(0.01f, _speed));
 
             var dir = to - from;
-            transform.SetPositionAndRotation(from, Quaternion.FromToRotation(Vector3.right, dir.normalized));
+            transform.SetPositionAndRotation(from, dir.sqrMagnitude > 0f
+                ? Quaternion.FromToRotation(Vector3.right, dir.normalized) : Quaternion.identity);
+            transform.localScale = _baseScale;
 
             _mpb ??= new MaterialPropertyBlock();
             _mpb.SetColor(BaseColorId, color);
@@ -50,7 +59,16 @@ namespace Game.Outpost.Battle
         {
             if (IsDone) return;
             _elapsed += Time.deltaTime;
-            transform.position = Vector3.Lerp(_from, _to, Mathf.Clamp01(_elapsed / _duration));
+            float t = Mathf.Clamp01(_elapsed / _duration);
+            float travel = _debris ? 1f - (1f - t) * (1f - t) : t;
+            transform.position = Vector3.Lerp(_from, _to, travel);
+            if (!_debris) return;
+
+            transform.localScale = _baseScale * Mathf.Lerp(1f, 0.25f, t);
+            var c = _color * Mathf.Lerp(1f, 0.30f, t);
+            c.a = _color.a * (1f - t) * (1f - t);
+            _mpb.SetColor(BaseColorId, c);
+            _renderer.SetPropertyBlock(_mpb);
         }
     }
 }
