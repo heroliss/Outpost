@@ -26,6 +26,9 @@ namespace Game.Outpost.Battle
         [SerializeField, Tooltip("发光核心颜色（HDR，分量 > 1 触发 Bloom 出光晕）。")]
         private Color _coreColor = new(0.4f, 3.0f, 2.8f, 1f);
 
+        [SerializeField, Tooltip("工事使用的 URP Unlit 材质模板；显式资产引用随战斗场景进入资源包，避免依赖 Player 的全局按名查找。")]
+        private Material _emplacementMaterial;
+
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float CoreBaseScale = 0.34f;
 
@@ -60,14 +63,19 @@ namespace Game.Outpost.Battle
         // 底座换六边形工事 + 中心发光核心（都程序生成、仅运行时改，不动场景资产）。
         private void BuildEmplacement()
         {
-            // 无 URP 时优雅跳过（不炸）——保留原始底座外观。
-            var shader = Shader.Find("Universal Render Pipeline/Unlit");
-            if (shader == null) return;
+            // 模板由场景序列化持有，连同所需 shader/variant 一起被资源构建管线收集。
+            // 缺配置必须暴露错误，不能把正式包静默降级回原始方块炮塔。
+            if (_emplacementMaterial == null || _emplacementMaterial.shader == null ||
+                !_emplacementMaterial.shader.isSupported)
+            {
+                Debug.LogError("[TurretView] 缺少受支持的工事材质模板，无法创建六边形底座和发光核心。", this);
+                return;
+            }
 
-            _baseMat = new Material(shader);
+            _baseMat = new Material(_emplacementMaterial);
             _baseMat.SetColor(BaseColorId, new Color(0.24f, 0.29f, 0.36f, 1f));
             // 克制核心亮度，保留机械轮廓；雷达、炮台的青蓝与敌人配置色继续分工。
-            _coreMat = new Material(shader);
+            _coreMat = new Material(_emplacementMaterial);
             _coreMat.SetColor(BaseColorId, _coreColor * 0.60f);
 
             CreatePart("Foundation", transform, OutpostMeshes.Hexagon,

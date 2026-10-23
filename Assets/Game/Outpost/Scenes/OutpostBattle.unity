@@ -1011,6 +1011,7 @@ MonoBehaviour:
   _muzzle: {fileID: 33407334}
   _recoilKick: 0.16
   _coreColor: {r: 0.4, g: 3, b: 2.8, a: 1}
+  _emplacementMaterial: {fileID: 2100000, guid: 0bd2239550dedd0499c3ff4424b3d9f6, type: 2}
 --- !u!1 &424952405
 GameObject:
   m_ObjectHideFlags: 0

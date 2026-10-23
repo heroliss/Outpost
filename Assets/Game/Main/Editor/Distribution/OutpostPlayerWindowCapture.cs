@@ -28,12 +28,26 @@ namespace Game.Main.Distribution.Editor
         [DllImport("user32.dll")] private static extern IntPtr GetWindowDC(IntPtr window);
         [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr window, IntPtr dc);
         [DllImport("user32.dll", SetLastError = true)] private static extern bool PrintWindow(IntPtr window, IntPtr dc, uint flags);
+        [DllImport("user32.dll", SetLastError = true)] private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
         [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleDC(IntPtr dc);
         [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleBitmap(IntPtr dc, int width, int height);
         [DllImport("gdi32.dll")] private static extern IntPtr SelectObject(IntPtr dc, IntPtr obj);
         [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr obj);
         [DllImport("gdi32.dll")] private static extern bool DeleteDC(IntPtr dc);
         [DllImport("gdi32.dll", SetLastError = true)] private static extern int GetDIBits(IntPtr dc, IntPtr bitmap, uint start, uint lines, byte[] data, ref BitmapInfo info, uint colorMode);
+
+        /// <summary>发送真实窗口关闭消息，让 Player 执行自己的正常退出与存档清理。</summary>
+        public static void RequestClose(int playerProcessId)
+        {
+            using var process = Process.GetProcessById(playerProcessId);
+            if (!string.Equals(Path.GetFileName(process.MainModule.FileName), "Outpost.exe", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("指定进程并非 Outpost.exe。");
+            IntPtr window = process.MainWindowHandle;
+            if (window == IntPtr.Zero)
+                throw new InvalidOperationException("Player 窗口尚未建立。");
+            if (!PostMessage(window, 0x0010, IntPtr.Zero, IntPtr.Zero))
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "无法发送 Player WM_CLOSE。");
+        }
 
         public static string Capture(int playerProcessId, string destination)
         {

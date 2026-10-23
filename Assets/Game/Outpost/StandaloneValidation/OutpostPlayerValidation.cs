@@ -43,6 +43,12 @@ namespace Game.Outpost.StandaloneValidation
             public int wave;
             public string callsign;
             public string backend;
+            public string emplacementShader;
+            public string shaderFindResult;
+            public bool turretFoundation;
+            public bool turretCore;
+            public int armorBraceCount;
+            public int foundationVertexCount;
             public string locale;
             public float masterVolume;
             public bool heatmap;
@@ -163,6 +169,7 @@ namespace Game.Outpost.StandaloneValidation
                         (battle = UnityEngine.Object.FindFirstObjectByType<BattleContext>()) != null &&
                         battle.ExecuteCommand(new GetBattleReadModelCommand()).IsReady.CurrentValue,
                         "真实战斗场景和导演就绪", 90f);
+                    await ValidateTurretVisuals();
                     battle.ExecuteCommand(new SetAutoManageCommand(false));
                     root.ExecuteCommand(new SetSimSpeedCommand(4f));
                     await Wait(() => battle.ExecuteCommand(new GetBattleReadModelCommand()).Kills.CurrentValue > 0,
@@ -218,6 +225,37 @@ namespace Game.Outpost.StandaloneValidation
                 Debug.LogException(exception);
                 Application.Quit(1);
             }
+        }
+
+        private async UniTask ValidateTurretVisuals()
+        {
+            var turret = UnityEngine.Object.FindFirstObjectByType<TurretView>();
+            Require(turret != null, "真实炮塔表现组件存在");
+            var foundation = turret.transform.Find("Foundation");
+            var core = turret.transform.Find("Core");
+            _receipt.turretFoundation = foundation != null;
+            _receipt.turretCore = core != null;
+            _receipt.armorBraceCount = turret.transform.Cast<Transform>()
+                .Count(child => child.name == "ArmorBrace");
+            var found = Shader.Find("Universal Render Pipeline/Unlit");
+            _receipt.shaderFindResult = found != null ? found.name : "missing";
+            Require(_receipt.turretFoundation && _receipt.turretCore && _receipt.armorBraceCount == 6,
+                "正式 Player 实际创建工事底座、核心和六根支撑");
+            var foundationRenderer = foundation.GetComponent<MeshRenderer>();
+            var coreRenderer = core.GetComponent<MeshRenderer>();
+            var mesh = foundation.GetComponent<MeshFilter>()?.sharedMesh;
+            Require(mesh != null, "工事实际使用程序网格");
+            _receipt.foundationVertexCount = mesh.vertexCount;
+            Require(mesh.vertexCount >= 6, "工事底座包含六边形几何");
+            _receipt.emplacementShader = foundationRenderer.sharedMaterial.shader.name;
+            Require(_receipt.emplacementShader == "Universal Render Pipeline/Unlit" &&
+                foundationRenderer.sharedMaterial.shader.isSupported &&
+                coreRenderer.sharedMaterial.shader.name == _receipt.emplacementShader &&
+                coreRenderer.sharedMaterial.shader.isSupported,
+                "工事与核心实际材质使用受支持的 URP Unlit shader");
+            await Wait(() => foundationRenderer.isVisible && coreRenderer.isVisible,
+                "工事底座与核心进入真实相机可见集合", 10f);
+            Save();
         }
 
         private async UniTask CheckPersistence(OutpostContext root, IStorageUtility storage)
