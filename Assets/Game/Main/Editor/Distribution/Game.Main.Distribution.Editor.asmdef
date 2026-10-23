@@ -1,0 +1,14 @@
+{
+  "name": "Game.Main.Distribution.Editor",
+  "rootNamespace": "Game.Main.Distribution.Editor",
+  "references": ["Game.Framework", "Game.Framework.Build.Editor", "HybridCLR.Editor", "YooAsset", "YooAsset.Editor"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

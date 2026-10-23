@@ -20,6 +20,8 @@ git submodule update --init --recursive
 
 教程章节、项目规则和验证入口位于 `Assets/Game/Outpost/Documentation~` 与 `docs/`；当前升级与验证范围见 [`docs/framework-compatibility.md`](docs/framework-compatibility.md)。
 
+Windows 离线演示包的构建配方、分发内容与同一正式二进制的显式验收入口见 [Windows 分发说明](docs/windows-distribution.md)。普通启动不会运行自动演示；节点绑定与代码生成的独立 Editor 样例位于 `Assets/ShowcaseSamples/UIBinding`。
+
 ## 分支与发布
 
 - `main`：可运行的稳定线。

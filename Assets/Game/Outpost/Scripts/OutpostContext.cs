@@ -45,7 +45,11 @@ namespace Game.Outpost
 
             // 本地存档（历史战绩）：跨局常驻服务与数据都挂根 Context——战斗子 Context 撤了它们还在。
             // StorageUtility 默认走 persistentDataPath/storage + JSON；RegisterOwnedUtility 随根 Context 释放 provider（§26 推荐）。
+#if OUTPOST_STANDALONE_VALIDATION && !UNITY_EDITOR
+            builder.RegisterOwnedUtility(StandaloneValidation.OutpostPlayerValidation.CreateStorage());
+#else
             builder.RegisterOwnedUtility(new StorageUtility());
+#endif
             builder.RegisterModel(new PlayerRecordModel());
 
             // 战斗偏好（模拟后端选择，ADR-0030 的双后端切换入口）：跨局常驻挂根，设置窗写、导演每局开局采样。
