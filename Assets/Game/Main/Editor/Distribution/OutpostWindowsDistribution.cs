@@ -21,6 +21,8 @@ namespace Game.Main.Distribution.Editor
         private const string SourceScene = "Assets/Game/Outpost/Scenes/OutpostGame.unity";
         private const string StagingRoot = "Assets/__OutpostDistributionStaging";
         private const string StagedScene = StagingRoot + "/OutpostGame.unity";
+        private const string BattleScene = "Assets/Game/Outpost/Scenes/OutpostBattle.unity";
+        private const string SwarmMaterial = "Assets/Game/Outpost/Res/Materials/SwarmInstanced.mat";
 
         [Serializable]
         public sealed class BundleFile { public string FileName; public long FileSize; }
@@ -44,6 +46,7 @@ namespace Game.Main.Distribution.Editor
             public int warnings;
             public bool originalSettingsRestored;
             public string[] packages;
+            public string instancingVariants;
         }
 
         /// <summary>在 Edit 模式、Windows64 平台执行；目标必须为空目录，产物不会覆盖旧包。</summary>
@@ -56,6 +59,11 @@ namespace Game.Main.Distribution.Editor
             for (int i = 0; i < SceneManager.sceneCount; i++)
                 if (SceneManager.GetSceneAt(i).isDirty)
                     throw new InvalidOperationException("存在未保存场景；请先明确保存后再构建。");
+            var swarmMaterial = AssetDatabase.LoadAssetAtPath<Material>(SwarmMaterial);
+            if (swarmMaterial == null || swarmMaterial.shader == null ||
+                swarmMaterial.shader.name != "Outpost/SwarmUnlit" || !swarmMaterial.enableInstancing ||
+                !AssetDatabase.GetDependencies(BattleScene, true).Contains(SwarmMaterial))
+                throw new InvalidOperationException("战斗场景必须依赖启用 GPU instancing 的 SwarmInstanced.mat。");
 
             string output = Path.GetFullPath(destinationDirectory);
             if (!Path.IsPathFullyQualified(destinationDirectory) ||
@@ -92,9 +100,21 @@ namespace Game.Main.Distribution.Editor
             int width = PlayerSettings.defaultScreenWidth;
             int height = PlayerSettings.defaultScreenHeight;
             var screenMode = PlayerSettings.fullScreenMode;
+            var graphicsSettings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset")[0]);
+            var instancingStripping = graphicsSettings.FindProperty("m_InstancingStripping");
+            int previousInstancingStripping = instancingStripping.intValue;
             FrameworkAssetBuildProfile copy = null;
             try
             {
+                // SwarmRenderer uses DrawMeshInstanced with runtime-created materials. Both
+                // SBP/YooAsset bundles and the Player must retain their instancing variants.
+                int keepAllIndex = Array.FindIndex(instancingStripping.enumNames,
+                    name => name.Replace(" ", "") == "KeepAll");
+                if (keepAllIndex < 0) throw new InvalidOperationException("当前 Unity 未提供 KeepAll 实例化变体设置。");
+                instancingStripping.enumValueIndex = keepAllIndex;
+                graphicsSettings.ApplyModifiedPropertiesWithoutUndo();
+                receipt.instancingVariants = "KeepAll";
+                AssetDatabase.SaveAssets();
                 HybridCLRSettings.Instance.enable = false;
                 HybridCLRSettings.Save();
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.IL2CPP);
@@ -209,6 +229,11 @@ namespace Game.Main.Distribution.Editor
                 Restore(() => { HybridCLRSettings.Instance.enable = hybridEnabled; HybridCLRSettings.Save(); });
                 Restore(() => PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, backend));
                 Restore(() => {
+                    graphicsSettings.Update();
+                    graphicsSettings.FindProperty("m_InstancingStripping").intValue = previousInstancingStripping;
+                    graphicsSettings.ApplyModifiedPropertiesWithoutUndo();
+                });
+                Restore(() => {
                     PlayerSettings.companyName = company;
                     PlayerSettings.runInBackground = previousBackground;
                     PlayerSettings.resizableWindow = previousResizable;
@@ -218,7 +243,12 @@ namespace Game.Main.Distribution.Editor
                     PlayerSettings.fullScreenMode = screenMode;
                     EditorUserBuildSettings.development = previousDevelopment;
                 });
-                Restore(() => EditorSceneManager.RestoreSceneManagerSetup(scenes));
+                Restore(() => {
+                    if (scenes.Any(scene => scene.isLoaded && !string.IsNullOrEmpty(scene.path)))
+                        EditorSceneManager.RestoreSceneManagerSetup(scenes);
+                    else
+                        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                });
                 Restore(() => { if (AssetDatabase.IsValidFolder(StagingRoot)) AssetDatabase.DeleteAsset(StagingRoot); });
                 Restore(AssetDatabase.SaveAssets);
                 receipt.originalSettingsRestored = restored;

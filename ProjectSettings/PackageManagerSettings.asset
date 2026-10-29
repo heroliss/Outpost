@@ -37,6 +37,11 @@ MonoBehaviour:
     m_Url: https://package.openupm.com
     m_Scopes:
     - com.tuyoogame.yooasset
+    - com.cysharp.unitask
+    - com.cysharp.r3
+    - com.code-philosophy.luban
+    - com.code-philosophy.hybridclr
+    - org.nuget
     m_IsDefault: 0
     m_IsUnityRegistry: 0
     m_Capabilities: 0
@@ -50,7 +55,7 @@ MonoBehaviour:
     m_Modified: 0
     m_ErrorMessage: 
     m_UserModificationsEntityId:
-      m_rawData: 1099511629096
+      m_rawData: 1099511629087
     m_OriginalEntityId:
-      m_rawData: 1099511629097
+      m_rawData: 1099511629089
   m_LoadAssets: 0

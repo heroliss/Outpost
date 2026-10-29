@@ -3808,6 +3808,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f4fe55cedd66bb47b003f7c2edd3946, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Outpost::Game.Outpost.Battle.SwarmRenderer
+  _materialTemplate: {fileID: 2100000, guid: 47995c60f6823e04bbc43dce40bf101c, type: 2}
   _shader: {fileID: 4800000, guid: cc4ffd4e220327a41ae597e8025a2eb4, type: 3}
   _popDuration: 0.18
   _flashDuration: 0.12

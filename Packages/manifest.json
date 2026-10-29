@@ -71,7 +71,12 @@
       "name": "package.openupm.com",
       "url": "https://package.openupm.com",
       "scopes": [
-        "com.tuyoogame.yooasset"
+        "com.tuyoogame.yooasset",
+        "com.cysharp.unitask",
+        "com.cysharp.r3",
+        "com.code-philosophy.luban",
+        "com.code-philosophy.hybridclr",
+        "org.nuget"
       ]
     }
   ]

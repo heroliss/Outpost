@@ -17,6 +17,7 @@ using Game.Outpost.Net;
 using Game.Outpost.Save;
 using Game.Outpost.Windows;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
@@ -49,6 +50,16 @@ namespace Game.Outpost.StandaloneValidation
             public bool turretCore;
             public int armorBraceCount;
             public int foundationVertexCount;
+            public string swarmShader;
+            public bool swarmShaderSupported;
+            public bool swarmMaterialInstancing;
+            public bool systemSupportsInstancing;
+            public int enemySnapshotCount;
+            public int projectileSnapshotCount;
+            public int enemyRenderedPixels;
+            public int enemyControlColorPixels;
+            public int projectileRenderedPixels;
+            public int projectileControlColorPixels;
             public string locale;
             public float masterVolume;
             public bool heatmap;
@@ -163,6 +174,14 @@ namespace Game.Outpost.StandaloneValidation
                     Submit(settingsWindow.Root.Q<Button>("close"));
                     await Wait(() => !ui.IsOpen<SettingsWindow>(), "设置页关闭按钮", 30f);
                     await Capture("01-title.png");
+                    string requestedBackend = Argument("--validate-backend");
+                    if (requestedBackend != null)
+                    {
+                        if (!Enum.TryParse<BattleSimBackend>(requestedBackend, true, out var backend) ||
+                            !Enum.IsDefined(typeof(BattleSimBackend), backend))
+                            throw new ArgumentException("--validate-backend 仅支持 Ecs 或 Reference。");
+                        root.ExecuteCommand(new SetBattleBackendCommand(backend));
+                    }
                     Submit(ui.Get<TitleWindow>().Root.Q<Button>("start"));
                     BattleContext battle = null;
                     await Wait(() => flow.Current is BattleState &&
@@ -171,6 +190,7 @@ namespace Game.Outpost.StandaloneValidation
                         "真实战斗场景和导演就绪", 90f);
                     await ValidateTurretVisuals();
                     battle.ExecuteCommand(new SetAutoManageCommand(false));
+                    await ValidateSwarmVisuals();
                     root.ExecuteCommand(new SetSimSpeedCommand(4f));
                     await Wait(() => battle.ExecuteCommand(new GetBattleReadModelCommand()).Kills.CurrentValue > 0,
                         "真实模拟产生击杀", 90f);
@@ -256,6 +276,128 @@ namespace Game.Outpost.StandaloneValidation
             await Wait(() => foundationRenderer.isVisible && coreRenderer.isVisible,
                 "工事底座与核心进入真实相机可见集合", 10f);
             Save();
+        }
+
+        private async UniTask ValidateSwarmVisuals()
+        {
+            var swarm = UnityEngine.Object.FindFirstObjectByType<SwarmRenderer>();
+            Require(swarm != null, "真实战斗 SwarmRenderer 存在");
+            await Wait(() => swarm.ValidationMaterial != null, "实例化战斗材质已初始化", 15f);
+            var material = swarm.ValidationMaterial;
+            _receipt.swarmShader = material.shader != null ? material.shader.name : "missing";
+            _receipt.swarmShaderSupported = material.shader != null && material.shader.isSupported;
+            _receipt.swarmMaterialInstancing = material.enableInstancing;
+            _receipt.systemSupportsInstancing = SystemInfo.supportsInstancing;
+            Save();
+            Require(_receipt.swarmShader == "Outpost/SwarmUnlit" && _receipt.swarmShaderSupported,
+                "敌人与弹丸实际材质使用受支持的 Outpost/SwarmUnlit shader");
+            Require(_receipt.systemSupportsInstancing && _receipt.swarmMaterialInstancing,
+                "设备与真实战斗材质均启用 GPU instancing");
+
+            swarm.ValidationSamplingEnabled = true;
+            try
+            {
+                await ValidateSwarmLayer(swarm, false);
+                await ValidateSwarmLayer(swarm, true);
+            }
+            finally { swarm.ValidationSamplingEnabled = false; }
+        }
+
+        private async UniTask ValidateSwarmLayer(SwarmRenderer swarm, bool projectile)
+        {
+            Mesh mesh = null;
+            Matrix4x4 matrix = Matrix4x4.identity;
+            Vector4 color = Vector4.zero;
+            Camera camera = null;
+            string label = projectile ? "弹丸" : "敌人";
+            await Wait(() => (camera = Camera.main) != null &&
+                (projectile ? swarm.ValidationProjectileCount : swarm.ValidationEnemyCount) > 0 &&
+                swarm.TryGetValidationSample(projectile, out mesh, out matrix, out color) &&
+                SampleIsVisible(camera, mesh, matrix),
+                "真实模拟和渲染路径产生相机可见的" + label + "样本", 60f);
+            if (projectile) _receipt.projectileSnapshotCount = swarm.ValidationProjectileCount;
+            else _receipt.enemySnapshotCount = swarm.ValidationEnemyCount;
+
+            // First instance keeps the actual runtime mesh, transform and color. A second,
+            // offset copy has a distinct control color: missing INSTANCING_ON variants or
+            // a plain white fallback cannot satisfy both independent pixel assertions.
+            var controlColor = new Vector4(0.13f, 0.79f, 0.31f, 1f);
+            var center = camera.WorldToViewportPoint(matrix.MultiplyPoint3x4(mesh.bounds.center));
+            float offset = center.x > 0.5f ? -1.8f : 1.8f;
+            var matrices = new[] { matrix, Matrix4x4.Translate(camera.transform.right * offset) * matrix };
+            var colors = new[] { color, controlColor };
+            int width = Mathf.Clamp(camera.pixelWidth, 640, 1920);
+            int height = Mathf.Clamp(camera.pixelHeight, 360, 1080);
+            var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32,
+                RenderTextureReadWrite.Linear) { name = "Outpost explicit " + label + " pixel proof" };
+            var pixels = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+            var previousTarget = RenderTexture.active;
+            try
+            {
+                target.Create();
+                var properties = new MaterialPropertyBlock();
+                properties.SetVectorArray(Shader.PropertyToID("_BaseColor"), colors);
+                using (var commands = new CommandBuffer { name = "Outpost explicit " + label + " instancing proof" })
+                {
+                    commands.SetRenderTarget(target);
+                    commands.ClearRenderTarget(true, true, Color.black);
+                    commands.SetViewport(new Rect(0, 0, width, height));
+                    commands.SetViewProjectionMatrices(camera.worldToCameraMatrix,
+                        GL.GetGPUProjectionMatrix(camera.projectionMatrix, true));
+                    commands.DrawMeshInstanced(mesh, 0, swarm.ValidationMaterial, 0, matrices, 2, properties);
+                    Graphics.ExecuteCommandBuffer(commands);
+                }
+                RenderTexture.active = target;
+                pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
+                pixels.Apply(false, false);
+                string filename = projectile ? "03-projectile-instancing-proof.png" : "03-enemy-instancing-proof.png";
+                string path = Path.Combine(_captures, filename);
+                File.WriteAllBytes(path, pixels.EncodeToPNG());
+                _receipt.screenshots.Add(path);
+                int actualPixels = CountColorPixels(pixels.GetPixels32(), color);
+                int controlPixels = CountColorPixels(pixels.GetPixels32(), controlColor);
+                if (projectile)
+                {
+                    _receipt.projectileRenderedPixels = actualPixels;
+                    _receipt.projectileControlColorPixels = controlPixels;
+                }
+                else
+                {
+                    _receipt.enemyRenderedPixels = actualPixels;
+                    _receipt.enemyControlColorPixels = controlPixels;
+                }
+                Save();
+                Require(actualPixels >= 2 && controlPixels >= 2,
+                    label + "真实材质/网格/相机矩阵实例化输出实际颜色与独立对照颜色像素");
+            }
+            finally
+            {
+                RenderTexture.active = previousTarget;
+                target.Release();
+                Destroy(target);
+                Destroy(pixels);
+            }
+        }
+
+        private static bool SampleIsVisible(Camera camera, Mesh mesh, Matrix4x4 matrix)
+        {
+            if (mesh == null || matrix.lossyScale.sqrMagnitude < 0.001f) return false;
+            var viewport = camera.WorldToViewportPoint(matrix.MultiplyPoint3x4(mesh.bounds.center));
+            return viewport.z > camera.nearClipPlane && viewport.z < camera.farClipPlane &&
+                viewport.x > 0.06f && viewport.x < 0.94f && viewport.y > 0.06f && viewport.y < 0.94f;
+        }
+
+        private static int CountColorPixels(Color32[] pixels, Vector4 expected)
+        {
+            float red = Mathf.Clamp01(expected.x) * 255f;
+            float green = Mathf.Clamp01(expected.y) * 255f;
+            float blue = Mathf.Clamp01(expected.z) * 255f;
+            int count = 0;
+            foreach (var pixel in pixels)
+                if (Mathf.Abs(pixel.r - red) <= 16f && Mathf.Abs(pixel.g - green) <= 16f &&
+                    Mathf.Abs(pixel.b - blue) <= 16f)
+                    count++;
+            return count;
         }
 
         private async UniTask CheckPersistence(OutpostContext root, IStorageUtility storage)

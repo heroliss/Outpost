@@ -25,7 +25,10 @@ namespace Game.Outpost.Battle
     /// </summary>
     public sealed class SwarmRenderer : MonoBehaviour
     {
-        [SerializeField, Tooltip("实例化无光照 shader（Outpost/SwarmUnlit，支持 per-instance 颜色）。场景引用保证进包。")]
+        [SerializeField, Tooltip("已启用 GPU instancing 的材质模板；让资源构建保留实际使用的实例化 Shader 变体。")]
+        private Material _materialTemplate;
+
+        [SerializeField, Tooltip("旧场景的实例化 Shader 引用；新场景应连接已启用 instancing 的材质模板。")]
         private Shader _shader;
 
         [SerializeField, Tooltip("出生弹出时长（秒），从 0 缩放到目标体型。")]
@@ -36,6 +39,47 @@ namespace Game.Outpost.Battle
 
         private const int BatchSize = 1023; // DrawMeshInstanced 单批上限
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+#if OUTPOST_STANDALONE_VALIDATION && !UNITY_EDITOR
+        public Material ValidationMaterial => _material;
+        public bool ValidationSamplingEnabled { get; set; }
+        public int ValidationEnemyCount { get; private set; }
+        public int ValidationProjectileCount { get; private set; }
+        private Mesh _validationEnemyMesh, _validationProjectileMesh;
+        private Matrix4x4 _validationEnemyMatrix, _validationProjectileMatrix;
+        private Vector4 _validationEnemyColor, _validationProjectileColor;
+
+        public bool TryGetValidationSample(bool projectile, out Mesh mesh, out Matrix4x4 matrix, out Vector4 color)
+        {
+            mesh = projectile ? _validationProjectileMesh : _validationEnemyMesh;
+            matrix = projectile ? _validationProjectileMatrix : _validationEnemyMatrix;
+            color = projectile ? _validationProjectileColor : _validationEnemyColor;
+            return mesh != null;
+        }
+
+        private void CaptureValidationSample(bool projectile, Mesh mesh, int index)
+        {
+            if (!ValidationSamplingEnabled) return;
+            if ((projectile ? _validationProjectileMesh : _validationEnemyMesh) != null) return;
+            var camera = Camera.main;
+            if (camera == null || _matrices[index].lossyScale.x < 0.05f) return;
+            var viewport = camera.WorldToViewportPoint(_matrices[index].GetColumn(3));
+            if (viewport.z <= 0f || viewport.x < 0.08f || viewport.x > 0.92f ||
+                viewport.y < 0.08f || viewport.y > 0.92f) return;
+            if (projectile)
+            {
+                _validationProjectileMesh = mesh;
+                _validationProjectileMatrix = _matrices[index];
+                _validationProjectileColor = _colors[index];
+            }
+            else
+            {
+                _validationEnemyMesh = mesh;
+                _validationEnemyMatrix = _matrices[index];
+                _validationEnemyColor = _colors[index];
+            }
+        }
+#endif
 
         // ── 弹丸层 ──────────────────────────────────────────────────────────
 
@@ -134,14 +178,17 @@ namespace Game.Outpost.Battle
             _visuals = visuals;
             _heatmapFullCount = Mathf.Max(1f, heatmapFullCount);
 
-            var shader = _shader != null ? _shader : Shader.Find("Outpost/SwarmUnlit");
-            if (shader == null)
+            var shader = _materialTemplate != null ? _materialTemplate.shader :
+                (_shader != null ? _shader : Shader.Find("Outpost/SwarmUnlit"));
+            if (shader == null || !shader.isSupported)
             {
                 Log.Error("找不到 Outpost/SwarmUnlit shader（场景引用未接线且 Find 失败），敌人将不可见。",
                     category: nameof(SwarmRenderer), context: this);
                 return;
             }
-            _material = new Material(shader) { enableInstancing = true };
+            // 持久化模板明确声明构建期的 INSTANCING_ON 需求；运行时开关本身无法阻止变体裁剪。
+            _material = _materialTemplate != null ? new Material(_materialTemplate) : new Material(shader);
+            _material.enableInstancing = true;
             _mpb = new MaterialPropertyBlock();
         }
 
@@ -172,6 +219,14 @@ namespace Game.Outpost.Battle
         /// </summary>
         public void Render(IBattleSim sim)
         {
+#if OUTPOST_STANDALONE_VALIDATION && !UNITY_EDITOR
+            if (ValidationSamplingEnabled)
+            {
+                ValidationEnemyCount = sim?.EnemyCount ?? 0;
+                ValidationProjectileCount = sim?.ProjectileCount ?? 0;
+                _validationEnemyMesh = _validationProjectileMesh = null;
+            }
+#endif
             if (_material == null || _visuals == null || sim == null) return;
 
             float now = Time.time;
@@ -206,6 +261,10 @@ namespace Game.Outpost.Battle
 
                     _matrices[batch] = BuildMatrix(snap, v, anim, now);
                     _colors[batch] = BuildColor(snap, v, anim, now);
+#if OUTPOST_STANDALONE_VALIDATION && !UNITY_EDITOR
+                    if (now - anim.SpawnTime >= _popDuration)
+                        CaptureValidationSample(false, v.Mesh, batch);
+#endif
                     if (plated)
                     {
                         // 大型装甲用第二个实例化内板保留亮色外壳。无逐单位对象，无第二遍快照扫描。
@@ -436,6 +495,9 @@ namespace Game.Outpost.Battle
                 _matrices[batch] = Matrix4x4.TRS(pos, Quaternion.Euler(0f, 0f, ang),
                     new Vector3(len, ProjectileLength * TracerWidthScale[tier], 1f)); // z 任意：网格是平的
                 _colors[batch] = TracerColors[tier];
+#if OUTPOST_STANDALONE_VALIDATION && !UNITY_EDITOR
+                CaptureValidationSample(true, mesh, batch);
+#endif
                 batch++;
                 if (batch == BatchSize)
                 {
